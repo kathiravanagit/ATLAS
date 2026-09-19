@@ -1,38 +1,35 @@
 # ATLAS — Advanced Threat Location & Alert System
 
-> AI-powered predictive platform for proactive cybercrime cash-out intervention across Indian cities.
+## Smart India Hackathon 2026 — Problem Statement 26184
 
-**Smart India Hackathon 2026 — Problem Statement 26184**
+### What This Is
 
----
+ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, runs it through an ML pipeline, and predicts **where** the next ATM cash-out is likely to happen — giving law enforcement a lead time window to deploy.
 
-## Overview
+### Honest Scope
 
-ATLAS predicts where the next ATM cash-out is likely to happen by analyzing complaint data, transaction patterns, and geographic signals — giving law enforcement a lead time window to deploy before the fraud completes.
+**What's production-ready:**
 
-The platform combines an ensemble ML pipeline (Random Forest + XGBoost) with a cryptographic evidence chain-of-custody system, role-based access control, and real-time alerting across 8 Indian cities.
+- Security architecture (AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS)
+- Cryptographic evidence chain-of-custody with tamper-evident verification
+- Full-stack application with 49+ API endpoints, 39 passing backend tests, 29 passing E2E tests
+- PostGIS spatial indexing with haversine fallback
+- Multi-city support — 8 cities, 64 ATMs with live city switching on the map
 
----
+**What's a working prototype needing real data:**
 
-## Key Features
+- The ML prediction model (trained on synthetic data — see accuracy note)
+- NLP complaint triage (keyword-based, not transformer-based)
+- Mule network graph analysis (demonstrates the concept, needs real transaction graphs)
 
-| Feature | Description |
-|---------|-------------|
-| **Predictive Analytics** | ML ensemble scores ATM locations by cash-out risk (97.7% accuracy, 95.8% precision) |
-| **Multi-City Coverage** | 8 cities, 64 ATMs with live switching and city-specific predictions |
-| **Evidence Chain** | SHA-256 hash chain with Merkle tree verification for tamper-evident audit trails |
-| **NLP Triage** | Automated complaint classification across 7 cybercrime categories |
-| **Mule Network Analysis** | Graph-based detection of coordinated mule account clusters |
-| **Drift Monitoring** | Population Stability Index tracking for model health |
-| **Real-Time Alerts** | WebSocket + SMS (Twilio) + Email (SMTP) notification pipeline |
-| **Role-Based Access** | 4 roles (Admin, Inspector, Analyst, Bank Officer) with granular permissions |
+**The honest pitch for judges:** "The security infrastructure and evidence chain are built to production standards. The ML pipeline is end-to-end functional and ready for real data. No public Indian cybercrime transaction dataset exists to validate the model against — that's a data access problem, not an engineering one."
 
 ---
 
 ## Security Architecture
 
 | Layer | Implementation |
-|-------|---------------|
+| ------- | --------------- |
 | **Encryption at Rest** | AES-256-GCM for sensitive fields (victim PII, alert messages) |
 | **Authentication** | JWT HS256 — access tokens (1h) + refresh tokens (7d) with rotation & revocation |
 | **Password Hashing** | PBKDF2-HMAC-SHA256 — 600,000 iterations (OWASP 2023) |
@@ -46,12 +43,15 @@ The platform combines an ensemble ML pipeline (Random Forest + XGBoost) with a c
 ## Tech Stack
 
 ### Frontend
+
 React 18 · TypeScript 5.6 (strict) · Vite 5.4 · Tailwind CSS · daisyUI · Recharts · Leaflet · d3-force · React Router 6
 
 ### Backend
+
 Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 (Supabase) / SQLite · PostGIS (auto-detect) · python-jose · passlib
 
 ### AI/ML
+
 scikit-learn 1.5 (RandomForest) · XGBoost 2.1 · SHAP 0.46 · NetworkX 3.3 (Louvain) · IsolationForest · Pandas · NumPy
 
 ---
@@ -59,11 +59,13 @@ scikit-learn 1.5 (RandomForest) · XGBoost 2.1 · SHAP 0.46 · NetworkX 3.3 (Lou
 ## Getting Started
 
 ### Prerequisites
+
 - Python 3.13+
 - Node.js 20+
 - (Optional) PostgreSQL with PostGIS
 
 ### Backend
+
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -72,15 +74,17 @@ uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open **http://localhost:5173**
+Open **<http://localhost:5173>**
 
 ### Seed Database (Optional)
+
 ```bash
 cd backend
 python seed.py
@@ -91,11 +95,11 @@ python seed.py
 ## Demo Credentials
 
 | Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@atlas.gov | admin123 |
-| Inspector | inspector@atlas.gov | inspector123 |
-| Analyst | analyst@atlas.gov | analyst123 |
-| Bank Officer | bank@atlas.gov | bank123 |
+| ------ | ------- | ---------- |
+| Admin | <admin@atlas.gov> | admin123 |
+| Inspector | <inspector@atlas.gov> | inspector123 |
+| Analyst | <analyst@atlas.gov> | analyst123 |
+| Bank Officer | <bank@atlas.gov> | bank123 |
 
 > Demo credentials are plaintext for hackathon evaluation only. Production uses hashed passwords.
 
@@ -104,8 +108,9 @@ python seed.py
 ## API Reference
 
 ### Authentication
+
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | POST | `/api/auth/login` | Login (returns JWT pair) |
 | POST | `/api/auth/register` | Register (pending approval) |
 | POST | `/api/auth/refresh` | Refresh token (revokes old) |
@@ -113,8 +118,9 @@ python seed.py
 | POST | `/api/auth/change-password` | Change password |
 
 ### Predictions & Analytics
+
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | GET | `/api/dashboard` | Dashboard statistics |
 | GET | `/api/predictions/{case_id}` | Prediction for case |
 | GET | `/api/cities/{city}/predictions` | City-specific predictions |
@@ -126,8 +132,9 @@ python seed.py
 | POST | `/api/model/detect-anomaly` | Anomaly detection |
 
 ### Case Management
+
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | GET | `/api/cases` | List cases (PII decrypted for authorized roles) |
 | GET | `/api/alerts` | Active alerts |
 | POST | `/api/alerts` | Create alert |
@@ -135,20 +142,23 @@ python seed.py
 | POST | `/api/review/{case_id}` | Approve / override / dismiss |
 
 ### Evidence & Audit
+
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | POST | `/api/evidence/anchor` | Anchor evidence to hash chain |
 | GET | `/api/evidence/chain` | Full evidence chain |
 | GET | `/api/audit` | Audit trail |
 
 ### NLP & Spatial
+
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| -------- | ---------- | ------------- |
 | POST | `/api/nlp/triage` | Complaint text classification |
 | GET | `/api/cities` | List supported cities |
 | POST | `/api/model/spatial/nearby` | Nearby ATM lookup |
 
 ### Real-Time
+
 | Protocol | Endpoint | Description |
 |----------|----------|-------------|
 | WS | `/ws?ticket=<ticket>` | Live alert stream (ticket auth) |
