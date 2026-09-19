@@ -1,0 +1,15 @@
+
+> sih-predictive-cashout-intelligence@1.0.0 dev
+> vite
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m888[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+/*! 🌼 daisyUI 5.7.32 */
+[33mThe file does not exist at "D:/Code2/sih/frontend/node_modules/.vite/deps/motion_react.js?v=8a6403b8" which is in the optimize deps directory. The dependency might be incompatible with the dep optimizer. Try adding it to `optimizeDeps.exclude`.[39m
+[2m9:15:05 pm[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+Re-optimizing dependencies because vite config has changed
+[2m9:15:05 pm[22m [36m[1m[vite][22m[39m server restarted.

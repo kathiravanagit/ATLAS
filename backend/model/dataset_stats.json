@@ -1,0 +1,108 @@
+{
+  "total_samples": 200000,
+  "positive_ratio": 0.03646,
+  "n_cities": 8,
+  "n_atms": 400,
+  "crime_distribution": {
+    "none": 4388,
+    "UPI Fraud": 842,
+    "Card Cloning": 557,
+    "Phishing": 425,
+    "Investment Fraud": 368,
+    "Identity Theft": 254,
+    "QR Code Fraud": 252,
+    "SIM Swap": 206
+  },
+  "feature_stats": {
+    "distance_from_victim_km": {
+      "mean": 14.811439449999998,
+      "std": 136.43384976165294,
+      "min": 0.0,
+      "max": 1902.38
+    },
+    "historical_crime_density": {
+      "mean": 6.974355,
+      "std": 3.8274143464587027,
+      "min": 1.0,
+      "max": 19.0
+    },
+    "time_window_match": {
+      "mean": 0.547825,
+      "std": 0.4977087581558513,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "atm_type_score": {
+      "mean": 0.663548,
+      "std": 0.21401747758863895,
+      "min": 0.4,
+      "max": 1.0
+    },
+    "suspect_distance_km": {
+      "mean": 15.078985750000001,
+      "std": 136.40898038095378,
+      "min": 0.0,
+      "max": 1902.67
+    },
+    "recent_withdrawal_freq": {
+      "mean": 0.4101925,
+      "std": 0.2500793386949994,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "amount": {
+      "mean": 17942.254689049998,
+      "std": 14303.624544929751,
+      "min": 329.46,
+      "max": 140484.02
+    },
+    "num_mule_accounts": {
+      "mean": 1.032405,
+      "std": 0.338726275408992,
+      "min": 1.0,
+      "max": 8.0
+    },
+    "hour": {
+      "mean": 11.614475,
+      "std": 6.930781027633413,
+      "min": 0.0,
+      "max": 23.0
+    },
+    "day_of_week": {
+      "mean": 2.99944,
+      "std": 1.9969851341830591,
+      "min": 0.0,
+      "max": 6.0
+    },
+    "transaction_velocity": {
+      "mean": 0.17221414499999999,
+      "std": 0.05321365403149694,
+      "min": 0.167,
+      "max": 1.0
+    },
+    "proximity_score": {
+      "mean": 0.935424335,
+      "std": 0.11553261861369539,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "density_score": {
+      "mean": 0.46497792,
+      "std": 0.25514473225337336,
+      "min": 0.067,
+      "max": 1.267
+    },
+    "suspect_proximity": {
+      "mean": 0.9188594499999999,
+      "std": 0.11537565013208254,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "amount_factor": {
+      "mean": 0.119598445,
+      "std": 0.09532068977274277,
+      "min": 0.002,
+      "max": 0.937
+    }
+  }
+}

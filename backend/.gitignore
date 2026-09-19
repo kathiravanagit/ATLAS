@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.pytest_cache/
+model/*.pkl
+model/evidence_chain.json

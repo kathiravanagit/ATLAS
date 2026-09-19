@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment variables (NEVER commit)
+.env
+backend/.env
+
+# Build outputs
+frontend/dist/
+frontend/build/
+*.egg-info/
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Model files (large binaries)
+backend/model/*.pkl
+backend/model/evidence_chain.json
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+frontend/coverage/
+
+# Temporary
+*.tmp
+*.temp
+.cache/

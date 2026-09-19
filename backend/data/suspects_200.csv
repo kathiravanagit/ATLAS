@@ -1,0 +1,201 @@
+id,name,risk_level,city,last_area,accounts_linked,total_amount,active
+SUS-0001,Suspect-001,High,chennai,Anna Nagar Block D,2,38571.41,True
+SUS-0002,Suspect-002,High,kolkata,Dum Dum,3,108022.28,True
+SUS-0003,Suspect-003,High,kolkata,New Market Block C,4,328812.97,True
+SUS-0004,Suspect-004,Medium,delhi,Lajpat Nagar,3,109785.48,True
+SUS-0005,Suspect-005,Medium,bangalore,Indiranagar Block E,5,167318.64,False
+SUS-0006,Suspect-006,Medium,kolkata,Dum Dum Block B,3,367168.16,True
+SUS-0007,Suspect-007,Medium,bangalore,Jayanagar Block C,5,413526.85,True
+SUS-0008,Suspect-008,High,bangalore,Banashankari,3,253921.94,True
+SUS-0009,Suspect-009,Low,ahmedabad,Paldi Block E,4,446748.63,True
+SUS-0010,Suspect-010,High,kolkata,Park Street Block E,6,352212.79,True
+SUS-0011,Suspect-011,High,bangalore,Whitefield Block C,6,222660.1,True
+SUS-0012,Suspect-012,High,delhi,Dwarka Block B,6,120662.14,True
+SUS-0013,Suspect-013,Medium,kolkata,Howrah Block D,4,382254.39,True
+SUS-0014,Suspect-014,Low,puducherry,MG Road Block D,3,436622.59,True
+SUS-0015,Suspect-015,Medium,hyderabad,Banjara Hills Block D,4,201147.92,True
+SUS-0016,Suspect-016,Low,puducherry,Mudaliarpet Block E,4,481057.95,True
+SUS-0017,Suspect-017,Medium,chennai,Chromepet Block B,2,41755.36,True
+SUS-0018,Suspect-018,High,ahmedabad,Science City Road Block E,2,188089.2,True
+SUS-0019,Suspect-019,High,mumbai,Mulund Block D,4,170839.78,False
+SUS-0020,Suspect-020,Medium,mumbai,Dadar,5,156007.14,True
+SUS-0021,Suspect-021,High,kolkata,Behala,4,437802.14,False
+SUS-0022,Suspect-022,High,ahmedabad,CG Road Block E,3,204834.25,False
+SUS-0023,Suspect-023,Medium,delhi,Saket Block C,5,475752.62,True
+SUS-0024,Suspect-024,Medium,delhi,Connaught Place Block B,3,310484.65,False
+SUS-0025,Suspect-025,Medium,chennai,Chromepet,4,425228.87,True
+SUS-0026,Suspect-026,Low,puducherry,Solarpuram Block B,2,195616.74,True
+SUS-0027,Suspect-027,High,delhi,Karol Bagh Block B,5,90277.63,True
+SUS-0028,Suspect-028,High,ahmedabad,Bopal Block B,6,372080.33,True
+SUS-0029,Suspect-029,Medium,delhi,Vasant Kunj,5,180571.18,True
+SUS-0030,Suspect-030,High,puducherry,White Town Block D,3,400969.01,True
+SUS-0031,Suspect-031,Medium,delhi,Rohini,6,44887.14,True
+SUS-0032,Suspect-032,Low,bangalore,MG Road,4,404149.1,True
+SUS-0033,Suspect-033,Low,bangalore,Koramangala Block E,3,53666.83,True
+SUS-0034,Suspect-034,Medium,bangalore,Hebbal Block D,6,43638.06,True
+SUS-0035,Suspect-035,Medium,bangalore,Marathahalli Block D,3,211153.58,True
+SUS-0036,Suspect-036,Low,hyderabad,Jubilee Hills Block E,3,411005.22,True
+SUS-0037,Suspect-037,High,hyderabad,LB Nagar Block D,5,152565.61,True
+SUS-0038,Suspect-038,Medium,ahmedabad,Science City Road Block D,4,384991.01,True
+SUS-0039,Suspect-039,Low,kolkata,New Market Block C,5,93909.04,True
+SUS-0040,Suspect-040,High,chennai,Kodambakkam Block E,2,433487.2,True
+SUS-0041,Suspect-041,Medium,hyderabad,Kukatpally Block C,4,421584.88,True
+SUS-0042,Suspect-042,High,kolkata,Lake Gardens Block B,2,410525.09,True
+SUS-0043,Suspect-043,High,puducherry,Kurumbapet Block B,5,109046.59,False
+SUS-0044,Suspect-044,High,mumbai,Dadar Block B,3,46207.56,True
+SUS-0045,Suspect-045,Low,chennai,Adyar,4,135688.52,False
+SUS-0046,Suspect-046,High,mumbai,Kurla Block E,4,430593.42,True
+SUS-0047,Suspect-047,Medium,mumbai,Vashi,6,352414.23,True
+SUS-0048,Suspect-048,Medium,delhi,Lajpat Nagar,6,51725.4,True
+SUS-0049,Suspect-049,High,mumbai,Dadar,3,84980.59,True
+SUS-0050,Suspect-050,Medium,ahmedabad,Maninagar Block E,6,249815.25,True
+SUS-0051,Suspect-051,Medium,bangalore,MG Road Block E,2,463329.51,True
+SUS-0052,Suspect-052,Medium,hyderabad,Dilshuknagar Block B,6,53847.81,True
+SUS-0053,Suspect-053,Medium,mumbai,Vashi Block C,4,273633.77,True
+SUS-0054,Suspect-054,Medium,hyderabad,Madhapur,5,499462.99,True
+SUS-0055,Suspect-055,Medium,mumbai,Thane Block D,6,388875.03,True
+SUS-0056,Suspect-056,Medium,ahmedabad,Bopal Block D,2,327489.22,True
+SUS-0057,Suspect-057,Medium,ahmedabad,Maninagar Block D,6,477942.31,True
+SUS-0058,Suspect-058,High,delhi,Pitampura Block B,4,151645.87,True
+SUS-0059,Suspect-059,Low,hyderabad,Manikonda Block D,4,172174.24,True
+SUS-0060,Suspect-060,Low,puducherry,Lawspet Block B,6,293510.49,True
+SUS-0061,Suspect-061,High,bangalore,MG Road Block B,5,431223.35,True
+SUS-0062,Suspect-062,Medium,chennai,Porur Block B,6,40994.02,False
+SUS-0063,Suspect-063,Low,ahmedabad,Bopal Block C,3,174146.74,False
+SUS-0064,Suspect-064,Medium,mumbai,Borivali Block E,2,86454.46,True
+SUS-0065,Suspect-065,Medium,bangalore,HSR Layout Block E,6,497184.18,True
+SUS-0066,Suspect-066,Low,chennai,Adyar,6,212887.84,True
+SUS-0067,Suspect-067,High,puducherry,Thattanchavady Block E,6,398309.7,False
+SUS-0068,Suspect-068,Medium,chennai,T Nagar Block B,2,138432.43,True
+SUS-0069,Suspect-069,Low,puducherry,Muthialpet Block B,4,235808.64,True
+SUS-0070,Suspect-070,High,mumbai,Mulund Block E,2,155448.03,True
+SUS-0071,Suspect-071,High,chennai,Kodambakkam Block C,6,433635.97,False
+SUS-0072,Suspect-072,Low,mumbai,Powai Block B,3,231725.68,False
+SUS-0073,Suspect-073,Medium,bangalore,MG Road Block D,4,281962.92,True
+SUS-0074,Suspect-074,Medium,kolkata,Howrah Block B,3,258184.42,True
+SUS-0075,Suspect-075,Low,delhi,Dwarka Block D,3,154812.9,True
+SUS-0076,Suspect-076,Medium,chennai,Adyar Block D,3,152444.88,False
+SUS-0077,Suspect-077,Medium,puducherry,Lawspet Block C,6,309516.94,True
+SUS-0078,Suspect-078,Low,delhi,Pitampura,6,268452.88,True
+SUS-0079,Suspect-079,Low,ahmedabad,Maninagar,4,267403.09,True
+SUS-0080,Suspect-080,Medium,ahmedabad,Ashram Road Block E,4,294669.64,True
+SUS-0081,Suspect-081,Medium,puducherry,Reddiarpalayam Block B,4,172393.81,True
+SUS-0082,Suspect-082,Medium,delhi,Pitampura,5,107514.81,False
+SUS-0083,Suspect-083,Low,ahmedabad,Ashram Road Block D,4,314264.4,True
+SUS-0084,Suspect-084,Medium,bangalore,Marathahalli,3,73618.4,True
+SUS-0085,Suspect-085,Medium,bangalore,Electronic City Block E,5,77392.37,True
+SUS-0086,Suspect-086,High,chennai,T Nagar Block E,5,193063.83,True
+SUS-0087,Suspect-087,Medium,bangalore,Jayanagar Block D,2,356154.35,True
+SUS-0088,Suspect-088,Medium,chennai,Velachery Block E,2,330846.56,True
+SUS-0089,Suspect-089,Medium,chennai,Tambaram Block D,5,113086.37,False
+SUS-0090,Suspect-090,Medium,delhi,Dwarka Block B,4,447107.06,True
+SUS-0091,Suspect-091,Medium,hyderabad,Banjara Hills Block E,6,105543.33,True
+SUS-0092,Suspect-092,High,hyderabad,Banjara Hills Block E,2,479670.6,True
+SUS-0093,Suspect-093,Low,hyderabad,Gachibowli Block D,3,427054.31,True
+SUS-0094,Suspect-094,Medium,puducherry,Kurumbapet Block B,5,71584.18,True
+SUS-0095,Suspect-095,Low,mumbai,Powai Block B,4,379330.77,True
+SUS-0096,Suspect-096,Medium,bangalore,Whitefield Block B,2,208918.48,True
+SUS-0097,Suspect-097,Medium,chennai,T Nagar Block D,5,287764.83,True
+SUS-0098,Suspect-098,High,bangalore,Koramangala Block E,6,357915.79,True
+SUS-0099,Suspect-099,Medium,delhi,Karol Bagh Block C,2,299550.39,True
+SUS-0100,Suspect-100,High,puducherry,Mudaliarpet Block B,6,349536.45,True
+SUS-0101,Suspect-101,High,hyderabad,Kukatpally Block B,3,259448.93,True
+SUS-0102,Suspect-102,Low,mumbai,Powai Block D,3,338749.68,True
+SUS-0103,Suspect-103,Low,mumbai,Andheri Block D,2,160423.86,True
+SUS-0104,Suspect-104,Medium,ahmedabad,Vastrapur Block B,2,212521.54,True
+SUS-0105,Suspect-105,Medium,chennai,T Nagar Block B,5,240725.14,True
+SUS-0106,Suspect-106,Low,puducherry,Kurumbapet,6,367071.36,True
+SUS-0107,Suspect-107,High,chennai,Kodambakkam Block C,3,46058.27,True
+SUS-0108,Suspect-108,High,ahmedabad,Science City Road Block D,4,224894.58,True
+SUS-0109,Suspect-109,Medium,ahmedabad,SG Highway,3,410144.62,False
+SUS-0110,Suspect-110,Medium,chennai,Porur Block B,4,342004.19,True
+SUS-0111,Suspect-111,Medium,bangalore,Hebbal Block B,3,364200.46,True
+SUS-0112,Suspect-112,Low,ahmedabad,Vastrapur,6,235566.07,True
+SUS-0113,Suspect-113,Medium,hyderabad,LB Nagar Block D,5,201847.15,True
+SUS-0114,Suspect-114,Medium,chennai,Nungambakkam Block E,3,346758.22,True
+SUS-0115,Suspect-115,Medium,hyderabad,Madhapur Block D,3,348559.8,True
+SUS-0116,Suspect-116,Low,hyderabad,Kukatpally Block D,3,285566.27,True
+SUS-0117,Suspect-117,High,delhi,Pitampura Block E,5,72516.22,True
+SUS-0118,Suspect-118,Low,mumbai,Andheri Block B,4,487745.92,True
+SUS-0119,Suspect-119,High,hyderabad,Secunderabad Block E,3,47113.75,True
+SUS-0120,Suspect-120,High,mumbai,Bandra Block D,2,120951.55,False
+SUS-0121,Suspect-121,Medium,hyderabad,Gachibowli Block C,4,228625.26,False
+SUS-0122,Suspect-122,Medium,puducherry,Muthialpet Block E,6,327845.01,True
+SUS-0123,Suspect-123,High,chennai,Nungambakkam Block D,2,355606.85,True
+SUS-0124,Suspect-124,Medium,ahmedabad,Vastrapur Block B,5,257109.39,True
+SUS-0125,Suspect-125,Medium,mumbai,Powai Block E,3,272576.17,True
+SUS-0126,Suspect-126,Medium,ahmedabad,SG Highway Block C,3,187636.31,True
+SUS-0127,Suspect-127,High,ahmedabad,Ashram Road Block E,6,458136.86,True
+SUS-0128,Suspect-128,Medium,puducherry,Solarpuram Block C,2,250977.11,True
+SUS-0129,Suspect-129,Medium,ahmedabad,SG Highway Block B,2,268487.73,True
+SUS-0130,Suspect-130,High,delhi,Rohini Block E,4,383823.53,True
+SUS-0131,Suspect-131,High,kolkata,Park Street Block E,6,338355.89,True
+SUS-0132,Suspect-132,High,delhi,Vasant Kunj Block E,5,436782.32,True
+SUS-0133,Suspect-133,High,bangalore,Electronic City Block E,2,204952.15,True
+SUS-0134,Suspect-134,Medium,puducherry,Solarpuram Block C,6,161634.73,True
+SUS-0135,Suspect-135,High,mumbai,Kurla Block E,6,254436.18,True
+SUS-0136,Suspect-136,Medium,mumbai,Borivali Block B,2,162100.11,False
+SUS-0137,Suspect-137,High,mumbai,Kurla,5,210425.58,False
+SUS-0138,Suspect-138,High,kolkata,Shyambazar Block E,3,197122.5,True
+SUS-0139,Suspect-139,Medium,kolkata,Howrah Block E,5,280217.83,True
+SUS-0140,Suspect-140,High,chennai,T Nagar Block D,2,186922.57,True
+SUS-0141,Suspect-141,High,chennai,Kodambakkam Block C,2,402534.21,False
+SUS-0142,Suspect-142,Low,mumbai,Lower Parel,4,344716.68,True
+SUS-0143,Suspect-143,Medium,mumbai,Powai Block E,3,495328.45,True
+SUS-0144,Suspect-144,Medium,chennai,Tambaram Block B,5,445926.22,True
+SUS-0145,Suspect-145,High,mumbai,Powai Block E,5,278139.17,True
+SUS-0146,Suspect-146,Medium,hyderabad,Secunderabad Block E,5,195213.84,False
+SUS-0147,Suspect-147,High,chennai,Porur,4,400873.97,True
+SUS-0148,Suspect-148,High,ahmedabad,CG Road Block D,5,293856.83,True
+SUS-0149,Suspect-149,Medium,ahmedabad,Vastrapur Block E,4,400099.64,True
+SUS-0150,Suspect-150,Low,chennai,Velachery,5,182014.84,True
+SUS-0151,Suspect-151,High,puducherry,Thattanchavady,2,481993.95,True
+SUS-0152,Suspect-152,High,kolkata,Salt Lake Block D,2,84874.34,True
+SUS-0153,Suspect-153,High,mumbai,Powai Block B,2,227980.47,False
+SUS-0154,Suspect-154,Medium,delhi,Janakpuri Block B,2,440138.55,True
+SUS-0155,Suspect-155,Medium,kolkata,Shyambazar Block D,3,177486.32,True
+SUS-0156,Suspect-156,High,bangalore,Indiranagar Block C,5,89943.14,True
+SUS-0157,Suspect-157,Low,bangalore,Hebbal Block B,4,330295.6,True
+SUS-0158,Suspect-158,Medium,puducherry,Reddiarpalayam,6,145987.43,True
+SUS-0159,Suspect-159,Medium,ahmedabad,SG Highway Block B,4,420543.66,True
+SUS-0160,Suspect-160,Medium,kolkata,Ballygunge Block C,5,172179.49,True
+SUS-0161,Suspect-161,Medium,puducherry,MG Road Block E,3,279207.44,True
+SUS-0162,Suspect-162,Medium,ahmedabad,Naroda,6,418065.81,True
+SUS-0163,Suspect-163,Medium,bangalore,Koramangala Block C,3,121137.38,True
+SUS-0164,Suspect-164,Low,chennai,Porur Block D,5,129851.59,True
+SUS-0165,Suspect-165,High,kolkata,Lake Gardens,3,103735.62,True
+SUS-0166,Suspect-166,Low,delhi,Pitampura Block B,5,385651.2,True
+SUS-0167,Suspect-167,Medium,puducherry,MG Road Block E,2,295231.46,True
+SUS-0168,Suspect-168,Medium,kolkata,New Market Block B,2,251423.5,True
+SUS-0169,Suspect-169,Medium,puducherry,MG Road Block D,2,227148.68,True
+SUS-0170,Suspect-170,Medium,mumbai,Dadar,5,385287.05,False
+SUS-0171,Suspect-171,Medium,chennai,T Nagar Block B,6,230731.26,True
+SUS-0172,Suspect-172,Low,mumbai,Borivali Block B,4,339604.06,True
+SUS-0173,Suspect-173,Medium,hyderabad,Dilshuknagar Block C,3,167630.16,True
+SUS-0174,Suspect-174,Medium,bangalore,Indiranagar Block D,5,259918.74,True
+SUS-0175,Suspect-175,Low,bangalore,Hebbal Block E,3,231449.05,True
+SUS-0176,Suspect-176,Medium,ahmedabad,Satellite Block C,4,453668.54,True
+SUS-0177,Suspect-177,Medium,mumbai,Vashi Block C,6,246174.86,True
+SUS-0178,Suspect-178,Medium,puducherry,Solarpuram Block E,3,208772.36,True
+SUS-0179,Suspect-179,Medium,chennai,Tambaram Block D,5,312338.28,True
+SUS-0180,Suspect-180,High,hyderabad,LB Nagar Block E,2,252892.9,True
+SUS-0181,Suspect-181,High,ahmedabad,Bopal Block D,5,470486.03,True
+SUS-0182,Suspect-182,Medium,ahmedabad,CG Road Block B,3,233948.3,False
+SUS-0183,Suspect-183,High,kolkata,Park Street Block D,3,468866.61,True
+SUS-0184,Suspect-184,Medium,kolkata,Howrah Block B,6,199245.27,True
+SUS-0185,Suspect-185,Medium,bangalore,Electronic City Block E,5,455887.73,True
+SUS-0186,Suspect-186,Medium,delhi,Vasant Kunj Block C,4,241261.83,True
+SUS-0187,Suspect-187,Medium,delhi,Rohini,6,268797.67,True
+SUS-0188,Suspect-188,Medium,bangalore,MG Road Block B,2,257778.41,True
+SUS-0189,Suspect-189,Medium,chennai,T Nagar,2,183239.47,True
+SUS-0190,Suspect-190,Low,mumbai,Andheri Block E,5,102282.64,False
+SUS-0191,Suspect-191,High,ahmedabad,Science City Road Block D,6,202603.39,True
+SUS-0192,Suspect-192,Medium,chennai,Nungambakkam Block E,3,344827.18,True
+SUS-0193,Suspect-193,High,chennai,Kodambakkam Block C,2,213652.64,True
+SUS-0194,Suspect-194,Medium,mumbai,Kurla Block E,4,458615.2,True
+SUS-0195,Suspect-195,Medium,bangalore,Electronic City Block B,6,435294.98,True
+SUS-0196,Suspect-196,Medium,delhi,Janakpuri Block B,5,152173.58,True
+SUS-0197,Suspect-197,Medium,mumbai,Vashi Block B,6,175230.88,True
+SUS-0198,Suspect-198,High,bangalore,Electronic City Block C,6,365157.81,True
+SUS-0199,Suspect-199,Medium,bangalore,Koramangala Block B,4,169047.11,True
+SUS-0200,Suspect-200,Medium,ahmedabad,Vastrapur Block B,3,258138.08,True
