@@ -20,3 +20,5 @@ networkx==3.3
 geoalchemy2==0.15.2
 
 twilio==8.2.2
+pytest==8.3.4
+httpx==0.27.2
