@@ -1,4 +1,4 @@
-# ATLAS — Advanced Threat Location & Alert System
+# ATLAS - Advanced Threat Location & Alert System
 ## Smart India Hackathon 2026 — Problem Statement 26184
 
 ### What This Is
