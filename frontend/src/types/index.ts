@@ -71,23 +71,5 @@ export interface AuditEntry {
   action_type: string;
 }
 
-export interface Suspect {
-  id: string;
-  name: string;
-  risk_level: string;
-  last_seen: string;
-  accounts_linked: number;
-  status: string;
-}
-
-export type ActiveView =
-  | 'overview'
-  | 'predictions'
-  | 'map'
-  | 'cases'
-  | 'alerts'
-  | 'evidence'
-  | 'audit';
-
 export type RiskFilter = 'all' | 'High' | 'Medium' | 'Low' | 'Watch';
 export type TimeFilter = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';

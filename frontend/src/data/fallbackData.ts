@@ -1,4 +1,4 @@
-import { DashboardStats, Case, Prediction, Alert, AuditEntry, PredictionLocation } from '../types';
+import { DashboardStats, Case, Prediction, Alert } from '../types';
 
 export const DEMO_CASE_ID = "CC-2026-0147";
 
@@ -11,18 +11,6 @@ export const FALLBACK_STATS: DashboardStats = {
   prevented_fraud: 2475000,
   mules_flagged: 12,
 };
-
-// ─── ATM Locations (Puducherry Region) ──────────────────────────────────────
-export const ATM_LOCATIONS: PredictionLocation[] = [
-  { rank: 1, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 92, expected_window: "18:00-20:00", distance: "1.2 km", reason: "High crime density, evening peak pattern", status: "High", latitude: 11.9335, longitude: 79.8075 },
-  { rank: 2, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 78, expected_window: "18:30-20:30", distance: "2.1 km", reason: "Transaction velocity spike detected", status: "High", latitude: 11.9355, longitude: 79.8085 },
-  { rank: 3, atm_id: "ATM-031", location_name: "Lawspet Junction", risk_score: 64, expected_window: "19:00-21:00", distance: "3.4 km", reason: "Geographic cluster alignment", status: "Medium", latitude: 11.9450, longitude: 79.8105 },
-  { rank: 4, atm_id: "ATM-009", location_name: "Muthialpet Bazaar", risk_score: 51, expected_window: "19:30-21:30", distance: "4.0 km", reason: "Historical cash-out similarity", status: "Medium", latitude: 11.9295, longitude: 79.8055 },
-  { rank: 5, atm_id: "ATM-022", location_name: "Reddiarpalayam Town", risk_score: 38, expected_window: "20:00-22:00", distance: "4.8 km", reason: "Account network coordination", status: "Watch", latitude: 11.9395, longitude: 79.8035 },
-  { rank: 6, atm_id: "ATM-005", location_name: "Kurumbapet Highway", risk_score: 34, expected_window: "17:00-19:00", distance: "5.2 km", reason: "Low activity, monitoring", status: "Watch", latitude: 11.9520, longitude: 79.8085 },
-  { rank: 7, atm_id: "ATM-018", location_name: "Thattanchavady East", risk_score: 29, expected_window: "19:00-21:00", distance: "3.8 km", reason: "Infrequent withdrawals", status: "Watch", latitude: 11.9315, longitude: 79.8155 },
-  { rank: 8, atm_id: "ATM-041", location_name: "Nehru Park Branch", risk_score: 22, expected_window: "20:00-22:00", distance: "2.9 km", reason: "Low historical risk", status: "Watch", latitude: 11.9350, longitude: 79.8115 },
-];
 
 // ─── Cases (23 Active + Resolved) ───────────────────────────────────────────
 export const FALLBACK_CASES: Case[] = [
@@ -394,41 +382,6 @@ export const FALLBACK_ALERTS: Alert[] = [
   { alert_id: "ALT-014", case_id: "CC-2026-0147", message: "UPDATE: Case CC-2026-0147 — risk score increased from 85% to 92%.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:30:00", acknowledged: true, acknowledged_at: "12:40:15" },
 ];
 
-// ─── Audit Log (30+ entries) ────────────────────────────────────────────────
-export const FALLBACK_AUDIT: AuditEntry[] = [
-  { time: "14:32:15", action: "Alert Generated", details: "ALT-001 created for case CC-2026-0147 — HIGH-RISK at ATM-027", action_type: "alert" },
-  { time: "14:28:42", action: "Alert Generated", details: "ALT-002 created for case CC-2026-0145 — CRITICAL at ATM-005", action_type: "alert" },
-  { time: "14:25:11", action: "Alert Generated", details: "ALT-003 created for case CC-2026-0146 — Card cloning alert", action_type: "alert" },
-  { time: "14:22:15", action: "Alert Acknowledged", details: "ALT-005 acknowledged by Inspector Mehta", action_type: "alert" },
-  { time: "14:20:33", action: "Alert Generated", details: "ALT-004 created for case CC-2026-0139", action_type: "alert" },
-  { time: "14:18:30", action: "Alert Acknowledged", details: "ALT-006 acknowledged — SIM swap fraud under investigation", action_type: "alert" },
-  { time: "14:17:22", action: "Prediction Updated", details: "CC-2026-0145 risk score increased to 88% — 6 mule accounts", action_type: "prediction" },
-  { time: "14:15:00", action: "Case Viewed", details: "Inspector Mehta viewed CC-2026-0145 prediction", action_type: "case" },
-  { time: "14:12:45", action: "Alert Acknowledged", details: "ALT-007 acknowledged by Inspector", action_type: "alert" },
-  { time: "14:10:00", action: "Transaction Simulated", details: "₹25,000 simulated for CC-2026-0147 — MAHB to PNB mule", action_type: "prediction" },
-  { time: "14:05:22", action: "Alert Acknowledged", details: "ALT-008 acknowledged — UPI fraud monitoring", action_type: "alert" },
-  { time: "14:02:11", action: "Alert Acknowledged", details: "ALT-009 acknowledged — Identity theft investigation", action_type: "alert" },
-  { time: "13:57:08", action: "Alert Generated", details: "ALT-008 created for case CC-2026-0134", action_type: "alert" },
-  { time: "13:52:15", action: "Alert Acknowledged", details: "ALT-010 acknowledged — Ponzi scheme alert", action_type: "alert" },
-  { time: "13:45:30", action: "Alert Generated", details: "ALT-009 created for case CC-2026-0132", action_type: "alert" },
-  { time: "13:38:45", action: "Alert Acknowledged", details: "ALT-011 acknowledged by Inspector", action_type: "alert" },
-  { time: "13:30:00", action: "Alert Generated", details: "ALT-010 created for case CC-2026-0130 — Ponzi scheme", action_type: "alert" },
-  { time: "13:22:30", action: "Case Updated", details: "CC-2026-0128 — Linked accounts increased to 4", action_type: "case" },
-  { time: "13:15:00", action: "Alert Generated", details: "ALT-011 created for case CC-2026-0128", action_type: "alert" },
-  { time: "13:10:15", action: "Alert Acknowledged", details: "ALT-012 acknowledged — Card cloning monitoring", action_type: "alert" },
-  { time: "13:00:00", action: "Alert Generated", details: "ALT-012 created for case CC-2026-0127", action_type: "alert" },
-  { time: "12:55:30", action: "Alert Acknowledged", details: "ALT-013 acknowledged — SIM swap investigation", action_type: "alert" },
-  { time: "12:45:00", action: "Alert Generated", details: "ALT-013 created for case CC-2026-0125", action_type: "alert" },
-  { time: "12:40:15", action: "Alert Acknowledged", details: "ALT-014 acknowledged — Risk update reviewed", action_type: "alert" },
-  { time: "12:30:00", action: "Alert Generated", details: "ALT-014 created for case CC-2026-0147 — Risk increase", action_type: "alert" },
-  { time: "12:25:00", action: "System Initialized", details: "Prediction engine loaded with 150 ATM locations", action_type: "system" },
-  { time: "12:20:00", action: "Data Refresh", details: "Synthetic dataset reloaded — 23 cases, 150 ATMs", action_type: "system" },
-  { time: "12:15:00", action: "Login", details: "Inspector Mehta authenticated via secure channel", action_type: "system" },
-  { time: "12:10:00", action: "Case Created", details: "CC-2026-0147 registered via cybercrime.gov.in", action_type: "case" },
-  { time: "12:05:00", action: "Case Created", details: "CC-2026-0146 registered — Card cloning complaint", action_type: "case" },
-  { time: "12:00:00", action: "Case Created", details: "CC-2026-0145 registered — Investment fraud", action_type: "case" },
-];
-
 // ─── Crime Type Distribution (for charts) ───────────────────────────────────
 export const CRIME_TYPE_DISTRIBUTION = [
   { type: "UPI Fraud", count: 8, percentage: 35 },
@@ -437,41 +390,4 @@ export const CRIME_TYPE_DISTRIBUTION = [
   { type: "Investment Fraud", count: 3, percentage: 13 },
   { type: "Identity Theft", count: 2, percentage: 9 },
   { type: "SIM Swap", count: 1, percentage: 4 },
-];
-
-// ─── Hourly Activity Pattern (for charts) ───────────────────────────────────
-export const HOURLY_ACTIVITY = [
-  { hour: "06:00", transactions: 2, risk_avg: 15 },
-  { hour: "08:00", transactions: 5, risk_avg: 22 },
-  { hour: "10:00", transactions: 8, risk_avg: 35 },
-  { hour: "12:00", transactions: 12, risk_avg: 42 },
-  { hour: "14:00", transactions: 15, risk_avg: 55 },
-  { hour: "16:00", transactions: 18, risk_avg: 68 },
-  { hour: "18:00", transactions: 25, risk_avg: 82 },
-  { hour: "20:00", transactions: 22, risk_avg: 78 },
-  { hour: "22:00", transactions: 10, risk_avg: 45 },
-  { hour: "00:00", transactions: 3, risk_avg: 20 },
-];
-
-// ─── Weekly Trend Data ──────────────────────────────────────────────────────
-export const WEEKLY_TREND = [
-  { day: "Mon", cases: 4, alerts: 6, resolved: 2 },
-  { day: "Tue", cases: 5, alerts: 8, resolved: 3 },
-  { day: "Wed", cases: 3, alerts: 5, resolved: 4 },
-  { day: "Thu", cases: 6, alerts: 10, resolved: 2 },
-  { day: "Fri", cases: 7, alerts: 12, resolved: 5 },
-  { day: "Sat", cases: 2, alerts: 4, resolved: 3 },
-  { day: "Sun", cases: 1, alerts: 2, resolved: 1 },
-];
-
-// ─── District-wise Heatmap Data ─────────────────────────────────────────────
-export const DISTRICT_HEATMAP = [
-  { district: "White Town", risk: 92, cases: 8, atms: 12 },
-  { district: "MG Road", risk: 78, cases: 5, atms: 8 },
-  { district: "Lawspet", risk: 64, cases: 4, atms: 6 },
-  { district: "Muthialpet", risk: 51, cases: 3, atms: 5 },
-  { district: "Reddiarpalayam", risk: 38, cases: 2, atms: 7 },
-  { district: "Kurumbapet", risk: 34, cases: 1, atms: 4 },
-  { district: "Thattanchavady", risk: 29, cases: 1, atms: 3 },
-  { district: "Nehru Park", risk: 22, cases: 0, atms: 5 },
 ];

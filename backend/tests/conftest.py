@@ -1,6 +1,10 @@
 import sys
 import os
 import glob
+
+# Set test env BEFORE importing main (skips production security checks)
+os.environ["TESTING"] = "1"
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
