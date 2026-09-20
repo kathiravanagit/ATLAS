@@ -32,23 +32,23 @@ export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 80, scale: 0.95 }}
             transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="pointer-events-auto bg-[#18181b] border border-[#27272a] rounded-xl p-4 shadow-2xl shadow-black/50"
+            className="pointer-events-auto bg-white border border-[#D1D5DB] rounded-xl p-4 shadow-lg"
           >
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#ef4444]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <AlertTriangle size={16} className="text-[#ef4444]" />
+              <div className="w-8 h-8 rounded-lg bg-[#B91C1C]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle size={16} className="text-[#B91C1C]" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-[#ef4444]">HIGH-RISK ALERT</span>
+                  <span className="text-sm font-semibold text-[#B91C1C]">HIGH-RISK ALERT</span>
                   {!connected && (
-                    <span className="text-[9px] text-[#f59e0b] bg-[#f59e0b]/10 px-1.5 py-0.5 rounded">OFFLINE</span>
+                    <span className="text-[11px] text-[#B45309] bg-[#B45309]/10 px-1.5 py-0.5 rounded">OFFLINE</span>
                   )}
                 </div>
-                <div className="text-sm text-white truncate">{String(toast.message || 'New alert')}</div>
-                <div className="text-[10px] text-[#d4d4d8] mt-1 font-mono">{String(toast.case_id || '')}</div>
+                <div className="text-sm text-[#1F2937] truncate">{String(toast.message || 'New alert')}</div>
+                <div className="text-[10px] text-[#6B7280] mt-1 font-mono">{String(toast.case_id || '')}</div>
               </div>
-              <button onClick={() => dismiss(i)} className="text-[#d4d4d8] hover:text-white transition-colors flex-shrink-0">
+              <button onClick={() => dismiss(i)} className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex-shrink-0">
                 <X size={14} />
               </button>
             </div>

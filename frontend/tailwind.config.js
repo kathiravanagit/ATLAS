@@ -7,9 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        border: "#27272a",
-        card: "#18181b",
-        muted: "#27272a",
+        border: "#D1D5DB",
+        card: "#ffffff",
+        muted: "#F3F4F6",
+        atlas: {
+          navy: "#1D355B",
+          blue: "#1D4ED8",
+          green: "#15803D",
+          amber: "#B45309",
+          red: "#B91C1C",
+        },
+      },
+      fontFamily: {
+        sans: ['"Noto Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
     },
   },
@@ -17,23 +27,23 @@ export default {
   daisyui: {
     themes: [
       {
-        dark: {
-          "primary": "#ffffff",
-          "primary-content": "#000000",
-          "secondary": "#e4e4e7",
-          "secondary-content": "#000000",
-          "accent": "#52525b",
-          "accent-content": "#ffffff",
-          "neutral": "#18181b",
-          "neutral-content": "#e4e4e7",
-          "base-100": "#09090b",
-          "base-200": "#18181b",
-          "base-300": "#27272a",
-          "base-content": "#fafafa",
-          "info": "#e4e4e7",
-          "success": "#22c55e",
-          "warning": "#f59e0b",
-          "error": "#ef4444",
+        light: {
+          "primary": "#1D355B",
+          "primary-content": "#ffffff",
+          "secondary": "#1D4ED8",
+          "secondary-content": "#ffffff",
+          "accent": "#D1D5DB",
+          "accent-content": "#1F2937",
+          "neutral": "#1F2937",
+          "neutral-content": "#F8F9FA",
+          "base-100": "#F8F9FA",
+          "base-200": "#ffffff",
+          "base-300": "#D1D5DB",
+          "base-content": "#1F2937",
+          "info": "#1D4ED8",
+          "success": "#15803D",
+          "warning": "#B45309",
+          "error": "#B91C1C",
         },
       },
     ],

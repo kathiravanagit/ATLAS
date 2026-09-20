@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import TopNav from '../components/TopNav';
 import FloatingDockNav from '../components/FloatingDockNav';
@@ -27,8 +27,13 @@ export default function DashboardLayout() {
 
   return (
     <DashboardDataContext.Provider value={{ ...data, evidenceModalOpen, setEvidenceModalOpen }}>
-      <div className="min-h-screen bg-[#0a0a0f]">
-        <TopNav selectedCity={selectedCity} onCityChange={setSelectedCity} />
+      <div className="min-h-screen bg-[#F8F9FA] text-[#1F2937]">
+        <TopNav
+          selectedCity={selectedCity}
+          onCityChange={setSelectedCity}
+          usingFallback={data.usingFallback}
+          lastUpdated={data.lastUpdated}
+        />
         <main className="p-6 pb-32">
           <Outlet />
         </main>

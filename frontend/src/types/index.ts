@@ -33,6 +33,7 @@ export interface Prediction {
   ranked_locations: PredictionLocation[];
   risk_trend: number[];
   evidence: Record<string, EvidenceItem>;
+  disclaimer?: string;
 }
 
 export interface EvidenceItem {

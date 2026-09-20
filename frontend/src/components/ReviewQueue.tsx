@@ -75,10 +75,10 @@ export default function ReviewQueue() {
     <div className="card p-4">
         <div className="flex items-center gap-2 mb-4">
           <ClipboardCheck size={16} className="text-[#f59e0b]" />
-          <h3 className="text-base font-semibold text-white">Review Queue</h3>
+          <h3 className="text-base font-semibold text-[#1F2937]">Review Queue</h3>
         </div>
         <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#27272a] rounded-lg animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#F3F4F6] rounded-lg animate-pulse" />)}
         </div>
       </div>
     );
@@ -89,8 +89,8 @@ export default function ReviewQueue() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ClipboardCheck size={16} className="text-[#f59e0b]" />
-          <h3 className="text-base font-semibold text-white">Review Queue</h3>
-          <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-2 py-0.5 rounded">{queue.length} pending</span>
+          <h3 className="text-base font-semibold text-[#1F2937]">Review Queue</h3>
+          <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">{queue.length} pending</span>
         </div>
       </div>
 
@@ -102,8 +102,8 @@ export default function ReviewQueue() {
             onClick={() => setFilter(f)}
             className={`px-2.5 py-1 text-[10px] rounded transition-colors ${
               filter === f
-                ? 'bg-white text-black font-medium'
-                : 'bg-[#27272a] text-[#d4d4d8] hover:text-white'
+                ? 'bg-white text-[#1F2937] font-medium'
+                : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
             }`}
           >
             {f === 'all' ? `All (${queue.length})` : f}
@@ -114,7 +114,7 @@ export default function ReviewQueue() {
       {/* Queue items */}
       <div className="space-y-2">
         {filtered.length === 0 && (
-          <div className="text-center py-6 text-[11px] text-[#d4d4d8]">
+          <div className="text-center py-6 text-[11px] text-[#6B7280]">
             No cases pending review. All clear.
           </div>
         )}
@@ -124,8 +124,8 @@ export default function ReviewQueue() {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04 }}
-            className={`bg-[#0a0a0f] rounded-lg border p-3 cursor-pointer transition-colors ${
-              selectedCase === item.case_id ? 'border-[#f59e0b]' : 'border-[#27272a] hover:border-[#71717a]'
+            className={`bg-[#F8F9FA] rounded-lg border p-3 cursor-pointer transition-colors ${
+              selectedCase === item.case_id ? 'border-[#f59e0b]' : 'border-[#D1D5DB] hover:border-[#9CA3AF]'
             }`}
             onClick={() => setSelectedCase(selectedCase === item.case_id ? null : item.case_id)}
           >
@@ -137,19 +137,19 @@ export default function ReviewQueue() {
                 }`} />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white">{item.case_id}</span>
-                    <span className="text-[9px] text-[#d4d4d8] bg-[#27272a] px-1.5 py-0.5 rounded">{item.crime_type}</span>
+                    <span className="text-sm font-medium text-[#1F2937]">{item.case_id}</span>
+                    <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded">{item.crime_type}</span>
                   </div>
-                  <div className="text-[10px] text-[#d4d4d8] mt-0.5">
+                  <div className="text-[10px] text-[#6B7280] mt-0.5">
                     {item.victim_name} | Rs.{item.amount.toLocaleString()} | {item.current_risk}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-[#d4d4d8] flex items-center gap-1">
+                <span className="text-[11px] text-[#6B7280] flex items-center gap-1">
                   <User size={9} /> {item.assigned_to}
                 </span>
-                <ChevronDown size={12} className={`text-[#d4d4d8] transition-transform ${
+                <ChevronDown size={12} className={`text-[#6B7280] transition-transform ${
                   selectedCase === item.case_id ? 'rotate-180' : ''
                 }`} />
               </div>
@@ -161,7 +161,7 @@ export default function ReviewQueue() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 onClick={(e) => e.stopPropagation()}
-                className="mt-3 pt-3 border-t border-[#27272a] space-y-3"
+                className="mt-3 pt-3 border-t border-[#D1D5DB] space-y-3"
               >
                 <div className="flex gap-2">
                   {[
@@ -173,8 +173,8 @@ export default function ReviewQueue() {
                       key={opt.value}
                       type="button"
                       onClick={() => setActionForm(prev => ({ ...prev, action: opt.value }))}
-                      className={`flex items-center gap-1 px-3 py-1.5 text-[10px] text-white rounded transition-all duration-150 ${
-                        actionForm.action === opt.value ? opt.color : 'bg-[#27272a] hover:bg-[#71717a]'
+                      className={`flex items-center gap-1 px-3 py-1.5 text-[10px] text-[#1F2937] rounded transition-all duration-150 ${
+                        actionForm.action === opt.value ? opt.color : 'bg-[#F3F4F6] hover:bg-[#71717a]'
                       }`}
                     >
                       {opt.icon} {opt.label}
@@ -185,14 +185,14 @@ export default function ReviewQueue() {
                   <input
                     value={actionForm.reason}
                     onChange={e => setActionForm(prev => ({ ...prev, reason: e.target.value }))}
-                    className="flex-1 px-2 py-1.5 bg-[#0a0a0f] border border-[#27272a] rounded text-[11px] text-white focus:outline-none focus:border-[#71717a]"
+                    className="flex-1 px-2 py-1.5 bg-[#F8F9FA] border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#71717a]"
                     placeholder="Reason for review decision..."
                   />
                   <button
                     type="button"
                     onClick={() => handleReview(item.case_id)}
                     disabled={submitting || !actionForm.reason.trim()}
-                    className="px-3 py-1.5 bg-[#f59e0b] text-black text-[10px] font-medium rounded hover:bg-[#d97706] disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-[10px] font-medium rounded hover:bg-[#d97706] disabled:opacity-50 transition-colors"
                   >
                     {submitting ? 'Saving...' : 'Submit'}
                   </button>
@@ -206,7 +206,7 @@ export default function ReviewQueue() {
       {/* History */}
       {history.length > 0 && (
         <div>
-          <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Recent Decisions</div>
+          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-2">Recent Decisions</div>
           <div className="space-y-1 max-h-[120px] overflow-y-auto">
             {history.slice(-5).reverse().map((h, i) => (
               <div key={i} className="flex items-center gap-2 text-[10px] py-1">
@@ -214,12 +214,12 @@ export default function ReviewQueue() {
                   h.action === 'approve' ? 'bg-[#22c55e]' :
                   h.action === 'override' ? 'bg-[#f59e0b]' : 'bg-[#d4d4d8]'
                 }`} />
-                <span className="text-[#d4d4d8] font-mono">{h.case_id}</span>
+                <span className="text-[#6B7280] font-mono">{h.case_id}</span>
                 <span className={`font-medium ${
                   h.action === 'approve' ? 'text-[#22c55e]' :
-                  h.action === 'override' ? 'text-[#f59e0b]' : 'text-[#d4d4d8]'
+                  h.action === 'override' ? 'text-[#f59e0b]' : 'text-[#6B7280]'
                 }`}>{h.action}</span>
-                <span className="text-[#d4d4d8] truncate flex-1">{h.reason}</span>
+                <span className="text-[#6B7280] truncate flex-1">{h.reason}</span>
               </div>
             ))}
           </div>

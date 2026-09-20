@@ -34,8 +34,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "2 min ago",
     status: "investigating",
-    victim_name: "Rajesh Kumar",
-    contact: "+91-9876543210",
+    victim_name: "VICTIM-SYN-0147",
+    contact: "+91-SYN-10147",
     description: "Unauthorized UPI transaction of ₹48,500 detected. Funds moved through 3 mule accounts within 4 hours. Complaint filed on cybercrime.gov.in. Suspected insider involvement at bank branch."
   },
   {
@@ -46,8 +46,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "5 min ago",
     status: "investigating",
-    victim_name: "Deepa Nair",
-    contact: "+91-9876543220",
+    victim_name: "VICTIM-SYN-0146",
+    contact: "+91-SYN-10146",
     description: "Credit card cloned at unknown ATM in Puducherry. Two unauthorized withdrawals of ₹15,000 and ₹20,200 within 30 minutes."
   },
   {
@@ -58,8 +58,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "8 min ago",
     status: "new",
-    victim_name: "Suresh Babu",
-    contact: "+91-9876543221",
+    victim_name: "VICTIM-SYN-0145",
+    contact: "+91-SYN-10145",
     description: "Fake cryptocurrency investment scheme. Victim invested ₹1,25,000 over 2 weeks. Funds routed through 6 mule accounts."
   },
   {
@@ -70,8 +70,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "12 min ago",
     status: "investigating",
-    victim_name: "Anitha Rajan",
-    contact: "+91-9876543222",
+    victim_name: "VICTIM-SYN-0144",
+    contact: "+91-SYN-10144",
     description: "Phishing email mimicking bank OTP page. Victim entered credentials, ₹28,900 transferred to unknown account."
   },
   {
@@ -82,8 +82,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "15 min ago",
     status: "investigating",
-    victim_name: "Manikandan V",
-    contact: "+91-9876543223",
+    victim_name: "VICTIM-SYN-0143",
+    contact: "+91-SYN-10143",
     description: "Stolen identity used for 4 bank transfers. KYC documents forged using leaked Aadhaar data."
   },
   {
@@ -94,8 +94,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "18 min ago",
     status: "investigating",
-    victim_name: "Priya Sharma",
-    contact: "+91-9876543211",
+    victim_name: "VICTIM-SYN-0142",
+    contact: "+91-SYN-10142",
     description: "Credit card cloned at unknown ATM. Two unauthorized withdrawals of ₹12,000 and ₹9,700."
   },
   {
@@ -106,8 +106,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "22 min ago",
     status: "resolved",
-    victim_name: "Karthik M",
-    contact: "+91-9876543224",
+    victim_name: "VICTIM-SYN-0141",
+    contact: "+91-SYN-10141",
     description: "Unauthorized UPI transaction. Funds recovered through inter-bank coordination within 6 hours."
   },
   {
@@ -118,8 +118,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "30 min ago",
     status: "resolved",
-    victim_name: "Lakshmi Devi",
-    contact: "+91-9876543225",
+    victim_name: "VICTIM-SYN-0140",
+    contact: "+91-SYN-10140",
     description: "Fake QR code scan led to ₹15,800 deduction. Merchant account identified and frozen."
   },
   {
@@ -130,8 +130,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "35 min ago",
     status: "new",
-    victim_name: "Amit Patel",
-    contact: "+91-9876543212",
+    victim_name: "VICTIM-SYN-0139",
+    contact: "+91-SYN-10139",
     description: "Fake investment scheme promising 30% returns. Victim transferred ₹76,200 over 3 weeks."
   },
   {
@@ -142,8 +142,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "40 min ago",
     status: "investigating",
-    victim_name: "Ravi Prakash",
-    contact: "+91-9876543226",
+    victim_name: "VICTIM-SYN-0138",
+    contact: "+91-SYN-10138",
     description: "SIM swap fraud. Attacker ported victim's number, intercepted OTPs, drained ₹92,000 from 3 accounts."
   },
   {
@@ -154,8 +154,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "45 min ago",
     status: "investigating",
-    victim_name: "Sangeetha K",
-    contact: "+91-9876543227",
+    victim_name: "VICTIM-SYN-0137",
+    contact: "+91-SYN-10137",
     description: "Fake bank website phishing. Victim entered net banking credentials. ₹41,200 transferred to mule accounts."
   },
   {
@@ -166,8 +166,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "50 min ago",
     status: "investigating",
-    victim_name: "Arun Prasad",
-    contact: "+91-9876543228",
+    victim_name: "VICTIM-SYN-0136",
+    contact: "+91-SYN-10136",
     description: "Fake loan app collected ₹5,000 processing fee, then threatened victim and extorted additional ₹33,500."
   },
   {
@@ -178,8 +178,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "55 min ago",
     status: "resolved",
-    victim_name: "Sneha Reddy",
-    contact: "+91-9876543213",
+    victim_name: "VICTIM-SYN-0135",
+    contact: "+91-SYN-10135",
     description: "Phishing email led to credential theft. ₹33,100 transferred. Case resolved — funds recovered."
   },
   {
@@ -190,8 +190,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "1 hr ago",
     status: "investigating",
-    victim_name: "Venkatesh R",
-    contact: "+91-9876543229",
+    victim_name: "VICTIM-SYN-0134",
+    contact: "+91-SYN-10134",
     description: "Multiple unauthorized UPI transactions totaling ₹54,300. Funds split across 4 mule accounts."
   },
   {
@@ -202,8 +202,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "1 hr ago",
     status: "investigating",
-    victim_name: "Meena Kumari",
-    contact: "+91-9876543230",
+    victim_name: "VICTIM-SYN-0133",
+    contact: "+91-SYN-10133",
     description: "ATM card skimmed at White Town branch. ₹28,900 withdrawn in 3 transactions."
   },
   {
@@ -214,8 +214,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "1.5 hr ago",
     status: "investigating",
-    victim_name: "Ganesh Iyer",
-    contact: "+91-9876543231",
+    victim_name: "VICTIM-SYN-0132",
+    contact: "+91-SYN-10132",
     description: "Full identity theft. Forged documents used to open 3 new accounts. ₹1,56,000 transferred."
   },
   {
@@ -226,8 +226,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "2 hr ago",
     status: "resolved",
-    victim_name: "Pradeep S",
-    contact: "+91-9876543232",
+    victim_name: "VICTIM-SYN-0131",
+    contact: "+91-SYN-10131",
     description: "Fake payment QR code at local shop. ₹8,900 deducted. Merchant account frozen."
   },
   {
@@ -238,8 +238,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "2 hr ago",
     status: "new",
-    victim_name: "Ramesh Chandra",
-    contact: "+91-9876543233",
+    victim_name: "VICTIM-SYN-0130",
+    contact: "+91-SYN-10130",
     description: "Ponzi scheme promising daily returns. ₹2,10,000 invested over 1 month. 7 mule accounts identified."
   },
   {
@@ -250,8 +250,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "2.5 hr ago",
     status: "resolved",
-    victim_name: "Farhan Ahmed",
-    contact: "+91-9876543234",
+    victim_name: "VICTIM-SYN-0129",
+    contact: "+91-SYN-10129",
     description: "Unauthorized UPI transfer. ₹17,600 recovered through bank dispute resolution."
   },
   {
@@ -262,8 +262,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "3 hr ago",
     status: "investigating",
-    victim_name: "Vikram Singh",
-    contact: "+91-9876543214",
+    victim_name: "VICTIM-SYN-0128",
+    contact: "+91-SYN-10128",
     description: "Stolen identity used for 4 bank transfers totaling ₹89,400. KYC documents forged."
   },
   {
@@ -274,8 +274,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Medium",
     last_updated: "3.5 hr ago",
     status: "investigating",
-    victim_name: "Nisha Agarwal",
-    contact: "+91-9876543235",
+    victim_name: "VICTIM-SYN-0127",
+    contact: "+91-SYN-10127",
     description: "Card cloned at multiple ATMs. ₹44,500 withdrawn across 3 locations within 2 hours."
   },
   {
@@ -286,8 +286,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "Low",
     last_updated: "4 hr ago",
     status: "resolved",
-    victim_name: "Vignesh T",
-    contact: "+91-9876543236",
+    victim_name: "VICTIM-SYN-0126",
+    contact: "+91-SYN-10126",
     description: "Fake bank短信 phishing. ₹22,300 transferred. Case resolved with fund recovery."
   },
   {
@@ -298,8 +298,8 @@ export const FALLBACK_CASES: Case[] = [
     current_risk: "High",
     last_updated: "4.5 hr ago",
     status: "new",
-    victim_name: "Sanjay Mishra",
-    contact: "+91-9876543237",
+    victim_name: "VICTIM-SYN-0125",
+    contact: "+91-SYN-10125",
     description: "SIM swap fraud. ₹78,000 drained from 4 accounts after number porting."
   },
 ];

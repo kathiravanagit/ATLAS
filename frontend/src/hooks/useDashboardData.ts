@@ -105,7 +105,6 @@ export function useDashboardData(selectedCity: string = 'puducherry') {
 
   useEffect(() => { loadData(); const i = setInterval(loadData, 30000); return () => clearInterval(i); }, [loadData]);
   useEffect(() => { const i = setInterval(() => setRelativeTime(timeAgo(lastPredictionUpdate)), 5000); return () => clearInterval(i); }, [lastPredictionUpdate]);
-  useEffect(() => { const i = setInterval(() => setLiveAlertCount(p => p >= 99 ? 0 : p + 1), 45000); return () => clearInterval(i); }, []);
 
   const handleCaseSelect = useCallback((caseId: string) => {
     setSelectedCaseId(caseId);
@@ -126,6 +125,7 @@ export function useDashboardData(selectedCity: string = 'puducherry') {
     stats, cases, prediction, alerts, selectedCaseId, setSelectedCaseId,
     isRefreshing, relativeTime, selectedLocation, setSelectedLocation,
     liveAlertCount, handleCaseSelect, handleAcknowledge, handleResolveCase,
-    loadData, setPrediction, setLastPredictionUpdate, usingFallback, cityCenter,
+    loadData, setPrediction, setLastPredictionUpdate, usingFallback,
+    lastUpdated: lastPredictionUpdate, cityCenter,
   };
 }

@@ -104,7 +104,7 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-[#111111] border border-[#27272a] rounded-2xl w-full max-w-[520px] shadow-2xl"
+          className="bg-white border border-[#D1D5DB] rounded-2xl w-full max-w-[520px] shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           {result ? (
@@ -118,8 +118,8 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
                   <CheckCircle size={32} className="text-[#22c55e]" />
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Outcome Recorded</h3>
-              <p className="text-sm text-[#d4d4d8] mb-4">
+              <h3 className="text-lg font-semibold text-[#1F2937] mb-2">Outcome Recorded</h3>
+              <p className="text-sm text-[#6B7280] mb-4">
                 {result.outcome.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} for case {caseId}
               </p>
               {result.model_recalibrated && (
@@ -131,31 +131,31 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
               )}
               <button
                 onClick={handleClose}
-                className="px-4 py-2 bg-[#27272a] text-white text-sm rounded-lg hover:bg-[#3f3f46] transition-colors"
+                className="px-4 py-2 bg-[#1D4ED8] text-white text-sm rounded-lg hover:bg-[#1E40AF] transition-colors"
               >
                 Close
               </button>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between p-5 border-b border-[#27272a]">
+              <div className="flex items-center justify-between p-5 border-b border-[#D1D5DB]">
                 <div>
-                  <h3 className="text-base font-semibold text-white">Field Resolution</h3>
-                  <p className="text-xs text-[#d4d4d8] mt-0.5">Record ground truth for {caseId}</p>
+                  <h3 className="text-base font-semibold text-[#1F2937]">Field Resolution</h3>
+                  <p className="text-xs text-[#6B7280] mt-0.5">Record ground truth for {caseId}</p>
                 </div>
-                <button onClick={handleClose} className="p-1 rounded-lg hover:bg-[#27272a] transition-colors">
-                  <X size={16} className="text-[#d4d4d8]" />
+                <button onClick={handleClose} className="p-1 rounded-lg hover:bg-[#F3F4F6] transition-colors">
+                  <X size={16} className="text-[#6B7280]" />
                 </button>
               </div>
 
               <div className="p-5 space-y-4">
-                <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a] flex items-center justify-between">
+                <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-[#d4d4d8]">Target ATM</div>
-                    <div className="text-sm font-medium text-white">{atmId} — {locationName}</div>
+                    <div className="text-xs text-[#6B7280]">Target ATM</div>
+                    <div className="text-sm font-medium text-[#1F2937]">{atmId} — {locationName}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-[#d4d4d8]">Risk Score</div>
+                    <div className="text-xs text-[#6B7280]">Risk Score</div>
                     <div className={`text-lg font-bold ${riskScore > 70 ? 'text-[#ef4444]' : riskScore > 45 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`}>
                       {riskScore}%
                     </div>
@@ -163,7 +163,7 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
                 </div>
 
                 <div>
-                  <div className="text-xs text-[#d4d4d8] uppercase tracking-wider mb-2">Select Outcome</div>
+                  <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-2">Select Outcome</div>
                   <div className="grid grid-cols-2 gap-2">
                     {OUTCOMES.map(outcome => (
                       <button
@@ -172,34 +172,34 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
                         className={`p-3 rounded-lg border text-left transition-all ${
                           selected === outcome.id
                             ? `${outcome.color} border-current`
-                            : `bg-[#0a0a0f] border-[#27272a] ${outcome.hoverColor}`
+                            : `bg-[#F8F9FA] border-[#D1D5DB] ${outcome.hoverColor}`
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           {outcome.icon}
-                          <span className="text-xs font-medium text-white">{outcome.label}</span>
+                          <span className="text-xs font-medium text-[#1F2937]">{outcome.label}</span>
                         </div>
-                        <p className="text-[10px] text-[#d4d4d8]">{outcome.description}</p>
+                        <p className="text-[10px] text-[#6B7280]">{outcome.description}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs text-[#d4d4d8] uppercase tracking-wider mb-1">Notes (optional)</div>
+                  <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-1">Notes (optional)</div>
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Additional details about the field operation..."
-                    className="w-full px-3 py-2 bg-[#0a0a0f] border border-[#27272a] rounded-lg text-sm text-white placeholder-[#71717a] focus:outline-none focus:border-[#71717a] resize-none h-20"
+                    className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]/20 resize-none h-20"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 p-5 border-t border-[#27272a]">
+              <div className="flex items-center justify-end gap-2 p-5 border-t border-[#D1D5DB]">
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 bg-[#27272a] text-sm text-[#d4d4d8] rounded-lg hover:bg-[#3f3f46] transition-colors"
+                  className="px-4 py-2 bg-[#F3F4F6] text-sm text-[#1F2937] rounded-lg hover:bg-[#E5E7EB] transition-colors"
                 >
                   Cancel
                 </button>

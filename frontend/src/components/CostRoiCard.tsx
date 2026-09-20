@@ -25,13 +25,13 @@ export default function CostRoiCard() {
         className="w-full flex items-center justify-between"
       >
         <div className="flex items-center gap-2">
-          <DollarSign size={16} className="text-[#f59e0b]" />
-          <h3 className="text-base font-semibold text-white">Cost / ROI Estimation</h3>
-          <span className="text-[10px] text-[#f59e0b] bg-[#f59e0b]/10 px-2 py-0.5 rounded font-mono">
+          <DollarSign size={16} className="text-[#B45309]" />
+          <h3 className="text-base font-semibold text-[#1F2937]">Cost / ROI Estimation</h3>
+          <span className="text-[11px] text-[#B45309] bg-[#B45309]/10 px-2 py-0.5 rounded font-mono">
             {metrics.roi} ROI
           </span>
         </div>
-        {expanded ? <ChevronUp size={14} className="text-[#d4d4d8]" /> : <ChevronDown size={14} className="text-[#d4d4d8]" />}
+        {expanded ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
       </button>
 
       <div
@@ -41,29 +41,29 @@ export default function CostRoiCard() {
         <div className="mt-4 space-y-4">
           {/* Key Metrics */}
           <div className="grid grid-cols-4 gap-3">
-            {[
-              { label: 'Cost / ATM / yr', value: metrics.costPerAtm, color: '#22c55e' },
-              { label: 'Annual Savings', value: metrics.annualSavings, color: '#3b82f6' },
-              { label: 'ROI', value: metrics.roi, color: '#f59e0b' },
-              { label: 'Fraud Prevention', value: metrics.fraudPreventionRate, color: '#8b5cf6' },
+              {[
+                { label: 'Cost / ATM / yr', value: metrics.costPerAtm, color: '#15803D' },
+                { label: 'Annual Savings', value: metrics.annualSavings, color: '#1D4ED8' },
+                { label: 'ROI', value: metrics.roi, color: '#B45309' },
+                { label: 'Fraud Prevention', value: metrics.fraudPreventionRate, color: '#1D355B' },
             ].map((m, i) => (
               <motion.div
                 key={m.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a] text-center"
+                className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] text-center"
               >
                 <div className="text-sm font-bold" style={{ color: m.color }}>{m.value}</div>
-                <div className="text-[10px] text-[#d4d4d8] mt-1">{m.label}</div>
+                <div className="text-[11px] text-[#6B7280] mt-1">{m.label}</div>
               </motion.div>
             ))}
           </div>
 
           {/* Cost Breakdown */}
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Cost Breakdown (per ATM/year)</div>
-            <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a] space-y-2">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Cost Breakdown (per ATM/year)</div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] space-y-2">
               {[
                 { item: 'Cloud compute (inference)', cost: '₹12,000' },
                 { item: 'Data storage & DB', cost: '₹8,000' },
@@ -72,29 +72,29 @@ export default function CostRoiCard() {
                 { item: 'Monitoring & alerting', cost: '₹4,000' },
               ].map(row => (
                 <div key={row.item} className="flex items-center justify-between text-xs">
-                  <span className="text-[#d4d4d8]">{row.item}</span>
-                  <span className="text-white font-mono">{row.cost}</span>
+                  <span className="text-[#6B7280]">{row.item}</span>
+                  <span className="text-[#1F2937] font-mono">{row.cost}</span>
                 </div>
               ))}
-              <div className="border-t border-[#27272a] pt-2 flex items-center justify-between text-xs font-bold">
-                <span className="text-white">Total</span>
-                <span className="text-[#22c55e] font-mono">{metrics.costPerAtm}</span>
+              <div className="border-t border-[#D1D5DB] pt-2 flex items-center justify-between text-xs font-bold">
+                <span className="text-[#1F2937]">Total</span>
+                <span className="text-[#15803D] font-mono">{metrics.costPerAtm}</span>
               </div>
             </div>
           </div>
 
           {/* Operational Impact */}
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Operational Impact</div>
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Operational Impact</div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Cases Resolved', value: metrics.casesResolved, color: '#22c55e' },
-                { label: 'Funds Recovered', value: metrics.fundsRecovered, color: '#3b82f6' },
-                { label: 'Avg Response Time', value: metrics.avgResponseTime, color: '#8b5cf6' },
-                { label: 'Avg Fraud Loss / ATM', value: metrics.avgFraudLossPerAtm, color: '#f59e0b' },
+                { label: 'Cases Resolved', value: metrics.casesResolved, color: '#15803D' },
+                { label: 'Funds Recovered', value: metrics.fundsRecovered, color: '#1D4ED8' },
+                { label: 'Avg Response Time', value: metrics.avgResponseTime, color: '#1D355B' },
+                { label: 'Avg Fraud Loss / ATM', value: metrics.avgFraudLossPerAtm, color: '#B45309' },
               ].map(m => (
-                <div key={m.label} className="flex items-center justify-between bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-                  <span className="text-[10px] text-[#d4d4d8]">{m.label}</span>
+                <div key={m.label} className="flex items-center justify-between bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+                  <span className="text-[11px] text-[#6B7280]">{m.label}</span>
                   <span className="text-sm font-mono font-bold" style={{ color: m.color }}>{m.value}</span>
                 </div>
               ))}
@@ -103,8 +103,8 @@ export default function CostRoiCard() {
 
           {/* Scaling Projection */}
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Scaling Projection</div>
-            <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Scaling Projection</div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
               <div className="space-y-2">
                 {[
                   { scale: '50 ATMs', cost: '₹17.5 L/yr', savings: '₹2.1 Cr', roi: '12x', bar: 25 },
@@ -112,16 +112,16 @@ export default function CostRoiCard() {
                   { scale: '500 ATMs', cost: '₹1.75 Cr/yr', savings: '₹21 Cr', roi: '12x', bar: 100 },
                 ].map((row, i) => (
                   <div key={row.scale} className="flex items-center gap-4">
-                    <div className="w-[80px] text-xs text-white font-mono">{row.scale}</div>
-                    <div className="flex-1 h-4 bg-[#18181b] rounded overflow-hidden border border-[#27272a]">
+                    <div className="w-[80px] text-xs text-[#1F2937] font-mono">{row.scale}</div>
+                    <div className="flex-1 h-4 bg-[#E5E7EB] rounded overflow-hidden border border-[#D1D5DB]">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${row.bar}%` }}
                         transition={{ duration: 0.8, delay: i * 0.15 }}
-                        className="h-full rounded bg-[#f59e0b]/30"
+                        className="h-full rounded bg-[#B45309]/20"
                       />
                     </div>
-                    <div className="w-[100px] text-right text-xs font-mono text-white">{row.savings}</div>
+                    <div className="w-[100px] text-right text-xs font-mono text-[#1F2937]">{row.savings}</div>
                   </div>
                 ))}
               </div>
@@ -130,10 +130,10 @@ export default function CostRoiCard() {
 
           {/* Sources */}
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Sources</div>
-            <div className="space-y-1.5 text-[10px] text-[#d4d4d8]">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Sources</div>
+            <div className="space-y-1.5 text-[11px] text-[#6B7280]">
               <div className="flex items-center gap-1.5">
-                <ExternalLink size={10} className="text-[#06b6d4]" />
+                <ExternalLink size={10} className="text-[#1D4ED8]" />
                 <span>RBI Annual Report 2023-24: Avg fraud loss per ATM ~₹3.5-5 L/yr</span>
               </div>
               <div className="flex items-center gap-1.5">

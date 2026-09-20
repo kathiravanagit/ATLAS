@@ -1,5 +1,5 @@
 function SkeletonBar({ className = '' }: { className?: string }) {
-  return <div className={`bg-[#27272a] rounded animate-pulse ${className}`} />;
+  return <div className={`bg-[#F3F4F6] rounded animate-pulse ${className}`} />;
 }
 
 export function OverviewSkeleton() {
@@ -44,7 +44,7 @@ export function PredictionsSkeleton() {
         <SkeletonBar className="h-10 w-full mb-3" />
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
+            <div key={i} className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
               <SkeletonBar className="h-2 w-16 mb-2" />
               <SkeletonBar className="h-8 w-12 mb-1" />
               <SkeletonBar className="h-2 w-10" />
@@ -68,8 +68,8 @@ export function PredictionsSkeleton() {
 
 export function MapSkeleton() {
   return (
-    <div className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#27272a]">
-      <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center">
+    <div className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D1D5DB]">
+      <div className="absolute inset-0 bg-[#F8F9FA] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <SkeletonBar className="h-3 w-32 mx-auto" />
@@ -82,7 +82,7 @@ export function MapSkeleton() {
 export function CasesSkeleton() {
   return (
     <div className="card overflow-hidden">
-      <div className="p-4 border-b border-[#27272a]">
+      <div className="p-4 border-b border-[#D1D5DB]">
         <SkeletonBar className="h-4 w-32 mb-3" />
         <div className="flex gap-2 mb-3">
           {[1, 2, 3, 4, 5].map(i => (
@@ -93,7 +93,7 @@ export function CasesSkeleton() {
       </div>
       <div className="p-4 space-y-3">
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="flex items-center gap-4 p-3 border border-[#27272a] rounded-lg">
+          <div key={i} className="flex items-center gap-4 p-3 border border-[#D1D5DB] rounded-lg">
             <SkeletonBar className="h-3 w-24" />
             <SkeletonBar className="h-3 w-20" />
             <SkeletonBar className="h-3 w-16" />
@@ -160,7 +160,7 @@ export function EvidenceSkeleton() {
 export function AuditSkeleton() {
   return (
     <div className="card overflow-hidden">
-      <div className="p-4 border-b border-[#27272a]">
+      <div className="p-4 border-b border-[#D1D5DB]">
         <SkeletonBar className="h-4 w-24 mb-2" />
         <SkeletonBar className="h-3 w-40" />
       </div>

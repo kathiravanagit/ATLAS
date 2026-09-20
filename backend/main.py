@@ -9,7 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from database import engine, get_db, Base, USE_SQLITE
 from models_db import (
     Case, Prediction, RankedLocation, Alert, Suspect,
-    AuditLog, AtmLocation, FieldOutcome
+    AuditLog, AtmLocation, FieldOutcome, RefreshToken
 )
 from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
@@ -55,6 +55,45 @@ from auth import DEMO_MODE
 if DEMO_MODE:
     import warnings
     warnings.warn("DEMO MODE enabled — rate limiting disabled. Do NOT use in production!", stacklevel=2)
+
+# ─── Production Security Checks ───────────────────────────────────────────────
+_jwt_secret_key = os.getenv("JWT_SECRET_KEY", "")
+_encryption_key = os.getenv("ENCRYPTION_KEY", "")
+
+if DEMO_MODE:
+    logger.info("Demo mode active — production security checks skipped")
+elif os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING"):
+    logger.info("Test environment detected — production security checks skipped")
+else:
+    _DEFAULT_JWT_SECRET = "atlas-jwt-secret-key-change-in-production-2026"
+    if not _jwt_secret_key or _jwt_secret_key == _DEFAULT_JWT_SECRET:
+        logger.critical(
+            "FATAL: JWT_SECRET_KEY is not set or is using the default placeholder. "
+            "Set a secure JWT_SECRET_KEY environment variable before starting in production."
+        )
+        raise SystemExit("JWT_SECRET_KEY must be a unique, secure value in production")
+
+    if not _encryption_key:
+        logger.critical(
+            "FATAL: ENCRYPTION_KEY environment variable is not set. "
+            "Set a 64-character hex string (32-byte key) before starting in production."
+        )
+        raise SystemExit("ENCRYPTION_KEY must be set in production")
+
+    try:
+        _key_bytes = bytes.fromhex(_encryption_key)
+    except ValueError:
+        logger.critical(
+            "FATAL: ENCRYPTION_KEY is not a valid hex string. "
+            "Must be exactly 64 hex characters (32 bytes)."
+        )
+        raise SystemExit("ENCRYPTION_KEY must be a valid 64-hex-character string")
+
+    if len(_key_bytes) != 32:
+        logger.critical(
+            f"FATAL: ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars), got {len(_key_bytes)} bytes."
+        )
+        raise SystemExit("ENCRYPTION_KEY must be exactly 32 bytes")
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -186,14 +225,11 @@ class AlertCreate(BaseModel):
 
 # ─── Risk Scoring Engine (ML-powered) ─────────────────────────────────────────
 
-def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) -> dict:
+def get_predictions_for_case(case_id: str, db: Session) -> dict:
     case = db.query(Case).filter(Case.case_id == case_id).first()
-    tx_count = db.query(AuditLog).filter(
-        AuditLog.case_id == case_id,
-        AuditLog.action == "Transaction Simulated"
-    ).count() if case else 0
 
-    random.seed((hash(case_id) % 10000) + seed_offset + tx_count)
+    case_hash = hash(case_id) % 10000
+    random.seed(case_hash)
 
     atm_locations = db.query(AtmLocation).all()
     if not atm_locations:
@@ -221,16 +257,32 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
     model_meta = get_metadata()
     model_accuracy = model_meta.get("accuracy", 72.7) if model_meta else 72.7
 
-    # Generate realistic features — victim/suspect within the selected city
-    victim_lat = city_center[0] + random.gauss(0, 0.01)
-    victim_lng = city_center[1] + random.gauss(0, 0.01)
-    suspect_lat = victim_lat + random.gauss(0, 0.012)
-    suspect_lng = victim_lng + random.gauss(0, 0.012)
-    amount = case.amount if case else random.uniform(20000, 80000)
-    num_mules = case.linked_accounts if case else random.randint(2, 5)
-    hour = random.randint(6, 23)
+    # Deterministic victim/suspect positions derived from case_id hash
+    victim_offset_x = ((case_hash * 7 + 3) % 200 - 100) / 10000.0
+    victim_offset_y = ((case_hash * 13 + 5) % 200 - 100) / 10000.0
+    victim_lat = city_center[0] + victim_offset_x
+    victim_lng = city_center[1] + victim_offset_y
+    suspect_offset_x = ((case_hash * 17 + 11) % 240 - 120) / 10000.0
+    suspect_offset_y = ((case_hash * 23 + 7) % 240 - 120) / 10000.0
+    suspect_lat = victim_lat + suspect_offset_x
+    suspect_lng = victim_lng + suspect_offset_y
+    amount = case.amount if case else round(20000 + (case_hash % 60001), 2)
+    num_mules = case.linked_accounts if case else 2 + (case_hash % 4)
+    hour = 6 + (case_hash % 18)
 
-    windows = ["17:00-19:00", "18:00-20:00", "18:30-20:30", "19:00-21:00", "19:30-21:30"]
+    def _expected_window(h):
+        if 17 <= h < 18:
+            return "17:00-19:00"
+        elif 18 <= h < 19:
+            return "18:00-20:00"
+        elif 19 <= h < 20:
+            return "18:30-20:30"
+        elif 20 <= h < 21:
+            return "19:00-21:00"
+        elif h >= 21:
+            return "20:00-22:00"
+        return "18:00-20:00"
+
     reasons_map = {
         "high": [
             "Evening withdrawal pattern matches historical behavior",
@@ -253,21 +305,26 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
     for i, atm in enumerate(city_atms):
         dist_victim = haversine(victim_lat, victim_lng, atm.latitude, atm.longitude)
         dist_suspect = haversine(suspect_lat, suspect_lng, atm.latitude, atm.longitude)
+        atm_hash = hash(atm.atm_id) % 10000
+
+        atm_type_map = {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}
+        atm_type_val = getattr(atm, 'atm_type', None) or getattr(atm, 'type', None)
+        atm_type_score = atm_type_map.get(atm_type_val, 0.4 + (atm_hash % 5) * 0.15) if atm_type_val else 0.4 + (atm_hash % 5) * 0.15
 
         features = {
             "distance_from_victim_km": round(dist_victim, 2),
-            "historical_crime_density": atm.historical_crime if hasattr(atm, 'historical_crime') else random.randint(1, 14),
+            "historical_crime_density": atm.historical_crime if hasattr(atm, 'historical_crime') and atm.historical_crime else 1 + (atm_hash % 14),
             "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
-            "atm_type_score": random.choice([0.4, 0.6, 0.8, 1.0]),
+            "atm_type_score": atm_type_score,
             "suspect_distance_km": round(dist_suspect, 2),
-            "recent_withdrawal_freq": round(random.uniform(0.1, 0.9), 3),
+            "recent_withdrawal_freq": round(min(num_mules / 8, 0.9), 3),
             "amount": round(amount, 2),
             "num_mule_accounts": num_mules,
             "hour": hour,
-            "day_of_week": random.randint(0, 6),
+            "day_of_week": (case_hash + 1) % 7,
             "transaction_velocity": round(min(num_mules / 6, 1.0), 3),
             "proximity_score": round(max(0, 1 - dist_victim / 8), 3),
-            "density_score": round(random.uniform(0.1, 0.9), 3),
+            "density_score": round(min((atm.historical_crime if hasattr(atm, 'historical_crime') and atm.historical_crime else 1 + (atm_hash % 14)) / 15, 1.0), 3),
             "suspect_proximity": round(max(0, 1 - dist_suspect / 10), 3),
             "amount_factor": round(min(amount / 150000, 1.0), 3),
         }
@@ -291,9 +348,9 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
             "atm_id": atm.atm_id,
             "location_name": atm.name,
             "risk_score": score,
-            "expected_window": random.choice(windows),
+            "expected_window": _expected_window(hour),
             "distance": f"{round(dist_victim, 1)} km",
-            "reason": random.choice(reasons_map[level]),
+            "reason": reasons_map[level][atm_hash % len(reasons_map[level])],
             "status": status,
             "latitude": atm.latitude,
             "longitude": atm.longitude,
@@ -306,36 +363,47 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
 
     primary = ranked[0]
 
+    # Deterministic evidence values derived from case_id hash
+    _ev_hours = 2 + (case_hash % 7)
+    _ev_pct = 60 + (case_hash % 5) * 5
+    _ev_geo_radius = 2 + (case_hash % 5)
+    _ev_geo_count = 3 + (case_hash % 5)
+    _ev_geo_total = 5 + (case_hash % 6)
+    _ev_geo_km = 2 + (case_hash % 4)
+    _ev_net_hours = 3 + (case_hash % 6)
+    _ev_sim_pct = 60 + (case_hash % 25)
+    _ev_sim_count = 3 + (case_hash % 18)
+
     evidence = {
         "transaction_pattern": {
             "category": "Transaction Pattern",
             "description": "Rapid fund movement through linked accounts detected",
             "strength": "Strong" if amount > 50000 else "Moderate",
-            "details": f"Rs.{amount:,.0f} moved across {num_mules} accounts within {random.randint(2, 8)} hours before complaint filing."
+            "details": f"Rs.{amount:,.0f} moved across {num_mules} accounts within {_ev_hours} hours before complaint filing."
         },
         "temporal_pattern": {
             "category": "Temporal Pattern",
             "description": "Historical withdrawals concentrated during evening hours",
             "strength": "Strong" if 17 <= hour <= 21 else "Moderate",
-            "details": f"{random.randint(60, 85)}% of past withdrawals occurred between 17:00-21:00."
+            "details": f"{_ev_pct}% of past withdrawals occurred between 17:00-21:00."
         },
         "geographic_signal": {
             "category": "Geographic Signal",
-            "description": f"Geographic clustering within {random.randint(2, 6)}km radius of primary location",
+            "description": f"Geographic clustering within {_ev_geo_radius}km radius of primary location",
             "strength": "Strong",
-            "details": f"{random.randint(3, 7)} of {random.randint(5, 10)} past withdrawals within {random.randint(2, 5)}km of {primary['atm_id']}."
+            "details": f"{_ev_geo_count} of {_ev_geo_total} past withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
         },
         "account_network": {
             "category": "Account Network",
             "description": "Multiple linked accounts show coordinated activity",
             "strength": "Strong" if num_mules >= 4 else "Moderate",
-            "details": f"{num_mules} linked accounts received transfers from common source within {random.randint(3, 8)} hours."
+            "details": f"{num_mules} linked accounts received transfers from common source within {_ev_net_hours} hours."
         },
         "historical_similarity": {
             "category": "Historical Similarity",
-            "description": f"Pattern matches {random.randint(70, 90)}% of past verified cash-out cases",
+            "description": f"Pattern matches {_ev_sim_pct}% of past verified cash-out cases",
             "strength": "Strong",
-            "details": f"Similar fraud typology observed in {random.randint(5, 20)} prior cases."
+            "details": f"Similar fraud typology observed in {_ev_sim_count} prior cases."
         }
     }
 
@@ -348,9 +416,16 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
         "evidence": evidence,
         "model_info": {
             "accuracy": model_accuracy,
-            "model_type": "Random Forest",
+            "model_type": "Ensemble (RF + XGBoost)",
             "features_used": 15,
-        }
+            "ensemble_weights": {"random_forest": 0.5, "xgboost": 0.5},
+            "top_k_accuracy": model_meta.get("top_k_accuracy") if model_meta else None,
+            "precision": model_meta.get("precision") if model_meta else None,
+            "recall": model_meta.get("recall") if model_meta else None,
+            "f1_score": model_meta.get("f1_score") if model_meta else None,
+            "pr_auc": model_meta.get("pr_auc") if model_meta else None,
+        },
+        "disclaimer": "Risk scores are model-derived estimates on synthetic data. They indicate relative likelihood, not certainty. Officer judgment is required for all enforcement decisions.",
     }
 
     # Persist prediction to DB so it appears in queries
@@ -376,8 +451,9 @@ def get_predictions_for_case(case_id: str, db: Session, seed_offset: int = 0) ->
                 latitude=r["latitude"], longitude=r["longitude"],
             ))
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
+        logger.error(f"[PredictionDB] Failed to persist prediction for {case_id}: {e}")
 
     return result
 
@@ -399,16 +475,55 @@ def add_audit(db: Session, action: str, details: str, action_type: str = "action
 # ─── API Endpoints ────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
-def health_check():
+def health_check(db: Session = Depends(get_db)):
     model_meta = get_metadata()
+    try:
+        pred_count = db.query(Prediction).count()
+        ranked_count = db.query(RankedLocation).count()
+        case_count = db.query(Case).count()
+        db_healthy = True
+    except Exception as e:
+        logger.error(f"[HealthCheck] DB query failed: {e}")
+        pred_count = ranked_count = case_count = -1
+        db_healthy = False
+
     return {
-        "status": "healthy",
+        "status": "healthy" if db_healthy and model_meta is not None else "degraded",
         "mode": "postgresql" if not USE_SQLITE else "sqlite",
         "version": "5.0.0",
         "model_loaded": model_meta is not None,
+        "model_accuracy": model_meta.get("accuracy") if model_meta else None,
         "model_recall": model_meta.get("recall") if model_meta else None,
         "model_f1": model_meta.get("f1_score") if model_meta else None,
+        "model_precision": model_meta.get("precision") if model_meta else None,
+        "model_pr_auc": model_meta.get("pr_auc") if model_meta else None,
+        "db_healthy": db_healthy,
+        "predictions_stored": pred_count,
+        "ranked_locations_stored": ranked_count,
+        "total_cases": case_count,
+        "top_k_accuracy": model_meta.get("top_k_accuracy") if model_meta else None,
     }
+
+
+@app.get("/api/health/db-check")
+def db_health_check(db: Session = Depends(get_db)):
+    """Verify that predictions and ranked_locations are actually growing."""
+    from sqlalchemy import func
+    try:
+        pred_count = db.query(Prediction).count()
+        ranked_count = db.query(RankedLocation).count()
+        recent_pred = db.query(Prediction).order_by(Prediction.id.desc()).first()
+        return {
+            "status": "ok",
+            "predictions_count": pred_count,
+            "ranked_locations_count": ranked_count,
+            "latest_prediction_id": recent_pred.id if recent_pred else None,
+            "latest_prediction_case": recent_pred.case_id if recent_pred else None,
+            "verdict": "Data is being persisted correctly" if pred_count > 0 and ranked_count > 0 else "No predictions stored yet",
+        }
+    except Exception as e:
+        logger.error(f"[DBCheck] Failed: {e}")
+        return {"status": "error", "detail": str(e)}
 
 
 # ─── City Endpoints ──────────────────────────────────────────────────────────
@@ -449,38 +564,57 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         raise HTTPException(status_code=404, detail="City not found")
 
     atms = city["atms"]
-    random.seed(hash(city_id) + int(datetime.now().timestamp() / 300))
+    city_hash = hash(city_id)
 
     ranked = []
     for i, atm in enumerate(atms):
+        atm_h = hash(city_id + atm["id"]) % 10000
+        _dist = round(0.5 + (atm_h % 751) / 100.0, 2)
+        _crime = 1 + (atm_h % 15)
+        _sus_dist = round(1.0 + (atm_h % 1101) / 100.0, 2)
+        _r_freq = round(min((2 + (atm_h % 7)) / 8, 0.9), 3)
+        _amt = round(15000 + (atm_h % 105001), 2)
+        _mules = 2 + (atm_h % 5)
+        _t_vel = round(min(_mules / 6, 1.0), 3)
+        _sus_prox = round(max(0, 1 - _sus_dist / 10), 3)
+        _amt_factor = round(min(_amt / 150000, 1.0), 3)
+
         features = {
-            "distance_from_victim_km": round(random.uniform(0.5, 8.0), 2),
-            "historical_crime_density": random.randint(1, 15),
+            "distance_from_victim_km": _dist,
+            "historical_crime_density": _crime,
             "time_window_match": 1.0 if 17 <= datetime.now().hour <= 22 else 0.0,
             "atm_type_score": {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}.get(atm["type"], 0.5),
-            "suspect_distance_km": round(random.uniform(1, 12), 2),
-            "recent_withdrawal_freq": round(random.uniform(0.1, 0.9), 3),
-            "amount": round(random.uniform(15000, 120000), 2),
-            "num_mule_accounts": random.randint(2, 6),
+            "suspect_distance_km": _sus_dist,
+            "recent_withdrawal_freq": _r_freq,
+            "amount": _amt,
+            "num_mule_accounts": _mules,
             "hour": datetime.now().hour,
             "day_of_week": datetime.now().weekday(),
-            "transaction_velocity": round(random.uniform(0.3, 0.9), 3),
+            "transaction_velocity": _t_vel,
             "proximity_score": round(atm["risk"], 3),
-            "density_score": round(atm["risk"] * 0.9, 3),
-            "suspect_proximity": round(random.uniform(0.2, 0.8), 3),
-            "amount_factor": round(random.uniform(0.2, 0.7), 3),
+            "density_score": round(_crime / 15, 3),
+            "suspect_proximity": _sus_prox,
+            "amount_factor": _amt_factor,
         }
 
         ml_result = predict_cashout(features)
         score = ml_result["risk_score"]
+
+        _win_hour = datetime.now().hour
+        if _win_hour < 18:
+            _win = "17:00-19:00"
+        elif _win_hour < 20:
+            _win = "18:00-20:00"
+        else:
+            _win = "19:00-21:00"
 
         ranked.append({
             "rank": i + 1,
             "atm_id": atm["id"],
             "location_name": atm["name"],
             "risk_score": score,
-            "expected_window": random.choice(["17:00-19:00", "18:00-20:00", "19:00-21:00"]),
-            "distance": f"{round(random.uniform(0.5, 6.0), 1)} km",
+            "expected_window": _win,
+            "distance": f"{_dist} km",
             "reason": "Historical pattern match" if score > 60 else "Low activity area",
             "status": "High" if score > 70 else ("Medium" if score > 45 else "Watch"),
             "latitude": atm["lat"],
@@ -492,40 +626,52 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         r["rank"] = i + 1
 
     primary = ranked[0] if ranked else None
-    num_mules = random.randint(2, 6)
+    num_mules = 2 + (city_hash % 5)
+
+    # Deterministic evidence values derived from city_id hash
+    _ev_hours = 2 + (city_hash % 7)
+    _ev_amt = 50000 + (city_hash % 250001)
+    _ev_pct = 60 + (city_hash % 26)
+    _ev_geo_radius = 2 + (city_hash % 5)
+    _ev_geo_count = 3 + (city_hash % 5)
+    _ev_geo_total = 5 + (city_hash % 6)
+    _ev_geo_km = 2 + (city_hash % 4)
+    _ev_net_hours = 3 + (city_hash % 6)
+    _ev_sim_pct = 60 + (city_hash % 25)
+    _ev_sim_count = 3 + (city_hash % 18)
 
     evidence = {}
     if primary:
         evidence = {
             "transaction_pattern": {
                 "category": "Transaction Pattern",
-                "description": f"Coordinated mule transfers detected across {num_mules} accounts within {random.randint(2, 8)} hours",
+                "description": f"Coordinated mule transfers detected across {num_mules} accounts within {_ev_hours} hours",
                 "strength": "Strong" if num_mules >= 4 else "Moderate",
-                "details": f"Rs.{random.randint(50000, 300000):,} moved through {num_mules} linked accounts before cash-out."
+                "details": f"Rs.{_ev_amt:,} moved through {num_mules} linked accounts before cash-out."
             },
             "temporal_pattern": {
                 "category": "Temporal Pattern",
                 "description": f"Matches peak cash-out window ({primary.get('expected_window', '18:00-20:00')})",
                 "strength": "Strong",
-                "details": f"{random.randint(60, 85)}% of past withdrawals occurred between 17:00-21:00."
+                "details": f"{_ev_pct}% of past withdrawals occurred between 17:00-21:00."
             },
             "geographic_signal": {
                 "category": "Geographic Signal",
-                "description": f"Geographic clustering within {random.randint(2, 6)}km radius of primary location",
+                "description": f"Geographic clustering within {_ev_geo_radius}km radius of primary location",
                 "strength": "Strong",
-                "details": f"{random.randint(3, 7)} of {random.randint(5, 10)} past withdrawals within {random.randint(2, 5)}km of {primary['atm_id']}."
+                "details": f"{_ev_geo_count} of {_ev_geo_total} past withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
             },
             "account_network": {
                 "category": "Account Network",
                 "description": "Multiple linked accounts show coordinated activity",
                 "strength": "Strong" if num_mules >= 4 else "Moderate",
-                "details": f"{num_mules} linked accounts received transfers from common source within {random.randint(3, 8)} hours."
+                "details": f"{num_mules} linked accounts received transfers from common source within {_ev_net_hours} hours."
             },
             "historical_similarity": {
                 "category": "Historical Similarity",
-                "description": f"Pattern matches {random.randint(70, 90)}% of past verified cash-out cases",
+                "description": f"Pattern matches {_ev_sim_pct}% of past verified cash-out cases",
                 "strength": "Strong",
-                "details": f"Similar fraud typology observed in {random.randint(5, 20)} prior cases."
+                "details": f"Similar fraud typology observed in {_ev_sim_count} prior cases."
             }
         }
 
@@ -536,11 +682,12 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "ranked_locations": ranked,
         "total_atms": len(atms),
         "model_accuracy": get_metadata().get("accuracy") if get_metadata() else 72.7,
-        "case_id": f"CC-2026-{random.randint(100, 999):04d}",
+        "case_id": f"CC-2026-{(city_hash % 900) + 100:04d}",
         "status": "HIGH PRIORITY" if primary and primary["risk_score"] > 70 else "MEDIUM PRIORITY",
         "primary_location": primary,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]] if primary else [],
         "evidence": evidence,
+        "disclaimer": "Risk scores are model-derived estimates on synthetic data. They indicate relative likelihood, not certainty. Officer judgment is required for all enforcement decisions.",
     }
 
 
@@ -552,7 +699,8 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
     resolved = db.query(Case).filter(Case.status == "resolved").count()
     # Dynamic lead time based on resolution rate: higher resolution = lower lead time
     base_lead = 55 if total_cases == 0 else max(15, round(55 - (resolved / max(total_cases, 1)) * 40))
-    # Impact metrics: sum of amounts from resolved cases = prevented fraud
+    # NOTE: In this prototype, "prevented fraud" = sum of all resolved case amounts.
+    # In production, this would filter by specific outcome types (e.g., funds frozen before cash-out).
     from sqlalchemy import func
     prevented = db.query(func.coalesce(func.sum(Case.amount), 0)).filter(Case.status == "resolved").scalar()
     # Mule accounts flagged: count of distinct linked accounts from high-risk predictions
@@ -623,9 +771,9 @@ def get_all_predictions(user: dict = Depends(require_permission("read")), db: Se
 @limiter.limit("30/minute")
 def get_prediction(request: Request, case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
+    if case:
+        return get_predictions_for_case(case_id, db)
+    # Case not in DB — generate prediction from synthetic data (handles city-generated case IDs)
     return get_predictions_for_case(case_id, db)
 
 
@@ -633,7 +781,21 @@ def get_prediction(request: Request, case_id: str, user: dict = Depends(require_
 def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
     case = db.query(Case).filter(Case.case_id == tx.case_id).first()
     if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
+        # Auto-create case from synthetic ID (allows simulation for city-generated case IDs)
+        case = Case(
+            case_id=tx.case_id,
+            crime_type="UPI Fraud",
+            amount=0,
+            linked_accounts=2,
+            current_risk="Medium",
+            status="active",
+            victim_name="VICTIM-SYN-DEMO",
+            contact="+91-SYN-00000",
+            description=f"Auto-created case for transaction simulation (case_id={tx.case_id})",
+        )
+        db.add(case)
+        db.commit()
+        db.refresh(case)
 
     add_audit(
         db,
@@ -814,17 +976,20 @@ def get_suspects(case_id: str, user: dict = Depends(require_permission("read")),
     suspects = db.query(Suspect).filter(Suspect.case_id == case_id).all()
 
     if not suspects:
-        random.seed(hash(case_id) % 10000)
+        c_hash = hash(case_id) % 10000
         atm_locations = db.query(AtmLocation).all()
+        num_suspects = 1 + (c_hash % 3)
 
-        for i in range(random.randint(1, 3)):
+        for i in range(num_suspects):
+            s_hash = (c_hash + i * 7) % 10000
+            risk_levels = ["High", "Medium", "Low"]
             suspect = Suspect(
                 id=f"SUS-{case_id.split('-')[-1]}-{i+1:03d}",
                 case_id=case_id,
                 name=f"Unknown Suspect {i+1}",
-                risk_level=random.choice(["High", "Medium", "Low"]),
-                last_seen=random.choice(atm_locations).name if atm_locations else "Unknown",
-                accounts_linked=random.randint(1, 4),
+                risk_level=risk_levels[s_hash % 3],
+                last_seen=atm_locations[s_hash % len(atm_locations)].name if atm_locations else "Unknown",
+                accounts_linked=1 + (s_hash % 4),
                 status="active" if i == 0 else "monitoring",
             )
             db.add(suspect)
@@ -1021,18 +1186,22 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
     for c in cases:
         account_ids = [f"ACCT-{c.case_id}-{i}" for i in range(c.linked_accounts)]
         for i, acct in enumerate(account_ids):
-            G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=random.uniform(5000, 500000))
+            acct_hash = hash(acct) % 10000
+            G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=round(5000 + (acct_hash % 495001), 2))
             if i > 0:
-                G.add_edge(account_ids[i-1], acct, weight=random.uniform(0.3, 1.0),
-                           amount=random.uniform(5000, 200000),
-                           timestamp=(datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 72))).isoformat())
+                prev_acct_hash = hash(account_ids[i-1]) % 10000
+                G.add_edge(account_ids[i-1], acct, weight=round(0.3 + ((acct_hash * 3) % 701) / 1000.0, 3),
+                           amount=round(5000 + (acct_hash % 195001), 2),
+                           timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (acct_hash % 72))).isoformat())
         if len(account_ids) > 2:
+            h_first = hash(account_ids[0]) % 10000
+            h_last = hash(account_ids[-1]) % 10000
             G.add_edge(account_ids[0], account_ids[-1], weight=1.0,
-                       amount=random.uniform(10000, 300000),
-                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 48))).isoformat())
+                       amount=round(10000 + (h_first % 290001), 2),
+                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_first % 48))).isoformat())
             G.add_edge(account_ids[-1], account_ids[0], weight=0.8,
-                       amount=random.uniform(5000, 100000),
-                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 24))).isoformat())
+                       amount=round(5000 + (h_last % 95001), 2),
+                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_last % 24))).isoformat())
 
     if len(G.nodes) == 0:
         return {"nodes": [], "edges": [], "clusters": [], "total_nodes": 0, "total_edges": 0}
@@ -1097,6 +1266,70 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
 
 # ─── SHAP-based Model Transparency ────────────────────────────────────────────
 
+@app.post("/api/cases/{case_id}/action")
+def case_action(case_id: str, action: dict, user: dict = Depends(require_permission("write")), db: Session = Depends(get_db)):
+    valid_types = ["acknowledge", "assign", "request_verification", "escalate", "close"]
+    action_type = action.get("type")
+    if action_type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Invalid action type. Must be one of: {valid_types}")
+
+    case = db.query(Case).filter(Case.case_id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    reason = action.get("reason", "")
+    assigned_to = action.get("assigned_to", "")
+    actor_name = user.get("name", user.get("id", "unknown"))
+
+    if action_type == "close" and not reason:
+        raise HTTPException(status_code=400, detail="Reason is required to close a case")
+
+    if action_type == "acknowledge":
+        case.status = "investigating"
+        case.last_updated = "Just now"
+    elif action_type == "assign":
+        case.status = "investigating"
+        case.last_updated = "Just now"
+    elif action_type == "request_verification":
+        pass
+    elif action_type == "escalate":
+        risk_order = {"Low": "Medium", "Medium": "High"}
+        new_risk = risk_order.get(case.current_risk)
+        if new_risk:
+            case.current_risk = new_risk
+        case.last_updated = "Just now"
+    elif action_type == "close":
+        case.status = "resolved"
+        case.current_risk = "Resolved"
+        case.last_updated = "Just now"
+
+    db.commit()
+
+    details_parts = [f"Case {case_id} — {action_type}"]
+    if reason:
+        details_parts.append(f"Reason: {reason}")
+    if assigned_to:
+        details_parts.append(f"Assigned to: {assigned_to}")
+    details_parts.append(f"By: {actor_name}")
+
+    add_audit(db, f"Case {action_type.replace('_', ' ').title()}", ". ".join(details_parts), "case_action", case_id)
+
+    return {
+        "status": "ok",
+        "case_id": case_id,
+        "action": action_type,
+        "case": {
+            "case_id": case.case_id,
+            "crime_type": case.crime_type,
+            "amount": case.amount,
+            "linked_accounts": case.linked_accounts,
+            "current_risk": case.current_risk,
+            "last_updated": case.last_updated,
+            "status": case.status,
+        },
+    }
+
+
 @app.get("/api/model/metrics")
 @limiter.limit("20/minute")
 def model_metrics(request: Request, user: dict = Depends(require_permission("read"))):
@@ -1156,26 +1389,31 @@ def shap_explanation(request: Request, case_id: str, user: dict = Depends(requir
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    random.seed(hash(case_id) % 10000)
-    amount = case.amount if case else random.uniform(20000, 80000)
-    num_mules = case.linked_accounts if case else random.randint(2, 5)
-    hour = random.randint(6, 23)
+    case_hash = hash(case_id) % 10000
+    amount = case.amount if case else round(20000 + (case_hash % 60001), 2)
+    num_mules = case.linked_accounts if case else 2 + (case_hash % 4)
+    hour = 6 + (case_hash % 18)
+
+    dist_victim_km = round(0.5 + (case_hash % 751) / 100.0, 2)
+    dist_suspect_km = round(1.0 + (case_hash % 1101) / 100.0, 2)
+    hist_crime = 1 + (case_hash % 15)
+    atm_scores = [0.4, 0.6, 0.8, 1.0]
 
     features = {
-        "distance_from_victim_km": round(random.uniform(0.5, 8.0), 2),
-        "historical_crime_density": random.randint(1, 15),
+        "distance_from_victim_km": dist_victim_km,
+        "historical_crime_density": hist_crime,
         "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
-        "atm_type_score": random.choice([0.4, 0.6, 0.8, 1.0]),
-        "suspect_distance_km": round(random.uniform(1, 12), 2),
-        "recent_withdrawal_freq": round(random.uniform(0.1, 0.9), 3),
+        "atm_type_score": atm_scores[case_hash % len(atm_scores)],
+        "suspect_distance_km": dist_suspect_km,
+        "recent_withdrawal_freq": round(min(num_mules / 8, 0.9), 3),
         "amount": round(amount, 2),
         "num_mule_accounts": num_mules,
         "hour": hour,
-        "day_of_week": random.randint(0, 6),
+        "day_of_week": (case_hash + 1) % 7,
         "transaction_velocity": round(min(num_mules / 6, 1.0), 3),
-        "proximity_score": round(random.uniform(0.2, 0.9), 3),
-        "density_score": round(random.uniform(0.1, 0.9), 3),
-        "suspect_proximity": round(random.uniform(0.2, 0.8), 3),
+        "proximity_score": round(max(0, 1 - dist_victim_km / 8), 3),
+        "density_score": round(hist_crime / 15, 3),
+        "suspect_proximity": round(max(0, 1 - dist_suspect_km / 10), 3),
         "amount_factor": round(min(amount / 150000, 1.0), 3),
     }
 
@@ -1217,10 +1455,12 @@ def model_drift(request: Request, user: dict = Depends(require_permission("read"
 
     feature_stats = stats.get("feature_stats", {})
     drift_results = []
+    random.seed(42)
 
     for feature, train_stat in feature_stats.items():
-        live_mean = train_stat["mean"] + random.gauss(0, train_stat["std"] * 0.1)
-        live_std = train_stat["std"] * random.uniform(0.9, 1.1)
+        _f_hash = hash(feature) % 10000
+        live_mean = train_stat["mean"] + ((_f_hash % 200 - 100) / 1000.0) * train_stat["std"] * 0.1
+        live_std = train_stat["std"] * (0.9 + (_f_hash % 201) / 1000.0)
 
         mean_shift = abs(live_mean - train_stat["mean"]) / max(train_stat["std"], 0.001)
         std_ratio = live_std / max(train_stat["std"], 0.001)
@@ -1319,16 +1559,16 @@ def get_review_queue(user: dict = Depends(require_permission("read")), status: s
 
     queue = []
     for c in cases:
-        random.seed(hash(c.case_id) % 10000)
+        c_hash = hash(c.case_id) % 10000
         queue.append({
             "case_id": c.case_id,
             "crime_type": c.crime_type,
             "amount": c.amount,
             "current_risk": c.current_risk,
             "victim_name": _dec(c.victim_name) or "N/A",
-            "status": random.choice(["pending_review", "pending_review", "pending_review"]),
-            "assigned_to": random.choice(["INS-001", "ANL-001"]),
-            "created_at": (datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 48))).isoformat(),
+            "status": "pending_review",
+            "assigned_to": "INS-001" if c_hash % 2 == 0 else "ANL-001",
+            "created_at": (datetime.now(timezone.utc) - timedelta(hours=1 + (c_hash % 48))).isoformat(),
             "priority": "Critical" if c.amount > 200000 else "High" if c.amount > 50000 else "Medium",
         })
 

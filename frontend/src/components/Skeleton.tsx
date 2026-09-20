@@ -1,6 +1,6 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse bg-[#27272a] rounded ${className}`} />
+    <div className={`animate-pulse bg-[#F3F4F6] rounded ${className}`} />
   );
 }
 
@@ -26,7 +26,7 @@ export function PredictionCardSkeleton() {
         <Skeleton className="h-4 w-20" />
         <Skeleton className="h-4 w-24" />
       </div>
-      <div className="bg-[#0a0a0f] rounded-xl p-4 border border-[#27272a] mb-4">
+      <div className="bg-[#F8F9FA] rounded-xl p-4 border border-[#D1D5DB] mb-4">
         <Skeleton className="h-3 w-32 mb-2" />
         <Skeleton className="h-8 w-48 mb-3" />
         <div className="grid grid-cols-3 gap-3">
@@ -43,7 +43,7 @@ export function PredictionCardSkeleton() {
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="card overflow-hidden">
-      <div className="p-4 border-b border-[#27272a]">
+      <div className="p-4 border-b border-[#D1D5DB]">
         <Skeleton className="h-4 w-32 mb-1" />
         <Skeleton className="h-3 w-48" />
       </div>

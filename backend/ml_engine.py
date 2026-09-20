@@ -289,8 +289,10 @@ def get_model_card() -> dict:
     card = {
         "models": [],
         "ensemble_method": "weighted_average",
+        "ensemble_weights": {"random_forest": 0.5, "xgboost": 0.5},
         "total_predictions": _prediction_counter,
         "training_date": _metadata.get("training_date", "unknown") if _metadata else "unknown",
+        "top_k_accuracy": _metadata.get("top_k_accuracy") if _metadata else None,
     }
 
     if _rf_model is not None:
