@@ -2,21 +2,31 @@
 node_modules/
 __pycache__/
 *.pyc
+venv/
+.venv/
 
 # Environment variables (NEVER commit)
 .env
+.env.*
 backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
 
 # Build outputs
 frontend/dist/
 frontend/build/
 *.egg-info/
 
+# Vite output
+vite output.txt
+
 # Database files
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+test.db
 
 # Model files (large binaries)
 backend/model/*.pkl
@@ -43,10 +53,12 @@ npm-debug.log*
 .coverage
 htmlcov/
 frontend/coverage/
+frontend/test-results/
 
 # Temporary
 *.tmp
 *.temp
 .cache/
 
-frontend/test-results/
+# Supabase
+supabase/.temp/

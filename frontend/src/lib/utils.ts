@@ -16,21 +16,3 @@ export function timeAgo(date: Date): string {
   if (hours < 24) return `${hours} hr ago`;
   return `${Math.floor(hours / 24)} days ago`;
 }
-
-export function riskColor(score: number): string {
-  if (score > 70) return "text-[#ef4444]";
-  if (score > 45) return "text-[#f59e0b]";
-  return "text-[#374151]";
-}
-
-export function riskBg(score: number): string {
-  if (score > 70) return "bg-[#ef4444]/10 text-[#ef4444]";
-  if (score > 45) return "bg-[#f59e0b]/10 text-[#f59e0b]";
-  return "bg-[#F3F4F6] text-[#6B7280]";
-}
-
-export function riskBorder(score: number): string {
-  if (score > 70) return "border-l-[#ef4444]";
-  if (score > 45) return "border-l-[#f59e0b]";
-  return "border-l-[#D1D5DB]";
-}

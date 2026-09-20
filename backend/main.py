@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -15,12 +15,12 @@ from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
     AlertResponse, DashboardStatsResponse
 )
-from ml_engine import predict_cashout, get_metadata, haversine, haversine_filtered, compute_shap_values
+from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values
 from city_data import CITIES
 from evidence_chain import get_evidence_chain
-from auth import register_auth_routes, verify_token, require_role, require_permission, generate_csrf_token, ws_tracker, require_csrf, verify_ws_token, generate_ws_ticket, consume_ws_ticket
+from auth import register_auth_routes, verify_token, require_permission, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
 from city_data import get_city, get_all_cities, get_city_atms, get_city_stats, CITIES
-from spatial import find_nearby_atms, get_spatial_info, check_postgis, enable_postgis, add_geometry_column
+from spatial import find_nearby_atms, get_spatial_info, enable_postgis, add_geometry_column
 from typing import List, Optional
 import random
 import os
