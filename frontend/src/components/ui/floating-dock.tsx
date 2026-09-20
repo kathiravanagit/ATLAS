@@ -46,7 +46,7 @@ const FloatingDockMobile = ({
               >
                 <button
                   onClick={() => { item.onClick?.(); setOpen(false); }}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
                 >
                   <div className="h-4 w-4">{item.icon}</div>
                 </button>
@@ -57,9 +57,9 @@ const FloatingDockMobile = ({
       </AnimatePresence>
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] transition-colors"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
       >
-        <IconLayoutNavbarCollapse className="h-5 w-5 text-[#e4e4e7]" />
+        <IconLayoutNavbarCollapse className="h-5 w-5 text-[#6B7280]" />
       </button>
     </div>
   );
@@ -97,7 +97,7 @@ const FloatingDockDesktop = ({
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "mx-auto hidden h-16 items-end gap-4 rounded-2xl bg-[#18181b] px-4 pb-3 md:flex border border-[#27272a] will-change-transform",
+        "mx-auto hidden h-16 items-end gap-4 rounded-2xl bg-white px-4 pb-3 md:flex border border-[#D1D5DB] will-change-transform",
         className
       )}
     >
@@ -150,7 +150,7 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="relative flex aspect-square items-center justify-center rounded-full bg-[#27272a] hover:bg-[#71717a] transition-colors will-change-transform"
+        className="relative flex aspect-square items-center justify-center rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors will-change-transform"
       >
         <AnimatePresence>
           {hovered && (
@@ -159,7 +159,7 @@ function IconContainer({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 2 }}
               transition={{ duration: 0.12 }}
-              className="absolute -top-8 left-1/2 w-fit rounded-md border border-[#27272a] bg-[#18181b] px-2 py-0.5 text-sm whitespace-pre text-[#e4e4e7] pointer-events-none"
+              className="absolute -top-8 left-1/2 w-fit rounded-md border border-[#D1D5DB] bg-white px-2 py-0.5 text-sm whitespace-pre text-[#1F2937] pointer-events-none"
             >
               {title}
             </motion.div>

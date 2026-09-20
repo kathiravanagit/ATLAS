@@ -183,14 +183,14 @@ export default function JarvisGlobe({ atms, onAtmClick, className = "" }: Jarvis
           <span className={`w-1.5 h-1.5 rounded-full ${zoomPhase === "ready" ? "bg-[#22c55e] animate-pulse" : "bg-[#f59e0b] animate-pulse"}`} />
           {zoomPhase === "scanning" ? "SCANNING..." : zoomPhase === "locked" ? "TARGET LOCKED" : "TACTICAL MAP"}
         </div>
-        <div className="text-[9px] text-[#d4d4d8] font-mono mt-0.5">
+        <div className="text-[11px] text-[#d4d4d8] font-mono mt-0.5">
           {centerLat.toFixed(4)}N {centerLng.toFixed(4)}E
         </div>
       </div>
 
       {/* HUD Bottom Left - Target Info */}
       <div className="absolute bottom-3 left-3 z-20">
-        <div className="text-[9px] text-[#d4d4d8] font-mono">
+        <div className="text-[11px] text-[#d4d4d8] font-mono">
           {atms.length} TARGETS DETECTED
         </div>
         {highestRiskAtm && (
@@ -217,7 +217,7 @@ export default function JarvisGlobe({ atms, onAtmClick, className = "" }: Jarvis
       {/* HUD Top Right */}
       <div className="absolute top-3 right-3 z-20 text-right">
         <div className="text-[8px] text-[#d4d4d8] font-mono">LIVE TRACKING</div>
-        <div className="text-[9px] text-[#22c55e] font-mono flex items-center gap-1 justify-end">
+        <div className="text-[11px] text-[#22c55e] font-mono flex items-center gap-1 justify-end">
           <span className="w-1 h-1 rounded-full bg-[#22c55e] animate-pulse" />
           ACTIVE
         </div>

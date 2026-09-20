@@ -9,12 +9,40 @@ Provides envelope encryption with:
 import os
 import base64
 import hashlib
+import logging
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
 _KDF_ITERATIONS = 600_000
 _SALT = b"atlas-2026-sih-v1"  # fixed per-deployment; rotate with new key
+
+# ─── Startup Key Validation ───────────────────────────────────────────────────
+_enc_key = os.getenv("ENCRYPTION_KEY", "")
+_demo_mode = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+
+if _demo_mode:
+    logging.getLogger("atlas.encryption").info(
+        "Demo mode active — encryption key validation skipped"
+    )
+elif not _enc_key:
+    logging.getLogger("atlas.encryption").warning(
+        "ENCRYPTION_KEY is not set. Encryption will be disabled for data-at-rest. "
+        "Set a 64-hex-character key (32 bytes) for production."
+    )
+else:
+    try:
+        _key_bytes = bytes.fromhex(_enc_key)
+        if len(_key_bytes) != 32:
+            logging.getLogger("atlas.encryption").warning(
+                f"ENCRYPTION_KEY is {len(_key_bytes)} bytes; expected exactly 32 (64 hex chars). "
+                "Encryption may fail at runtime."
+            )
+    except ValueError:
+        logging.getLogger("atlas.encryption").warning(
+            "ENCRYPTION_KEY is not a valid hex string. "
+            "Must be exactly 64 hex characters (32 bytes)."
+        )
 
 
 def _derive_key(master_key: str) -> bytes:

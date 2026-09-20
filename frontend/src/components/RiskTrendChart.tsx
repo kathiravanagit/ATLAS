@@ -35,17 +35,17 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
     <div className="card p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base text-white">Risk Trend — Last 6 Hours</h3>
-          <p className="text-sm text-[#d4d4d8] mt-0.5">
+          <h3 className="font-semibold text-base text-[#1F2937]">Risk Trend — Last 6 Hours</h3>
+          <p className="text-sm text-[#6B7280] mt-0.5">
             Synthetic demonstration values
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[#d4d4d8] bg-[#18181b] px-2 py-1 rounded-lg border border-[#27272a]">
+          <span className="text-[10px] text-[#6B7280] bg-white px-2 py-1 rounded-lg border border-[#D1D5DB]">
             Updated {relativeTime}
           </span>
-          <div className="flex items-center gap-1.5 text-[10px] text-[#22c55e]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
+          <div className="flex items-center gap-1.5 text-[10px] text-[#15803D]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#15803D] animate-pulse"></span>
             Live
           </div>
         </div>
@@ -55,37 +55,37 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#fff" stopOpacity={0.1}/>
-                <stop offset="95%" stopColor="#fff" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#1D355B" stopOpacity={0.15}/>
+                <stop offset="95%" stopColor="#1D355B" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis
               dataKey="time"
-              tick={{ fill: '#d4d4d8', fontSize: 11 }}
-              axisLine={{ stroke: '#27272a' }}
+              tick={{ fill: '#6B7280', fontSize: 11 }}
+              axisLine={{ stroke: '#E5E7EB' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: '#d4d4d8', fontSize: 11 }}
-              axisLine={{ stroke: '#27272a' }}
+              tick={{ fill: '#6B7280', fontSize: 11 }}
+              axisLine={{ stroke: '#E5E7EB' }}
               tickLine={false}
               domain={[0, 100]}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#18181b',
-                border: '1px solid #27272a',
+                backgroundColor: '#ffffff',
+                border: '1px solid #D1D5DB',
                 borderRadius: '8px',
                 fontSize: '12px'
               }}
-              labelStyle={{ color: '#d4d4d8' }}
+              labelStyle={{ color: '#6B7280' }}
               formatter={(value: number) => [`${value}%`, 'Risk Score']}
             />
             <Area
               type="monotone"
               dataKey="risk"
-              stroke="#fafafa"
+              stroke="#1D355B"
               strokeWidth={1.5}
               fill="url(#riskGradient)"
             />

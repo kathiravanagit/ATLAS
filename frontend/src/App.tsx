@@ -15,6 +15,8 @@ import EvidencePage from './pages/EvidencePage';
 import AuditPage from './pages/AuditPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import DataPrivacyPage from './pages/DataPrivacyPage';
+import ModelCardPage from './pages/ModelCardPage';
+import SystemHealthPage from './pages/SystemHealthPage';
 
 export default function App() {
   return (
@@ -34,6 +36,8 @@ export default function App() {
             <Route path="evidence" element={<EvidencePage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="data-privacy" element={<DataPrivacyPage />} />
+            <Route path="model-card" element={<ModelCardPage />} />
+            <Route path="health" element={<SystemHealthPage />} />
             <Route path="profile" element={<ProfileSettingsPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />

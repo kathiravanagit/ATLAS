@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,27 +16,29 @@
   }
 
   body {
-    background-color: #0a0a0f;
-    color: #fafafa;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #F8F9FA;
+    color: #1F2937;
+    font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
   }
 
   ::selection {
-    background-color: rgba(59, 130, 246, 0.3);
-    color: #fafafa;
+    background-color: rgba(29, 53, 91, 0.2);
+    color: #1F2937;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-[#18181b] border border-[#27272a] rounded-xl;
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    @apply bg-white rounded-[12px];
+    border: 1px solid #E5E7EB;
+    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   .card:hover {
-    border-color: #71717a;
-    box-shadow: 0 0 0 1px rgba(63, 63, 70, 0.1), 0 4px 24px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    border-color: #D1D5DB;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   }
 
   .card-hover {
@@ -43,47 +47,38 @@
   }
 
   .card-hover:hover {
-    transform: translateY(-2px);
-    border-color: #71717a;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px);
+    border-color: #D1D5DB;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-[#3b82f6] text-white text-base font-medium rounded-lg;
+    @apply px-4 py-2 bg-[#1D4ED8] text-white text-base font-medium rounded-lg;
     transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   .btn-primary:hover {
-    background-color: #2563eb;
+    background-color: #1D355B;
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-  }
-
-  .btn-primary:active {
-    transform: translateY(0);
-    box-shadow: none;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
   }
 
   .btn-ghost {
-    @apply px-4 py-2 bg-transparent text-[#e4e4e7] text-base font-medium rounded-lg border border-[#27272a];
+    @apply px-4 py-2 bg-transparent text-[#1F2937] text-base font-medium rounded-lg border border-[#D1D5DB];
     transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   .btn-ghost:hover {
-    @apply text-white border-[#71717a] bg-[#27272a];
+    @apply bg-[#F3F4F6] border-[#9CA3AF];
   }
 
   .input-field {
-    @apply w-full px-3 py-2 bg-[#0a0a0f] border border-[#27272a] rounded-lg text-base text-white placeholder-[#d4d4d8];
+    @apply w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-base text-[#1F2937] placeholder-[#6B7280];
     transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   .input-field:focus {
-    @apply outline-none border-[#3b82f6] ring-1 ring-[#3b82f6]/20;
-  }
-
-  .font-mono {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    @apply outline-none border-[#1D4ED8] ring-1 ring-[#1D4ED8]/20;
   }
 
   .fade-in {
@@ -103,6 +98,48 @@
   .stagger-3 { animation-delay: 0.15s; }
   .stagger-4 { animation-delay: 0.2s; }
   .stagger-5 { animation-delay: 0.25s; }
+}
+
+/* UX4G-style scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* Smooth page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Responsive text utilities */
+@media (max-width: 640px) {
+  .hero-title { font-size: 2rem !important; }
+  .hero-subtitle { font-size: 1rem !important; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+  opacity: 0;
 }
 
 @keyframes fadeIn {
@@ -132,14 +169,9 @@
   }
 }
 
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
 /* Leaflet overrides */
 .leaflet-container {
-  background: #0a0a0f !important;
+  background: #F8F9FA !important;
   z-index: 1 !important;
 }
 
@@ -151,28 +183,24 @@
   z-index: 2 !important;
 }
 
-.leaflet-tile-pane {
-  filter: brightness(0.6) invert(1) contrast(1.3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
-}
-
 .leaflet-popup-content-wrapper {
-  background: #f4f4f5 !important;
-  color: #18181b !important;
-  border: 1px solid #d4d4d8 !important;
+  background: #ffffff !important;
+  color: #1F2937 !important;
+  border: 1px solid #D1D5DB !important;
   border-radius: 8px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
 .leaflet-popup-tip {
-  background: #f4f4f5 !important;
-  border: 1px solid #d4d4d8 !important;
+  background: #ffffff !important;
+  border: 1px solid #D1D5DB !important;
 }
 
 .leaflet-popup-close-button {
-  color: #52525b !important;
+  color: #6B7280 !important;
 }
 .leaflet-popup-close-button:hover {
-  color: #18181b !important;
+  color: #1F2937 !important;
 }
 
 .leaflet-control-zoom {
@@ -193,16 +221,16 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #D1D5DB;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #71717a;
+  background: #9CA3AF;
 }
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #1D4ED8;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -217,6 +245,6 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #18181b;
-  border-bottom: 1px solid #27272a;
+  background: #ffffff;
+  border-bottom: 1px solid #D1D5DB;
 }

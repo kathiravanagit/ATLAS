@@ -36,7 +36,7 @@ const FEATURE_LABELS: Record<string, string> = {
   time_window_match: 'Time Window Fit',
   suspect_proximity: 'Suspect Proximity',
   amount_factor: 'Transaction Amount',
-  num_mule_accounts: 'Mule Accounts',
+  num_mule_accounts: 'Linked Accounts',
   transaction_velocity: 'Velocity',
   historical_crime_density: 'Historical Density',
   distance_from_victim_km: 'Victim Distance',
@@ -84,9 +84,9 @@ function generateBriefing(data: ExplainabilityData): string {
   if (topPositive.find(f => f.feature === 'proximity_score')) patterns.push(`proximity (${dist} to primary transfer origin)`);
   if (topPositive.find(f => f.feature === 'time_window_match')) patterns.push(`historical ${Math.round(data.risk_score * 0.85)}% cash-out frequency between ${window}`);
   if (topPositive.find(f => f.feature === 'density_score')) patterns.push('elevated crime density in area');
-  if (topPositive.find(f => f.feature === 'num_mule_accounts')) patterns.push(`${mules} linked mule accounts`);
+  if (topPositive.find(f => f.feature === 'num_mule_accounts')) patterns.push(`${mules} linked accounts`);
 
-  return `Flagged ${riskLevel} Risk (${data.risk_score}%): ₹${amount.toLocaleString('en-IN')} moved across ${mules} mule hops within ${Math.round(2 + Math.random() * 6)} hours. ${atm} (${location}) selected based on ${patterns.join(' and ')}.`;
+  return `Flagged ${riskLevel} Risk (${data.risk_score}%): ₹${amount.toLocaleString('en-IN')} moved across ${mules} linked hops within ${Math.round(2 + Math.random() * 6)} hours. ${atm} (${location}) selected based on ${patterns.join(' and ')}.`;
 }
 
 export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps) {
@@ -126,7 +126,24 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
       });
   }, [caseId]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain size={16} className="text-[#1D4ED8]" />
+          <h3 className="text-base font-semibold text-[#1F2937]">Model Explainability</h3>
+          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">SHAP-style</span>
+        </div>
+        <div className="space-y-3">
+          <div className="h-4 bg-[#F3F4F6] rounded animate-pulse w-1/3"></div>
+          <div className="h-8 bg-[#F3F4F6] rounded animate-pulse w-1/2"></div>
+          <div className="grid grid-cols-3 gap-2">
+            {[1,2,3].map(i => <div key={i} className="h-16 bg-[#F3F4F6] rounded animate-pulse"></div>)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const maxAbs = Math.max(...data.feature_contributions.map(f => Math.abs(f.contribution)), 1);
   const briefing = generateBriefing(data);
@@ -138,13 +155,13 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
         className="w-full flex items-center justify-between"
       >
         <div className="flex items-center gap-2">
-          <Brain size={16} className="text-[#8b5cf6]" />
-          <h3 className="text-base font-semibold text-white">Model Explainability</h3>
-          <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-2 py-0.5 rounded font-mono">
+          <Brain size={16} className="text-[#1D4ED8]" />
+          <h3 className="text-base font-semibold text-[#1F2937]">Model Explainability</h3>
+          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
             SHAP-style
           </span>
         </div>
-        {expanded ? <ChevronUp size={14} className="text-[#d4d4d8]" /> : <ChevronDown size={14} className="text-[#d4d4d8]" />}
+        {expanded ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
       </button>
 
       <div
@@ -153,32 +170,32 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
       >
         <div className="mt-4 space-y-4">
           {/* Investigative Briefing Summary */}
-          <div className="bg-gradient-to-r from-[#8b5cf6]/10 to-[#3b82f6]/10 border border-[#8b5cf6]/30 rounded-xl p-4">
+          <div className="bg-[#EFF6FF] border border-[#1D4ED8]/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <FileText size={14} className="text-[#8b5cf6]" />
-              <span className="text-xs font-semibold text-[#8b5cf6] uppercase tracking-wider">Investigative Briefing</span>
+              <FileText size={14} className="text-[#1D4ED8]" />
+              <span className="text-xs font-semibold text-[#1D4ED8] uppercase tracking-wider">Investigative Briefing</span>
             </div>
-            <p className="text-sm text-[#e4e4e7] leading-relaxed">{briefing}</p>
+            <p className="text-sm text-[#4B5563] leading-relaxed">{briefing}</p>
           </div>
 
           {/* Model info bar */}
-          <div className="flex items-center gap-4 text-[10px] text-[#d4d4d8] bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
+          <div className="flex items-center gap-4 text-[11px] text-[#6B7280] bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
             <div className="flex items-center gap-1.5">
-              <Sparkles size={10} className="text-[#8b5cf6]" />
+              <Sparkles size={10} className="text-[#1D4ED8]" />
               <span>{data.model_type}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <BarChart3 size={10} className="text-[#3b82f6]" />
-              <span>Confidence: <span className="text-white font-mono">{(data.confidence * 100).toFixed(1)}%</span></span>
+              <span>Confidence: <span className="text-[#1F2937] font-mono">{(data.confidence * 100).toFixed(1)}%</span></span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span>Ensemble: <span className="text-white">{data.ensemble_method}</span></span>
+              <span>Ensemble: <span className="text-[#1F2937]">{data.ensemble_method}</span></span>
             </div>
           </div>
 
           {/* Feature contributions */}
           <div className="space-y-2">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider">Feature Contributions to Risk Score</div>
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider">Feature Contributions to Risk Score</div>
             {data.feature_contributions.map((feat, i) => (
               <motion.div
                 key={feat.feature}
@@ -187,17 +204,17 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
                 transition={{ delay: i * 0.03, duration: 0.25 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-[130px] text-[11px] text-[#e4e4e7] text-right truncate">{feat.label}</div>
-                <div className="flex-1 relative h-5 bg-[#0a0a0f] rounded overflow-hidden border border-[#27272a]">
+                <div className="w-[130px] text-[11px] text-[#4B5563] text-right truncate">{feat.label}</div>
+                <div className="flex-1 relative h-5 bg-[#F8F9FA] rounded overflow-hidden border border-[#D1D5DB]">
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-px h-full bg-[#27272a]" />
+                    <div className="w-px h-full bg-[#D1D5DB]" />
                   </div>
                   {feat.contribution > 0 ? (
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(feat.contribution / maxAbs) * 50}%` }}
                       transition={{ duration: 0.5, delay: i * 0.03 }}
-                      className="absolute top-0 right-1/2 h-full bg-[#ef4444]/20 rounded-l"
+                      className="absolute top-0 right-1/2 h-full bg-[#B91C1C]/15 rounded-l"
                       style={{ minWidth: 2 }}
                     />
                   ) : (
@@ -205,13 +222,13 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
                       initial={{ width: 0 }}
                       animate={{ width: `${(Math.abs(feat.contribution) / maxAbs) * 50}%` }}
                       transition={{ duration: 0.5, delay: i * 0.03 }}
-                      className="absolute top-0 left-1/2 h-full bg-[#22c55e]/20 rounded-r"
+                      className="absolute top-0 left-1/2 h-full bg-[#15803D]/15 rounded-r"
                       style={{ minWidth: 2 }}
                     />
                   )}
                 </div>
                 <div className={`w-[50px] text-[11px] font-mono text-right ${
-                  feat.contribution > 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'
+                  feat.contribution > 0 ? 'text-[#B91C1C]' : 'text-[#15803D]'
                 }`}>
                   {feat.contribution > 0 ? '+' : ''}{feat.contribution.toFixed(2)}
                 </div>
@@ -220,8 +237,8 @@ export default function ExplainabilityPanel({ caseId }: ExplainabilityPanelProps
           </div>
 
           {/* Summary */}
-          <div className="text-[10px] text-[#d4d4d8] bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            Top drivers: <span className="text-[#ef4444]">proximity, time window, area density</span> push risk up.
+          <div className="text-[11px] text-[#6B7280] bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+            Top drivers: <span className="text-[#B91C1C]">proximity, time window, area density</span> push risk up.
             Distance from victim and ATM type moderate the score downward.
           </div>
         </div>

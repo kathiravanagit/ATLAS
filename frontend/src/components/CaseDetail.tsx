@@ -12,11 +12,11 @@ interface CaseDetailProps {
 }
 
 const evidenceIcons: Record<string, React.ReactNode> = {
-  transaction_pattern: <Activity size={14} className="text-[#e4e4e7]" />,
-  temporal_pattern: <Clock size={14} className="text-[#e4e4e7]" />,
-  geographic_signal: <MapPin size={14} className="text-[#e4e4e7]" />,
-  account_network: <GitBranch size={14} className="text-[#e4e4e7]" />,
-  historical_similarity: <History size={14} className="text-[#e4e4e7]" />,
+  transaction_pattern: <Activity size={14} className="text-[#374151]" />,
+  temporal_pattern: <Clock size={14} className="text-[#374151]" />,
+  geographic_signal: <MapPin size={14} className="text-[#374151]" />,
+  account_network: <GitBranch size={14} className="text-[#374151]" />,
+  historical_similarity: <History size={14} className="text-[#374151]" />,
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -100,19 +100,19 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="font-mono font-bold text-lg text-white">{caseId}</span>
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded flex items-center gap-1 ${statusConfig.investigating.color}`}>
+              <span className="font-mono font-bold text-lg text-[#1F2937]">{caseId}</span>
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 ${statusConfig.investigating.color}`}>
                 {statusConfig.investigating.icon} Investigating
               </span>
             </div>
-            <p className="text-sm text-[#d4d4d8]">Filed on cybercrime.gov.in</p>
+            <p className="text-sm text-[#6B7280]">Filed on cybercrime.gov.in</p>
           </div>
           <div className="flex items-center gap-2">
             <a
               href="https://cybercrime.gov.in"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-[#27272a] text-sm text-[#e4e4e7] rounded-lg hover:bg-[#71717a] transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#F3F4F6] text-sm text-[#374151] rounded-lg hover:bg-[#E5E7EB] transition-colors flex items-center gap-1"
             >
               <ExternalLink size={10} /> Govt Portal
             </a>
@@ -132,20 +132,20 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
         </div>
 
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Crime Type</div>
-            <div className="text-base font-medium text-white">UPI Fraud</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Crime Type</div>
+            <div className="text-base font-medium text-[#1F2937]">UPI Fraud</div>
           </div>
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Amount</div>
-            <div className="text-base font-medium text-white">₹48,500</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Amount</div>
+            <div className="text-base font-medium text-[#1F2937]">₹48,500</div>
           </div>
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Linked Accounts</div>
-            <div className="text-base font-medium text-white">3</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Linked Accounts</div>
+            <div className="text-base font-medium text-[#1F2937]">3</div>
           </div>
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Current Risk</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Current Risk</div>
             <div className="text-base font-medium text-[#ef4444]">High</div>
           </div>
         </div>
@@ -154,21 +154,21 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
       {/* Victim Info - PII Protected */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
+          <h3 className="text-base font-semibold text-[#1F2937] flex items-center gap-2">
             <User size={14} /> Victim Information
           </h3>
           <div className="flex items-center gap-2">
             {!piiRevealed ? (
               <button
                 onClick={() => setShowReauth(true)}
-                className="px-2 py-1 bg-[#f59e0b]/10 text-[10px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
+                className="px-2 py-1 bg-[#f59e0b]/10 text-[11px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
               >
                 <KeyRound size={10} /> Decrypt PII for FIR
               </button>
             ) : (
               <button
                 onClick={() => setPiiRevealed(false)}
-                className="px-2 py-1 bg-[#27272a] text-[10px] text-[#d4d4d8] rounded flex items-center gap-1 hover:bg-[#3f3f46] transition-colors"
+                className="px-2 py-1 bg-[#F3F4F6] text-[11px] text-[#6B7280] rounded flex items-center gap-1 hover:bg-[#E5E7EB] transition-colors"
               >
                 <EyeOff size={10} /> Mask PII
               </button>
@@ -185,12 +185,12 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
                 value={reauthPin}
                 onChange={e => setReauthPin(e.target.value)}
                 placeholder="Enter inspector PIN"
-                className="px-3 py-1.5 bg-[#0a0a0f] border border-[#27272a] rounded text-sm text-white focus:outline-none focus:border-[#f59e0b]"
+                className="px-3 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#f59e0b]"
               />
-              <button onClick={handleDecrypt} className="px-3 py-1.5 bg-[#f59e0b] text-black text-xs font-medium rounded hover:bg-[#d97706]">
+              <button onClick={handleDecrypt} className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-xs font-medium rounded hover:bg-[#d97706]">
                 Verify
               </button>
-              <button onClick={() => setShowReauth(false)} className="px-3 py-1.5 bg-[#27272a] text-xs text-[#d4d4d8] rounded hover:bg-[#3f3f46]">
+              <button onClick={() => setShowReauth(false)} className="px-3 py-1.5 bg-[#F3F4F6] text-xs text-[#6B7280] rounded hover:bg-[#E5E7EB]">
                 Cancel
               </button>
             </div>
@@ -199,60 +199,60 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Name</div>
-            <div className="text-base text-[#e4e4e7] flex items-center gap-2">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Name</div>
+            <div className="text-base text-[#374151] flex items-center gap-2">
               {piiRevealed ? info.victim_name : maskName(info.victim_name)}
-              {!piiRevealed && <EyeOff size={10} className="text-[#71717a]" />}
+              {!piiRevealed && <EyeOff size={10} className="text-[#9CA3AF]" />}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Contact</div>
-            <div className="text-base text-[#e4e4e7] flex items-center gap-2">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Contact</div>
+            <div className="text-base text-[#374151] flex items-center gap-2">
               {piiRevealed ? info.contact : maskContact(info.contact)}
-              {!piiRevealed && <EyeOff size={10} className="text-[#71717a]" />}
+              {!piiRevealed && <EyeOff size={10} className="text-[#9CA3AF]" />}
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Filed Via</div>
-            <div className="text-base text-[#e4e4e7] flex items-center gap-1">
+            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Filed Via</div>
+            <div className="text-base text-[#374151] flex items-center gap-1">
               <ExternalLink size={10} /> cybercrime.gov.in
             </div>
           </div>
         </div>
         <div className="mt-3">
-          <div className="text-[10px] text-[#d4d4d8] uppercase mb-1">Description</div>
-          <p className="text-base text-[#e4e4e7] bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">{info.description}</p>
+          <div className="text-[11px] text-[#6B7280] uppercase mb-1">Description</div>
+          <p className="text-base text-[#374151] bg-white rounded-lg p-3 border border-[#D1D5DB]">{info.description}</p>
         </div>
       </div>
 
       {/* Top Prediction */}
       <div className="card p-5">
-        <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
+        <h3 className="text-base font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
           <MapPin size={14} /> Top Predicted Location
         </h3>
-        <div className="bg-[#0a0a0f] rounded-xl p-4 border border-[#27272a]">
+        <div className="bg-white rounded-xl p-4 border border-[#D1D5DB]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <span className="text-xl font-bold text-white">{p.atm_id}</span>
-              <span className="text-[#d4d4d8]">—</span>
-              <span className="text-base text-[#e4e4e7]">{p.location_name}</span>
+              <span className="text-xl font-bold text-[#1F2937]">{p.atm_id}</span>
+              <span className="text-[#6B7280]">—</span>
+              <span className="text-base text-[#374151]">{p.location_name}</span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-              <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Risk Score</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Risk Score</div>
               <div className="text-2xl font-bold text-[#ef4444]">92%</div>
-              <div className="text-[10px] text-[#d4d4d8]">Critical</div>
+              <div className="text-[11px] text-[#6B7280]">Critical</div>
             </div>
-            <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-              <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Time Window</div>
-              <div className="text-lg font-bold text-white">{p.expected_window}</div>
-              <div className="text-[10px] text-[#d4d4d8]">Expected</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>
+              <div className="text-lg font-bold text-[#1F2937]">{p.expected_window}</div>
+              <div className="text-[11px] text-[#6B7280]">Expected</div>
             </div>
-            <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-              <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Distance</div>
-              <div className="text-lg font-bold text-white">{p.distance}</div>
-              <div className="text-[10px] text-[#d4d4d8]">From center</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>
+              <div className="text-lg font-bold text-[#1F2937]">{p.distance}</div>
+              <div className="text-[11px] text-[#6B7280]">From center</div>
             </div>
           </div>
         </div>
@@ -261,32 +261,32 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
       {/* Evidence */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
+          <h3 className="text-base font-semibold text-[#1F2937] flex items-center gap-2">
             <Shield size={14} /> Evidence Signals ({evidence.length})
           </h3>
           <button
             onClick={onShowEvidence}
-            className="text-[10px] text-white bg-[#27272a] hover:bg-[#71717a] px-2 py-1 rounded transition-colors flex items-center gap-1"
+            className="text-[11px] text-[#1F2937] bg-[#F3F4F6] hover:bg-[#E5E7EB] px-2 py-1 rounded transition-colors flex items-center gap-1"
           >
             Full View <ChevronRight size={10} />
           </button>
         </div>
         <div className="space-y-2">
           {evidence.map(([key, item]) => (
-            <div key={key} className="flex items-start gap-3 p-2.5 bg-[#0a0a0f] rounded-lg border border-[#27272a]">
-              {evidenceIcons[key] || <Shield size={14} className="text-[#e4e4e7]" />}
+            <div key={key} className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-[#D1D5DB]">
+              {evidenceIcons[key] || <Shield size={14} className="text-[#374151]" />}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm font-medium text-white">{item.category}</span>
-                  <span className={`text-[10px] px-1 py-0.5 rounded ${
+                  <span className="text-sm font-medium text-[#1F2937]">{item.category}</span>
+                  <span className={`text-[11px] px-1 py-0.5 rounded ${
                     item.strength === "Strong" ? "bg-[#22c55e]/10 text-[#22c55e]" :
                     item.strength === "Moderate" ? "bg-[#f59e0b]/10 text-[#f59e0b]" :
-                    "bg-[#27272a] text-[#d4d4d8]"
+                    "bg-[#F3F4F6] text-[#6B7280]"
                   }`}>
                     {item.strength}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#d4d4d8]">{item.description}</p>
+                <p className="text-[11px] text-[#6B7280]">{item.description}</p>
               </div>
             </div>
           ))}

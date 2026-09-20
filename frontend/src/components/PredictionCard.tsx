@@ -9,11 +9,11 @@ interface PredictionCardProps {
 }
 
 const evidenceIcons: Record<string, React.ReactNode> = {
-  transaction_pattern: <Activity size={14} className="text-[#e4e4e7]" />,
-  temporal_pattern: <Clock size={14} className="text-[#e4e4e7]" />,
-  geographic_signal: <MapPin size={14} className="text-[#e4e4e7]" />,
-  account_network: <GitBranch size={14} className="text-[#e4e4e7]" />,
-  historical_similarity: <History size={14} className="text-[#e4e4e7]" />,
+  transaction_pattern: <Activity size={14} className="text-[#6B7280]" />,
+  temporal_pattern: <Clock size={14} className="text-[#6B7280]" />,
+  geographic_signal: <MapPin size={14} className="text-[#6B7280]" />,
+  account_network: <GitBranch size={14} className="text-[#6B7280]" />,
+  historical_similarity: <History size={14} className="text-[#6B7280]" />,
 };
 
 function downloadReport(prediction: Prediction) {
@@ -71,79 +71,85 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-[#ef4444]" />
-            <span className="text-sm font-medium text-[#ef4444]">{prediction.status}</span>
+            <AlertTriangle size={14} className="text-[#B91C1C]" />
+            <span className="text-sm font-medium text-[#B91C1C]">{prediction.status}</span>
           </div>
-          <span className="text-sm text-[#d4d4d8] bg-[#27272a] px-2 py-0.5 rounded font-mono">{prediction.case_id}</span>
+          <span className="text-sm text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">{prediction.case_id}</span>
         </div>
       </div>
 
       {/* Main Prediction Focus */}
-      <div className="bg-[#0a0a0f] rounded-xl p-4 border border-[#27272a] mb-4">
-        <div className="text-sm text-[#d4d4d8] uppercase tracking-wider mb-2">Predicted Cash-Out Location</div>
+      <div className="bg-[#F8F9FA] rounded-xl p-4 border border-[#D1D5DB] mb-4">
+        <div className="text-sm text-[#6B7280] uppercase tracking-wider mb-2">Predicted Cash-Out Location</div>
         <div className="flex items-center gap-3 mb-3">
-          <MapPin size={18} className="text-white" />
-          <span className="text-2xl font-bold text-white">{p.atm_id}</span>
-          <span className="text-[#d4d4d8]">—</span>
-          <span className="text-[#e4e4e7]">{p.location_name}</span>
+          <MapPin size={18} className="text-[#1F2937]" />
+          <span className="text-2xl font-bold text-[#1F2937]">{p.atm_id}</span>
+          <span className="text-[#6B7280]">—</span>
+          <span className="text-[#4B5563]">{p.location_name}</span>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Risk Index</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Risk Index</div>
             <div className={`text-2xl font-bold ${
-              p.risk_score > 70 ? "text-[#ef4444]" : p.risk_score > 45 ? "text-[#f59e0b]" : "text-[#d4d4d8]"
+              p.risk_score > 70 ? "text-[#B91C1C]" : p.risk_score > 45 ? "text-[#B45309]" : "text-[#6B7280]"
             }`}>
               <AnimatedNumber value={p.risk_score} suffix="%" />
             </div>
-            <div className="text-[10px] text-[#71717a] mt-0.5">
+            <div className="text-[11px] text-[#6B7280] mt-0.5">
               {p.risk_score > 70 ? "Critical" : p.risk_score > 45 ? "Elevated" : "Normal"} · Not a calibrated probability
             </div>
           </div>
-          <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Time Window</div>
-            <div className="text-lg font-bold text-white">{p.expected_window}</div>
-            <div className="text-[10px] text-[#d4d4d8] mt-0.5">Expected</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>
+            <div className="text-lg font-bold text-[#1F2937]">{p.expected_window}</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">Expected</div>
           </div>
-          <div className="bg-[#18181b] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Distance</div>
-            <div className="text-lg font-bold text-white">{p.distance}</div>
-            <div className="text-[10px] text-[#d4d4d8] mt-0.5">From center</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>
+            <div className="text-lg font-bold text-[#1F2937]">{p.distance}</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">From center</div>
           </div>
         </div>
       </div>
+
+      {prediction.disclaimer && (
+        <div className="mb-4 bg-[#FFF7ED] border border-[#FDBA74] rounded-lg px-3 py-2 text-[11px] text-[#9A3412] leading-relaxed">
+          <span className="font-semibold">Disclaimer:</span> {prediction.disclaimer}
+        </div>
+      )}
 
       {/* Why This Location - Evidence Signals */}
       <div className="mb-4">
         <button
           onClick={() => setShowEvidence(!showEvidence)}
-          className="w-full flex items-center justify-between p-3 bg-[#0a0a0f] rounded-lg border border-[#27272a] hover:border-[#71717a] transition-colors"
+          className="w-full flex items-center justify-between p-3 bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] hover:border-[#9CA3AF] transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Shield size={14} className="text-white" />
-            <span className="text-base font-medium text-white">Why this location?</span>
-            <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'Loading...'}</span>
+            <Shield size={14} className="text-[#1F2937]" />
+            <span className="text-base font-medium text-[#1F2937]">Why this location?</span>
+            <span className="text-[11px] text-[#6B7280] bg-[#E5E7EB] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'Loading...'}</span>
           </div>
-          {showEvidence ? <ChevronUp size={14} className="text-[#d4d4d8]" /> : <ChevronDown size={14} className="text-[#d4d4d8]" />}
+          {showEvidence ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
         </button>
 
         {showEvidence && (
           <div className="mt-2 space-y-2">
             {evidence.map(([key, item]) => (
-              <div key={key} className="flex items-start gap-3 p-2.5 bg-[#0a0a0f] rounded-lg border border-[#27272a]">
-                {evidenceIcons[key] || <Shield size={14} className="text-[#e4e4e7]" />}
+              <div key={key} className="flex items-start gap-3 p-2.5 bg-[#F8F9FA] rounded-lg border border-[#D1D5DB]">
+                {evidenceIcons[key] || <Shield size={14} className="text-[#6B7280]" />}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-medium text-white">{item.category}</span>
-                    <span className={`text-[10px] px-1 py-0.5 rounded ${
-                      item.strength === "Strong" ? "bg-[#22c55e]/10 text-[#22c55e]" :
-                      item.strength === "Moderate" ? "bg-[#f59e0b]/10 text-[#f59e0b]" :
-                      "bg-[#27272a] text-[#d4d4d8]"
+                    <span className="text-sm font-medium text-[#1F2937]">{item.category}</span>
+                    <span className={`text-[11px] px-1 py-0.5 rounded ${
+                      item.strength === "Strong" ? "bg-[#15803D]/10 text-[#15803D]" :
+                      item.strength === "Moderate" ? "bg-[#B45309]/10 text-[#B45309]" :
+                      "bg-[#F3F4F6] text-[#6B7280]"
                     }`}>
                       {item.strength}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#d4d4d8]">{item.description}</p>
+                  <p className="text-[11px] text-[#6B7280]">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -154,13 +160,13 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
       <div className="flex gap-2">
         <button
           onClick={onShowEvidence}
-          className="flex-1 py-2.5 bg-white text-black text-base font-medium rounded-lg hover:bg-[#e4e4e7] transition-colors flex items-center justify-center gap-2"
+          className="flex-1 py-2.5 bg-[#1D4ED8] text-white text-base font-medium rounded-lg hover:bg-[#1D355B] transition-colors flex items-center justify-center gap-2"
         >
           View Full Evidence <ChevronRight size={14} />
         </button>
         <button
           onClick={() => downloadReport(prediction)}
-          className="py-2.5 px-4 bg-[#27272a] text-white text-base font-medium rounded-lg hover:bg-[#71717a] transition-colors flex items-center justify-center gap-2"
+          className="py-2.5 px-4 bg-[#F3F4F6] text-[#1F2937] text-base font-medium rounded-lg hover:bg-[#E5E7EB] transition-colors flex items-center justify-center gap-2"
           title="Download Intelligence Report"
         >
           <Download size={14} />
@@ -175,19 +181,19 @@ export function PredictionCardSkeleton() {
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-4 w-20 bg-[#27272a] rounded animate-pulse" />
-        <div className="h-4 w-24 bg-[#27272a] rounded animate-pulse" />
+        <div className="h-4 w-20 bg-[#E5E7EB] rounded animate-pulse" />
+        <div className="h-4 w-24 bg-[#E5E7EB] rounded animate-pulse" />
       </div>
-      <div className="bg-[#0a0a0f] rounded-xl p-4 border border-[#27272a] mb-4">
-        <div className="h-3 w-32 bg-[#27272a] rounded animate-pulse mb-2" />
-        <div className="h-8 w-48 bg-[#27272a] rounded animate-pulse mb-3" />
+      <div className="bg-[#F8F9FA] rounded-xl p-4 border border-[#D1D5DB] mb-4">
+        <div className="h-3 w-32 bg-[#E5E7EB] rounded animate-pulse mb-2" />
+        <div className="h-8 w-48 bg-[#E5E7EB] rounded animate-pulse mb-3" />
         <div className="grid grid-cols-3 gap-3">
-          <div className="h-20 bg-[#27272a] rounded-lg animate-pulse" />
-          <div className="h-20 bg-[#27272a] rounded-lg animate-pulse" />
-          <div className="h-20 bg-[#27272a] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
         </div>
       </div>
-      <div className="h-10 bg-[#27272a] rounded-lg animate-pulse" />
+      <div className="h-10 bg-[#E5E7EB] rounded-lg animate-pulse" />
     </div>
   );
 }

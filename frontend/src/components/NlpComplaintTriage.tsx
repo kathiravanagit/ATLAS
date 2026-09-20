@@ -134,8 +134,8 @@ export default function NlpComplaintTriage() {
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
         <MessageSquare size={16} className="text-[#f59e0b]" />
-        <h3 className="text-base font-semibold text-white">NLP Complaint Triage</h3>
-        <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-2 py-0.5 rounded">Simulation</span>
+        <h3 className="text-base font-semibold text-[#1F2937]">Complaint Classification</h3>
+        <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">Simulation</span>
       </div>
 
       {/* Input */}
@@ -143,14 +143,14 @@ export default function NlpComplaintTriage() {
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
-          className="flex-1 px-3 py-2 bg-[#0a0a0f] border border-[#27272a] rounded-lg text-sm text-white focus:outline-none focus:border-[#71717a] resize-none"
+          className="flex-1 px-3 py-2 bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] focus:outline-none focus:border-[#9CA3AF] resize-none"
           rows={2}
           placeholder="Paste or type a cybercrime complaint..."
         />
         <button
           onClick={() => handleAnalyze(input)}
           disabled={analyzing || !input.trim()}
-          className="px-4 py-2 bg-[#f59e0b] text-black text-sm font-medium rounded-lg hover:bg-[#d97706] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
+          className="px-4 py-2 bg-[#f59e0b] text-[#1F2937] text-sm font-medium rounded-lg hover:bg-[#d97706] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
         >
           <Send size={12} />
           {analyzing ? 'Analyzing...' : 'Triage'}
@@ -159,13 +159,13 @@ export default function NlpComplaintTriage() {
 
       {/* Quick demos */}
       <div className="mb-4">
-        <div className="text-[10px] text-[#d4d4d8] mb-1.5">Quick demo complaints:</div>
+        <div className="text-[10px] text-[#6B7280] mb-1.5">Quick demo complaints:</div>
         <div className="flex flex-wrap gap-1.5">
           {DEMO_COMPLAINTS.map((demo, i) => (
             <button
               key={i}
               onClick={() => { setInput(demo); handleAnalyze(demo); }}
-              className="text-[9px] text-[#e4e4e7] bg-[#18181b] border border-[#27272a] px-2 py-1 rounded hover:bg-[#27272a] hover:text-white transition-colors truncate max-w-[200px]"
+              className="text-[11px] text-[#374151] bg-white border border-[#D1D5DB] px-2 py-1 rounded hover:bg-[#E5E7EB] hover:text-[#1F2937] transition-colors truncate max-w-[200px]"
               title={demo}
             >
               {demo.slice(0, 40)}...
@@ -176,10 +176,10 @@ export default function NlpComplaintTriage() {
 
       {/* Analyzing animation */}
       {analyzing && (
-        <div className="bg-[#0a0a0f] rounded-lg p-8 border border-[#27272a] flex items-center justify-center">
+        <div className="bg-[#F8F9FA] rounded-lg p-8 border border-[#D1D5DB] flex items-center justify-center">
           <div className="text-center">
             <Bot size={24} className="text-[#f59e0b] animate-pulse mx-auto mb-2" />
-            <div className="text-[11px] text-[#d4d4d8]">NLP model analyzing complaint...</div>
+            <div className="text-[11px] text-[#6B7280]">NLP model analyzing complaint...</div>
           </div>
         </div>
       )}
@@ -198,18 +198,18 @@ export default function NlpComplaintTriage() {
               result.priority === 'Critical' ? 'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20' :
               result.priority === 'High' ? 'bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20' :
               result.priority === 'Medium' ? 'bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20' :
-              'bg-[#27272a] text-[#d4d4d8] border border-[#71717a]'
+              'bg-[#F3F4F6] text-[#6B7280] border border-[#71717a]'
             }`}>
               {result.priority === 'Critical' && <AlertTriangle size={12} className="inline mr-1" />}
               {result.priority}
             </div>
             <div className="flex-1">
-              <div className="text-sm text-white font-medium">{result.category}</div>
-              <div className="text-[10px] text-[#d4d4d8]">Keyword Match: {(result.keyword_match_score * 100).toFixed(0)}% <span className="text-[#71717a]">(heuristic)</span></div>
+              <div className="text-sm text-[#1F2937] font-medium">{result.category}</div>
+              <div className="text-[10px] text-[#6B7280]">Keyword Match: {(result.keyword_match_score * 100).toFixed(0)}% <span className="text-[#9CA3AF]">(heuristic)</span></div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-white font-medium">{result.estimated_loss}</div>
-              <div className="text-[10px] text-[#d4d4d8] flex items-center gap-1 justify-end">
+              <div className="text-sm text-[#1F2937] font-medium">{result.estimated_loss}</div>
+              <div className="text-[10px] text-[#6B7280] flex items-center gap-1 justify-end">
                 <Clock size={9} /> {result.timeline}
               </div>
             </div>
@@ -217,17 +217,17 @@ export default function NlpComplaintTriage() {
 
           {/* Entities */}
           {result.entities.length > 0 && (
-            <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-              <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-2">Extracted Entities</div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-2">Extracted Entities</div>
               <div className="flex flex-wrap gap-2">
                 {result.entities.map((ent, i) => (
-                  <div key={i} className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] px-2 py-1 rounded text-[10px]">
+                  <div key={i} className="flex items-center gap-1.5 bg-white border border-[#D1D5DB] px-2 py-1 rounded text-[10px]">
                     {ent.type === 'AMOUNT' && <span className="text-[#f59e0b]">&#8377;</span>}
                     {ent.type === 'BANK' && <Tag size={9} className="text-[#3b82f6]" />}
                     {ent.type === 'LOCATION' && <MapPin size={9} className="text-[#22c55e]" />}
                     {ent.type === 'PLATFORM' && <FileText size={9} className="text-[#8b5cf6]" />}
-                    <span className="text-[#d4d4d8]">{ent.type}:</span>
-                    <span className="text-white">{ent.value}</span>
+                    <span className="text-[#6B7280]">{ent.type}:</span>
+                    <span className="text-[#1F2937]">{ent.value}</span>
                   </div>
                 ))}
               </div>
@@ -235,15 +235,15 @@ export default function NlpComplaintTriage() {
           )}
 
           {/* Suggested action */}
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Suggested Action</div>
+          <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Suggested Action</div>
             <div className="text-sm text-[#22c55e]">{result.suggested_action}</div>
           </div>
 
           {/* Original text */}
-          <div className="bg-[#0a0a0f] rounded-lg p-3 border border-[#27272a]">
-            <div className="text-[10px] text-[#d4d4d8] uppercase tracking-wider mb-1">Original Complaint</div>
-            <p className="text-[11px] text-[#e4e4e7] italic">"{result.complaint_text}"</p>
+          <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+            <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Original Complaint</div>
+            <p className="text-[11px] text-[#374151] italic">"{result.complaint_text}"</p>
           </div>
         </motion.div>
       )}

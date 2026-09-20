@@ -60,18 +60,25 @@ When a victim reports cybercrime, the system captures transaction amount, type (
 The backend simulates criminal operation patterns — money split across 3-5 mule accounts, each making withdrawal attempts at different ATMs. **Simulated transactions are ephemeral and not stored in the database.**
 
 #### Phase 3: ML Prediction Engine
-An ensemble of **Random Forest + XGBoost** classifiers analyzes **8 risk features** for every ATM in the region:
+An ensemble of **Random Forest + XGBoost** classifiers analyzes **15 risk features** for every ATM in the region:
 
 | Feature | Description | Weight |
 |---------|-------------|--------|
-| Amount | Transaction amount in INR | High |
-| Hour of day | Time of predicted cash-out | High |
-| Day of week | Weekday vs weekend pattern | Medium |
-| Distance from victim | Haversine distance to victim's last ATM | High |
-| Area risk score | Historical crime density at ATM location | High |
-| Zone multiplier | Urban vs suburban risk factor | Medium |
-| Linked accounts | Number of mule accounts involved | Medium |
-| Is night | Night-time penalty flag | Low |
+| distance_from_victim_km | Haversine distance to victim's last ATM | High |
+| historical_crime_density | Historical crime density at ATM location | High |
+| time_window_match | Time window fit score | High |
+| atm_type_score | ATM risk profile (high_value, commercial, retail, etc.) | High |
+| suspect_distance_km | Distance to nearest suspect | High |
+| recent_withdrawal_freq | Recent withdrawal frequency | Medium |
+| amount | Transaction amount in INR | High |
+| num_mule_accounts | Number of mule accounts involved | Medium |
+| hour | Hour of day | High |
+| day_of_week | Day of week | Medium |
+| transaction_velocity | Transaction velocity | Medium |
+| proximity_score | Proximity score | Medium |
+| density_score | Area density score | Medium |
+| suspect_proximity | Suspect proximity flag | Medium |
+| amount_factor | Amount factor | Low |
 
 #### Phase 4: Risk Scoring
 Each ATM receives a risk score (capped at 99%):

@@ -22,6 +22,7 @@ export interface DashboardData {
   evidenceModalOpen: boolean;
   setEvidenceModalOpen: (open: boolean) => void;
   usingFallback: boolean;
+  lastUpdated: Date;
   cityCenter?: [number, number];
 }
 

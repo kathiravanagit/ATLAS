@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Wifi, ChevronDown, MapPin, User, LogOut, Shield, Settings, AlertTriangle, Play, Zap } from 'lucide-react';
+import { ChevronDown, MapPin, User, LogOut, HelpCircle, ShieldCheck, Clock, Wifi, WifiOff } from 'lucide-react';
 import GovtBadge from './GovtBadge';
 import { authFetch, getUser, logout } from '@/lib/auth';
-import { useDashboard } from '../context/DashboardContext';
 
 interface City {
   id: string;
@@ -15,6 +14,8 @@ interface City {
 interface TopNavProps {
   selectedCity: string;
   onCityChange: (cityId: string) => void;
+  usingFallback: boolean;
+  lastUpdated: Date;
 }
 
 const DEFAULT_CITIES: City[] = [
@@ -28,255 +29,189 @@ const DEFAULT_CITIES: City[] = [
   { id: "ahmedabad", name: "Ahmedabad", state: "Gujarat", center: [23.0225, 72.5714] },
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrator',
-  inspector: 'Inspector',
-  analyst: 'Analyst',
-  bank_officer: 'Bank Officer',
-};
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) + ' IST';
+}
 
-export default function TopNav({ selectedCity, onCityChange }: TopNavProps) {
+export default function TopNav({ selectedCity, onCityChange, usingFallback, lastUpdated }: TopNavProps) {
   const navigate = useNavigate();
-  const { usingFallback, setSelectedCaseId, setPrediction } = useDashboard();
   const [cities, setCities] = useState<City[]>(DEFAULT_CITIES);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showScenarios, setShowScenarios] = useState(false);
-  const [scenarios, setScenarios] = useState<{ id: string; name: string; description: string }[]>([]);
+  const cityRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
-  const scenarioRef = useRef<HTMLDivElement>(null);
   const user = getUser() as Record<string, string> | null;
 
   useEffect(() => {
     authFetch('/api/cities')
       .then(res => res.json())
-      .then(data => {
-        if (data.length > 0) setCities(data);
-      })
+      .then(data => { if (data.length > 0) setCities(data); })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setShowProfile(false);
-      }
-      if (scenarioRef.current && !scenarioRef.current.contains(e.target as Node)) {
-        setShowScenarios(false);
-      }
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setShowCityDropdown(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setShowProfile(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    authFetch('/api/scenarios')
-      .then(r => r.json())
-      .then(data => setScenarios(data))
-      .catch(() => {});
-  }, []);
-
-  const loadScenario = async (scenarioId: string) => {
-    try {
-      const res = await authFetch(`/api/scenarios/${scenarioId}`);
-      const data = await res.json();
-      if (data.prediction) {
-        setSelectedCaseId(data.case_id);
-        setPrediction(data.prediction);
-        onCityChange(data.city);
-      }
-      setShowScenarios(false);
-      navigate('/real/predictions');
-    } catch {}
-  };
-
-  const currentCity = cities.find(c => c.id === selectedCity) || cities[0];
-  const userName = user?.name || 'User';
-  const userRole = ROLE_LABELS[user?.role || ''] || user?.role || 'analyst';
-  const userBadge = user?.badge || '';
-  const userInitials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  const currentCity = cities.find(c => c.id === selectedCity) || cities[0];
+  const userName = user?.name || 'Inspector Demo';
+  const userRole = user?.role || 'Cybercrime Division';
+
   return (
-    <header className="h-14 bg-[#0a0a0f] border-b border-[#27272a] flex items-center px-6 sticky top-0 z-[1100]">
-      <div className="flex items-center gap-2.5 text-base">
-        <GovtBadge size={32} />
-        <span className="text-white font-semibold">ATLAS</span>
+    <header className="sticky top-0 z-[1100]">
+      {/* ── Section 1: Demo Notice ─────────────────────────────────── */}
+      <div className="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-1.5">
+        <p className="text-center text-[10px] md:text-[11px] text-amber-800">
+          <span className="font-semibold">Demonstration Portal</span>
+          {' — '}
+          <span className="hidden sm:inline">This system uses synthetic data generated for SIH 2026 evaluation. Not connected to any live crime, banking, or government databases.</span>
+          <span className="sm:hidden">Synthetic data only. Not connected to live systems.</span>
+        </p>
       </div>
 
-      <div className="ml-6 relative">
-        <button
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-[#18181b] border border-[#27272a] rounded-lg hover:border-[#71717a] transition-colors"
-        >
-          <MapPin size={12} className="text-[#3b82f6]" />
-          <span className="text-sm font-medium text-white">{currentCity.name}</span>
-          <span className="text-[10px] text-[#d4d4d8]">{currentCity.state}</span>
-          <ChevronDown size={12} className={`text-[#d4d4d8] transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-        </button>
-
-        {showDropdown && (
-          <>
-            <div className="fixed inset-0 z-[1101]" onClick={() => setShowDropdown(false)} />
-            <div className="absolute top-full left-0 mt-1 w-64 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl z-[1102] overflow-hidden">
-              <div className="p-2 border-b border-[#27272a]">
-                <div className="text-[10px] text-[#d4d4d8] uppercase px-2 py-1">Select City</div>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto p-1">
-                {cities.map(city => (
-                  <button
-                    key={city.id}
-                    onClick={() => {
-                      onCityChange(city.id);
-                      setShowDropdown(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      selectedCity === city.id
-                        ? 'bg-[#3b82f6]/10 text-[#3b82f6]'
-                        : 'text-white hover:bg-[#27272a]'
-                    }`}
-                  >
-                    <MapPin size={14} className={selectedCity === city.id ? 'text-[#3b82f6]' : 'text-[#d4d4d8]'} />
-                    <div>
-                      <div className="text-sm font-medium">{city.name}</div>
-                      <div className="text-[10px] text-[#d4d4d8]">{city.state}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+      {/* ── Section 2: Institutional Header ────────────────────────── */}
+      <div className="bg-white border-b border-[#E5E7EB] px-4 md:px-6 py-2">
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Logo + Title */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <GovtBadge size={24} className="flex-shrink-0 hidden sm:block" />
+            <div className="leading-tight min-w-0">
+              <div className="text-[10px] md:text-[11px] text-[#6B7280] font-medium truncate">Government of India — Demonstration Portal</div>
+              <div className="text-xs md:text-sm font-semibold text-[#1F2937] tracking-tight truncate">ATLAS — Advanced Threat Location & Alert System</div>
             </div>
-          </>
-        )}
+          </div>
+
+          {/* Right: Status + Utility Links — desktop only */}
+          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
+              {usingFallback ? <WifiOff size={11} className="text-[#B91C1C]" /> : <Wifi size={11} className="text-[#15803D]" />}
+              <span>{usingFallback ? 'Offline' : 'Connected'}</span>
+            </div>
+            <div className="w-px h-3.5 bg-[#E5E7EB]" />
+            <span className="text-[11px] text-[#6B7280]">Synthetic data</span>
+            <div className="w-px h-3.5 bg-[#E5E7EB]" />
+            <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
+              <Clock size={10} />
+              <span>{formatTime(lastUpdated)}</span>
+            </div>
+            <div className="w-px h-3.5 bg-[#E5E7EB]" />
+            <div className="flex items-center gap-2.5 text-[11px]">
+              <button className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex items-center gap-1"><HelpCircle size={11} /> Help</button>
+              <button onClick={() => navigate('/real/data-privacy')} className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex items-center gap-1"><ShieldCheck size={11} /> Privacy</button>
+              <button onClick={handleLogout} className="text-[#B91C1C] hover:text-[#991B1B] transition-colors flex items-center gap-1 font-medium"><LogOut size={11} /> Logout</button>
+            </div>
+          </div>
+
+          {/* Mobile: compact status */}
+          <div className="flex lg:hidden items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 text-[10px] text-[#6B7280]">
+              {usingFallback ? <WifiOff size={10} className="text-[#B91C1C]" /> : <Wifi size={10} className="text-[#15803D]" />}
+            </div>
+            <button onClick={handleLogout} className="text-[10px] text-[#B91C1C] font-medium">Logout</button>
+          </div>
+        </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-4">
-        {usingFallback ? (
-          <div className="flex items-center gap-2 text-sm text-[#ef4444] bg-[#ef4444]/10 px-3 py-1.5 rounded-lg border border-[#ef4444]/30 shadow-lg shadow-[#ef4444]/10" title="Backend offline — showing cached demo data. All data is synthetic.">
-            <AlertTriangle size={14} />
-            <span className="font-semibold">Backend Offline — Demo Data</span>
-            <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse"></span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-[#d4d4d8]">
-            <Wifi size={12} />
-            <span>Live</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-          </div>
-        )}
-
-        <div className="w-px h-4 bg-[#27272a]" />
-
-        {/* Scenario Runner */}
-        <div className="relative" ref={scenarioRef}>
-          <button
-            onClick={() => setShowScenarios(!showScenarios)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5cf6] text-white text-xs font-semibold rounded-lg hover:bg-[#7c3aed] transition-colors shadow-lg shadow-[#8b5cf6]/20"
-          >
-            <Zap size={12} />
-            <span>Run Demo</span>
-          </button>
-
-          {showScenarios && (
-            <>
-              <div className="fixed inset-0 z-[1101]" onClick={() => setShowScenarios(false)} />
-              <div className="absolute right-0 top-full mt-1 w-72 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl z-[1102] overflow-hidden">
-                <div className="p-2 border-b border-[#27272a]">
-                  <div className="text-[10px] text-[#d4d4d8] uppercase px-2 py-1 flex items-center gap-1">
-                    <Zap size={10} className="text-[#8b5cf6]" />
-                    Pre-Baked Demo Scenarios
+      {/* ── Section 3: Navy Bar — Jurisdiction + Profile ───────────── */}
+      <div className="bg-[#12355B] px-4 md:px-6">
+        <div className="flex items-center justify-end h-9 gap-3">
+          {/* Jurisdiction Selector */}
+          <div className="relative" ref={cityRef}>
+            <button
+              onClick={() => setShowCityDropdown(!showCityDropdown)}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 border border-white/20 rounded text-[11px] text-white hover:bg-white/15 transition-colors"
+            >
+              <MapPin size={10} className="text-[#93c5fd]" />
+              <span className="font-medium">{currentCity.name}</span>
+              <span className="text-[#93c5fd] text-[10px]">{currentCity.state}</span>
+              <ChevronDown size={10} className={`text-[#93c5fd] transition-transform ${showCityDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showCityDropdown && (
+              <>
+                <div className="fixed inset-0 z-[1101]" onClick={() => setShowCityDropdown(false)} />
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#D1D5DB] rounded-lg shadow-lg z-[1102] overflow-hidden">
+                  <div className="p-1.5 border-b border-[#E5E7EB]">
+                    <span className="text-[10px] text-[#6B7280] uppercase px-2 font-medium">Select Jurisdiction</span>
+                  </div>
+                  <div className="max-h-[240px] overflow-y-auto p-1">
+                    {cities.map(city => (
+                      <button
+                        key={city.id}
+                        onClick={() => { onCityChange(city.id); setShowCityDropdown(false); }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-left text-[12px] transition-colors ${
+                          selectedCity === city.id
+                            ? 'bg-[#1D4ED8]/10 text-[#1D4ED8] font-medium'
+                            : 'text-[#1F2937] hover:bg-[#F3F4F6]'
+                        }`}
+                      >
+                        <MapPin size={12} className={selectedCity === city.id ? 'text-[#1D4ED8]' : 'text-[#9CA3AF]'} />
+                        <div>
+                          <div>{city.name}</div>
+                          <div className="text-[10px] text-[#9CA3AF]">{city.state}</div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="p-1">
-                  {scenarios.map(scenario => (
-                    <button
-                      key={scenario.id}
-                      onClick={() => loadScenario(scenario.id)}
-                      className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-[#27272a] transition-colors"
-                    >
-                      <Play size={12} className="text-[#8b5cf6] mt-0.5 flex-shrink-0" />
-                      <div>
-                        <div className="text-xs font-medium text-white">{scenario.name}</div>
-                        <div className="text-[10px] text-[#d4d4d8] mt-0.5">{scenario.description}</div>
-                      </div>
+              </>
+            )}
+          </div>
+
+          <div className="w-px h-4 bg-white/20" />
+
+          {/* User Profile */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setShowProfile(!showProfile)}
+              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/10 transition-colors"
+            >
+              <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
+                <User size={12} className="text-white" />
+              </div>
+              <div className="text-left hidden md:block">
+                <div className="text-[11px] font-medium text-white leading-tight">{userName}</div>
+                <div className="text-[10px] text-[#93c5fd] leading-tight">{userRole}</div>
+              </div>
+              <ChevronDown size={10} className={`text-[#93c5fd] transition-transform hidden md:block ${showProfile ? 'rotate-180' : ''}`} />
+            </button>
+            {showProfile && (
+              <>
+                <div className="fixed inset-0 z-[1101]" onClick={() => setShowProfile(false)} />
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-[#D1D5DB] rounded-lg shadow-lg z-[1102] overflow-hidden">
+                  <div className="p-2.5 border-b border-[#E5E7EB]">
+                    <div className="text-[12px] font-medium text-[#1F2937]">{userName}</div>
+                    <div className="text-[10px] text-[#6B7280]">{user?.email}</div>
+                  </div>
+                  <div className="p-1">
+                    <button onClick={() => { setShowProfile(false); navigate('/real/profile'); }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1F2937] transition-colors">
+                      <User size={12} /> Profile Settings
                     </button>
-                  ))}
+                    <button onClick={() => { setShowProfile(false); navigate('/real/audit'); }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1F2937] transition-colors">
+                      <ShieldCheck size={12} /> Activity Log
+                    </button>
+                  </div>
+                  <div className="p-1 border-t border-[#E5E7EB]">
+                    <button onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[#B91C1C] hover:bg-red-50 transition-colors">
+                      <LogOut size={12} /> Sign Out
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="w-px h-4 bg-[#27272a]" />
-
-        {/* Global Synthetic Data Indicator */}
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-[#27272a]/50 rounded-lg" title="All data in this system is synthetic. No real PII or financial data.">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse" />
-          <span className="text-[10px] text-[#d4d4d8] font-medium">Demo Mode</span>
-        </div>
-
-        <div className="w-px h-4 bg-[#27272a]" />
-
-        <div className="relative" ref={profileRef}>
-          <button
-            onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#18181b] transition-colors"
-          >
-            <div className="w-8 h-8 bg-[#3b82f6]/20 border border-[#3b82f6]/30 rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-[#3b82f6]">{userInitials}</span>
-            </div>
-            <div className="text-sm text-left hidden md:block">
-              <div className="font-medium text-white">{userName}</div>
-              <div className="text-[10px] text-[#d4d4d8] flex items-center gap-1">
-                <Shield size={8} />
-                {userRole}
-              </div>
-            </div>
-            <ChevronDown size={12} className={`text-[#d4d4d8] transition-transform hidden md:block ${showProfile ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showProfile && (
-            <>
-              <div className="fixed inset-0 z-[1101]" onClick={() => setShowProfile(false)} />
-              <div className="absolute right-0 top-full mt-1 w-64 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl z-[1102] overflow-hidden">
-                <div className="p-3 border-b border-[#27272a]">
-                  <div className="text-sm font-medium text-white">{userName}</div>
-                  <div className="text-[10px] text-[#d4d4d8] mt-0.5">{user?.email}</div>
-                  {userBadge && (
-                    <div className="text-[10px] text-[#3b82f6] mt-1 font-mono">Badge: {userBadge}</div>
-                  )}
-                </div>
-                <div className="p-1">
-                  <button
-                    onClick={() => { setShowProfile(false); navigate('/real/profile'); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#d4d4d8] hover:bg-[#27272a] hover:text-white transition-colors"
-                  >
-                    <User size={14} />
-                    Profile Settings
-                  </button>
-                  <button
-                    onClick={() => { setShowProfile(false); navigate('/real/audit'); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#d4d4d8] hover:bg-[#27272a] hover:text-white transition-colors"
-                  >
-                    <Settings size={14} />
-                    Activity Log
-                  </button>
-                </div>
-                <div className="p-1 border-t border-[#27272a]">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
-                  >
-                    <LogOut size={14} />
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

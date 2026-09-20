@@ -40,7 +40,7 @@ const ACTION_CONFIG: Record<string, { icon: React.ReactNode; label: string; icon
     icon: <Shield size={14} />,
     label: "System",
     iconBg: "bg-[#d4d4d8]/10",
-    iconColor: "text-[#d4d4d8]",
+    iconColor: "text-[#6B7280]",
   },
   review: {
     icon: <CheckCircle size={14} />,
@@ -75,9 +75,9 @@ export default function AuditLog() {
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Clock size={14} className="text-[#d4d4d8]" />
-            <h3 className="text-base font-semibold text-white">Audit Log</h3>
-            <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-2 py-0.5 rounded">{filtered.length} entries</span>
+            <Clock size={14} className="text-[#6B7280]" />
+            <h3 className="text-base font-semibold text-[#1F2937]">Audit Log</h3>
+            <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">{filtered.length} entries</span>
           </div>
         </div>
         <div className="flex gap-1 flex-wrap">
@@ -85,10 +85,10 @@ export default function AuditLog() {
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`px-2.5 py-1 text-[10px] rounded transition-colors ${
+              className={`px-2.5 py-1 text-[11px] rounded transition-colors ${
                 filter === t
-                  ? 'bg-white text-black font-medium'
-                  : 'bg-[#27272a] text-[#d4d4d8] hover:text-white'
+                  ? 'bg-white text-[#1F2937] font-medium'
+                  : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
               }`}
             >
               {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
@@ -107,12 +107,12 @@ export default function AuditLog() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-base font-medium text-white">{entry.action}</span>
-                  <span className="text-[10px] text-[#d4d4d8] bg-[#27272a] px-1.5 py-0.5 rounded">{config.label}</span>
+                  <span className="text-base font-medium text-[#1F2937]">{entry.action}</span>
+                  <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded">{config.label}</span>
                 </div>
-                <p className="text-sm text-[#d4d4d8]">{entry.details}</p>
+                <p className="text-sm text-[#6B7280]">{entry.details}</p>
               </div>
-              <span className="text-sm text-[#d4d4d8] font-mono whitespace-nowrap">{entry.time}</span>
+              <span className="text-sm text-[#6B7280] font-mono whitespace-nowrap">{entry.time}</span>
             </div>
           );
         })}
