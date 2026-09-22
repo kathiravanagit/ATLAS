@@ -31,6 +31,7 @@ test.db
 # Model files (large binaries)
 backend/model/*.pkl
 backend/model/evidence_chain.json
+backend/model/atlas_chain.json
 
 # IDE / Editor
 .vscode/
