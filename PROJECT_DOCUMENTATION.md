@@ -13,8 +13,9 @@ When a victim reports cybercrime on **cybercrime.gov.in**, stolen money is rapid
 - **End-to-end ML pipeline** — Complaint → Feature engineering → Ensemble scoring → Ranked predictions
 - **Production-grade security** — AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS
 - **Cryptographic evidence chain** — SHA-256 hash chain with Merkle tree verification
+- **PoW blockchain** — SHA-256 mining, Merkle roots, 3-node longest-chain consensus
 - **Full-stack application** — React + TypeScript frontend, FastAPI + PostgreSQL backend
-- **49+ API endpoints** with 39 passing backend tests and 29 passing E2E tests
+- **54+ API endpoints** with 104 passing backend tests and 29 passing E2E tests
 - **Multi-city support** — 8 Indian cities with 64 ATMs, live city switching on interactive map
 
 ---
@@ -153,6 +154,7 @@ Investigators receive ranked locations, time windows, SHAP-based explainability,
 | **Explainability** | SHAP 0.46 (KernelExplainer) | Per-case feature contributions |
 | **Auth** | python-jose (JWT HS256) + passlib (bcrypt) | Production security |
 | **Encryption** | cryptography (AES-256-GCM) | Authenticated encryption |
+| **Blockchain** | SHA-256 PoW (stdlib) | Evidence ledger, multi-node consensus |
 
 ---
 
@@ -198,15 +200,38 @@ This is where ATLAS is genuinely production-grade. Most hackathon projects stop 
 
 ---
 
-## Tamper-Evident Evidence Chain
+## Blockchain & Evidence Chain
 
-**SHA-256 hash chain with Merkle tree verification — not a blockchain.**
+**Proof-of-Work blockchain + SHA-256 hash chain with Merkle tree — two complementary layers.**
 
-No consensus mechanisms, no distributed nodes, no mining. What we built:
-- **SHA-256 hash chain** — Each record's hash includes the previous, creating an unbreakable chain
+### 1. Hash Chain (Evidence Register)
+- **SHA-256 hash chain** — Each evidence record's hash includes the previous, creating an unbreakable chain
 - **Merkle tree** — O(log n) tamper verification via Merkle proofs
 - **File-backed persistence** — JSON storage for single-node deployment
 - **Chain-of-custody** — Who added what, when, with cryptographic proof
+
+### 2. PoW Blockchain (`backend/blockchain.py`)
+- **Blocks** — index, transactions, previous_hash, nonce, miner, difficulty, Merkle root
+- **Proof-of-Work** — SHA-256 mining with configurable difficulty (leading hex zeros)
+- **Auto-mine on anchor** — Every `POST /api/evidence/anchor` queues a tx and mines a block
+- **Multi-node network** — 3 simulated cybercell nodes (Mumbai, Delhi, Bangalore)
+- **Longest-chain consensus** — `POST /api/blockchain/consensus` syncs all nodes to the valid longest chain
+- **Validation** — PoW check, hash linkage, Merkle root integrity per block
+
+### Blockchain API
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/blockchain/status` | Primary node + network status |
+| GET | `/api/blockchain/chain` | Blocks (limit) + validation result |
+| GET | `/api/blockchain/validate` | Full chain PoW/linkage/Merkle validation |
+| POST | `/api/blockchain/mine` | Mine pending transactions (write) |
+| POST | `/api/blockchain/consensus` | Longest-chain consensus across nodes (write) |
+
+### Demo flow (Evidence page → Blockchain panel)
+1. Anchor evidence → block auto-mined (tx + PoW nonce visible)
+2. Expand block → nonce, difficulty, Merkle root, tx details
+3. Run consensus → 3 nodes agree on longest valid chain
+4. Validate → chain integrity confirmed
 
 ---
 
@@ -244,6 +269,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 - **Anomaly Detection**: Isolation Forest for unusual patterns
 - **Mule Network**: NetworkX Louvain community detection
 - **NLP Triage**: Keyword-based complaint classification with non-cybercrime fallback
+- **Blockchain**: SHA-256 PoW mining, Merkle roots, multi-node longest-chain consensus
 
 ---
 
@@ -265,7 +291,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 
 ---
 
-## API Endpoints (49+)
+## API Endpoints (54+)
 
 ### Authentication (8)
 | Method | Endpoint | Description |
@@ -296,14 +322,20 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 | POST | `/api/alerts` | Create alert |
 | POST | `/api/alerts/{id}/acknowledge` | Acknowledge alert |
 
-### Evidence & Review (5)
+### Evidence, Blockchain & Review (11)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/evidence/anchor` | Anchor evidence to hash chain |
+| POST | `/api/evidence/anchor` | Anchor evidence to hash chain + auto-mine PoW block |
 | GET | `/api/evidence/chain` | Full evidence chain |
+| GET | `/api/evidence/proof/{block_id}` | Merkle proof |
+| GET | `/api/evidence/verify/{block_id}` | Verify evidence integrity |
+| GET | `/api/blockchain/status` | Primary node + network status |
+| GET | `/api/blockchain/chain` | Blockchain blocks + validation |
+| GET | `/api/blockchain/validate` | Full chain PoW/linkage validation |
+| POST | `/api/blockchain/mine` | Mine pending transactions |
+| POST | `/api/blockchain/consensus` | Longest-chain multi-node consensus |
 | GET | `/api/review/queue` | Pending review items |
 | POST | `/api/review/{case_id}` | Approve/override/dismiss (write permission) |
-| GET | `/api/review/history` | Review decision history |
 
 ### ML Model (6)
 | Method | Endpoint | Description |
@@ -385,6 +417,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 - **CasesTable** — Searchable, filterable, status indicators, sticky headers
 - **AlertPanel** — Active alerts with acknowledgment, notification history
 - **ReviewQueue** — Approve/override/dismiss cases with proper form interaction
+- **BlockchainPanel** — PoW ledger: height, difficulty, nonce, mine, 3-node consensus
 
 ### Demo Features
 - **Scenario Runner** — 3 pre-baked scenarios in TopNav dropdown
@@ -470,7 +503,7 @@ INVESTIGATOR_EMAIL=investigator@atlas.gov
 ## Tests
 
 ```bash
-# Backend — 39 passing, 1 skipped
+# Backend — 104 passing, 1 skipped
 cd backend && python -m pytest tests/ -v
 
 # Frontend — TypeScript strict mode
@@ -481,11 +514,12 @@ cd frontend && npx playwright test
 ```
 
 ### What We Test
-**Backend (39 tests):**
+**Backend (104 tests):**
 - Authentication (login, register, refresh, token reuse)
 - RBAC (all 4 roles for read/write/override)
 - CSRF protection on state-changing endpoints
 - Evidence chain (anchor, verify, list)
+- Blockchain (PoW mining, validation, consensus, evidence auto-mine, auth)
 - ML endpoints (predictions, model card, metrics, drift, SHAP, mule network, anomaly)
 - NLP triage (vishing, UPI fraud, non-cybercrime fallback)
 - City endpoints (list, info, ATMs, predictions)
@@ -511,6 +545,7 @@ cd frontend && npx playwright test
 6. **Review Queue** (30 sec) — Approve/override/dismiss cases
 7. **Data & Privacy** (30 sec) — Synthetic data, RBI/DPDP compliance, production architecture
 8. **Mule Network** (30 sec) — Clustering, red/amber/green risk coloring
+9. **Blockchain Ledger** (1 min) — Anchor evidence → auto-mine PoW block → run 3-node consensus
 
 ### If Backend Crashes
 Red "Backend Offline — Demo Data" banner appears. Switch to backup video.
@@ -522,12 +557,13 @@ Red "Backend Offline — Demo Data" banner appears. Switch to backup video.
 ```
 sih-prototype/
 ├── backend/
-│   ├── main.py              # FastAPI — 49+ endpoints, request logging
+│   ├── main.py              # FastAPI — 54+ endpoints, request logging
 │   ├── auth.py              # JWT, RBAC, CSRF, rate limiting
 │   ├── encryption.py        # AES-256-GCM
 │   ├── spatial.py           # PostGIS + haversine fallback
 │   ├── ml_engine.py         # RF+XGBoost ensemble, SHAP, drift
 │   ├── evidence_chain.py    # SHA-256 hash chain + Merkle tree
+│   ├── blockchain.py        # PoW blockchain: mining, multi-node consensus
 │   ├── email_client.py      # SMTP email alerts (optional)
 │   ├── twilio_client.py     # Twilio SMS alerts (optional)
 │   ├── models_db.py         # SQLAlchemy ORM models
@@ -536,11 +572,11 @@ sih-prototype/
 │   ├── train_model.py       # Trains on 200k synthetic transactions
 │   ├── generate_data.py     # Generates training data (400 ATMs, 200k txns)
 │   ├── seed.py              # Seeds 64 ATMs, 23 cases, 77 audit logs
-│   └── tests/               # 39 backend tests
+│   └── tests/               # 104 backend tests
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/           # 8 page routes
-│   │   ├── components/      # 25+ components
+│   │   ├── components/      # 26+ components (incl. BlockchainPanel)
 │   │   ├── hooks/           # useDashboardData (city-aware), useWebSocket
 │   │   ├── context/         # DashboardContext (with cityCenter)
 │   │   ├── lib/auth.ts      # Token management, CSRF auto-fetch
@@ -570,7 +606,7 @@ This prototype uses **entirely synthetic demonstration data**. No real banking, 
 ## Prepared Answers for Judges
 
 **"Why isn't this real blockchain?"**
-> "Blockchain requires distributed consensus across untrusting nodes. Law enforcement evidence management is a single-agency use case. A SHA-256 hash chain with Merkle proofs gives tamper-evident verification with O(log n) proof validation — the right tool for this problem."
+> "We built a Proof-of-Work blockchain purpose-built for evidence custody: SHA-256 mining with nonces, Merkle roots per block, and a 3-node simulated network with longest-chain consensus. Full public-chain consensus (PoS/PoW across untrusting nodes) is overhead for single-agency evidence — but we keep the core blockchain primitives: blocks, PoW, Merkle proofs, and multi-node consensus. An evidence anchor auto-mines a block; judges can run consensus live on the Evidence page."
 
 **"What's your accuracy on real data?"**
 > "The accuracy is 97.7%, but that's misleading — fraud is only 3.65% of transactions. The real question is: of the actual fraud cases, how many do we catch? That's our recall: 39.4%. On imbalanced data, F1 score (55.8%) and PR-AUC (0.446) are the meaningful metrics. Our precision is 95.8% — when the model flags fraud, it's right 95.8% of the time. No public Indian cybercrime transaction dataset exists. The pipeline is designed to retrain on authorized data."
