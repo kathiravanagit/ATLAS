@@ -18,7 +18,6 @@ from models import (
 from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values
 from city_data import CITIES
 from evidence_chain import get_evidence_chain
-from blockchain import get_blockchain, get_network, Blockchain
 from auth import register_auth_routes, verify_token, require_permission, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
 from city_data import get_city, get_all_cities, get_city_atms, get_city_stats, CITIES
 from spatial import find_nearby_atms, get_spatial_info, enable_postgis, add_geometry_column
@@ -1630,68 +1629,7 @@ def review_history(user: dict = Depends(require_permission("read")), case_id: st
 def anchor_evidence(ev: EvidenceAnchor, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf)):
     chain = get_evidence_chain()
     result = chain.add_evidence(ev.case_id, ev.evidence_type, ev.content, ev.officer_id)
-
-    # Mirror onto PoW blockchain (auto-mine single tx for demo responsiveness)
-    bc = get_blockchain()
-    tx = bc.add_transaction(
-        tx_type="evidence_anchor",
-        payload={
-            "evidence_block_id": result.get("block_id"),
-            "evidence_hash": result.get("evidence_hash"),
-            "evidence_type": ev.evidence_type,
-            "officer_id": ev.officer_id,
-            "content_preview": ev.content[:120],
-        },
-        case_id=ev.case_id,
-    )
-    mined = bc.mine_pending(miner="node-cybercell-mumbai")
-    result["blockchain"] = {"tx": tx, "mined": mined}
     return result
-
-
-# ─── Blockchain Endpoints ────────────────────────────────────────────────────
-
-@app.get("/api/blockchain/status")
-def blockchain_status(user: dict = Depends(require_permission("read"))):
-    bc = get_blockchain()
-    net = get_network()
-    return {"primary": bc.get_status(), "network": net.status()}
-
-
-@app.get("/api/blockchain/chain")
-def blockchain_chain(user: dict = Depends(require_permission("read")), limit: int = Query(default=50, le=200)):
-    bc = get_blockchain()
-    chain = bc.get_chain()
-    return {
-        "chain": chain[-limit:],
-        "height": len(chain),
-        "difficulty": bc.difficulty,
-        "validation": Blockchain.validate_chain(chain),
-    }
-
-
-@app.get("/api/blockchain/validate")
-def blockchain_validate(user: dict = Depends(require_permission("read"))):
-    bc = get_blockchain()
-    return Blockchain.validate_chain(bc.get_chain())
-
-
-@app.post("/api/blockchain/mine")
-def blockchain_mine(
-    user: dict = Depends(require_permission("write")),
-    csrf: None = Depends(require_csrf),
-    miner: str = Query(default="node-cybercell-mumbai"),
-):
-    bc = get_blockchain()
-    return bc.mine_pending(miner=miner)
-
-
-@app.post("/api/blockchain/consensus")
-def blockchain_consensus(
-    user: dict = Depends(require_permission("write")),
-    csrf: None = Depends(require_csrf),
-):
-    return get_network().consensus()
 
 
 @app.get("/api/evidence/verify/{block_id}")
