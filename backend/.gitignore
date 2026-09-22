@@ -9,4 +9,3 @@ __pycache__/
 .pytest_cache/
 model/*.pkl
 model/evidence_chain.json
-model/atlas_chain.json
