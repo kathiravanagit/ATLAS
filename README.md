@@ -12,7 +12,7 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 
 - Security architecture (AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS)
 - Cryptographic evidence chain-of-custody with tamper-evident verification
-- Full-stack application with 49+ API endpoints, 39 passing backend tests, 29 passing E2E tests
+- Full-stack application with 54+ API endpoints, 104 passing backend tests, 29 passing E2E tests
 - PostGIS spatial indexing with haversine fallback
 - Multi-city support — 8 cities, 64 ATMs with live city switching on the map
 
@@ -141,12 +141,19 @@ python seed.py
 | GET | `/api/review/queue` | Pending review items |
 | POST | `/api/review/{case_id}` | Approve / override / dismiss |
 
-### Evidence & Audit
+### Evidence, Blockchain & Audit
 
 | Method | Endpoint | Description |
 | -------- | ---------- | ------------- |
-| POST | `/api/evidence/anchor` | Anchor evidence to hash chain |
+| POST | `/api/evidence/anchor` | Anchor evidence to hash chain + auto-mine PoW block |
 | GET | `/api/evidence/chain` | Full evidence chain |
+| GET | `/api/evidence/proof/{block_id}` | Merkle proof |
+| GET | `/api/evidence/verify/{block_id}` | Verify evidence integrity |
+| GET | `/api/blockchain/status` | Primary node + network status |
+| GET | `/api/blockchain/chain` | Blockchain blocks + validation |
+| GET | `/api/blockchain/validate` | Full chain PoW/linkage validation |
+| POST | `/api/blockchain/mine` | Mine pending transactions |
+| POST | `/api/blockchain/consensus` | Longest-chain multi-node consensus |
 | GET | `/api/audit` | Audit trail |
 
 ### NLP & Spatial
@@ -170,19 +177,20 @@ python seed.py
 ```
 sih-prototype/
 ├── backend/
-│   ├── main.py              # FastAPI app — 49+ endpoints
+│   ├── main.py              # FastAPI app — 54+ endpoints
 │   ├── auth.py              # JWT, RBAC, CSRF, rate limiting
 │   ├── encryption.py        # AES-256-GCM encryption
 │   ├── ml_engine.py         # RF+XGBoost ensemble, SHAP, drift
 │   ├── evidence_chain.py    # SHA-256 hash chain + Merkle tree
+│   ├── blockchain.py        # PoW blockchain: mining, multi-node consensus
 │   ├── spatial.py           # PostGIS / haversine fallback
 │   ├── seed.py              # Database seeder
 │   ├── city_data.py         # 8 cities, 64 ATMs
-│   └── tests/               # 80+ pytest tests
+│   └── tests/               # 104 pytest tests
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/           # 8 route pages
-│   │   ├── components/      # 25+ components
+│   │   ├── components/      # 26+ components (incl. BlockchainPanel)
 │   │   ├── hooks/           # Data fetching, WebSocket
 │   │   └── lib/             # Auth, utilities
 │   └── e2e/                 # 29 Playwright tests
@@ -195,7 +203,7 @@ sih-prototype/
 ## Testing
 
 ```bash
-# Backend (80+ tests)
+# Backend (104 tests)
 cd backend && python -m pytest tests/ -v
 
 # Frontend (TypeScript strict)
