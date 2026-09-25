@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Case, Prediction, EvidenceItem } from '../types';
 import { User, Phone, FileText, MapPin, Clock, AlertTriangle, ChevronRight, ExternalLink, Shield, Activity, GitBranch, History, CheckCircle, Circle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import ResolutionModal from './ResolutionModal';
-import { authFetch } from '../lib/auth';
+import { authFetch, getUser } from '../lib/auth';
 
 interface CaseDetailProps {
   caseId: string;
@@ -68,8 +68,9 @@ function maskContact(contact: string): string {
 
 export default function CaseDetail({ caseId, prediction, onShowEvidence, onResolve }: CaseDetailProps) {
   const [piiRevealed, setPiiRevealed] = useState(false);
-  const [reauthPin, setReauthPin] = useState('');
+  const [accessReason, setAccessReason] = useState('');
   const [showReauth, setShowReauth] = useState(false);
+  const [reauthError, setReauthError] = useState('');
   const [resolutionOpen, setResolutionOpen] = useState(false);
 
   const info = MOCK_CASES[caseId] || { victim_name: "Unknown", contact: "N/A", description: "No details available" };
@@ -77,20 +78,34 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
   const p = prediction.primary_location;
 
   const handleDecrypt = async () => {
-    if (reauthPin === '1234') {
-      setPiiRevealed(true);
-      setShowReauth(false);
-      setReauthPin('');
-      try {
-        await authFetch('/api/audit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'PII Decryption', details: `PII decrypted for case ${caseId} by officer`, action_type: 'security', case_id: caseId }),
-        });
-      } catch {}
-    } else {
-      alert('Invalid PIN. Use 1234 for demo.');
+    // No client-side PIN: PII reveal is gated on officer role + a recorded
+    // justification, and every access is audit-logged with officer identity.
+    const user = getUser() as { role?: string; email?: string; badge?: string; name?: string } | null;
+    const role = user?.role ?? '';
+    if (role !== 'inspector' && role !== 'admin') {
+      setReauthError('Only inspectors and admins may request protected victim details.');
+      return;
     }
+    if (!accessReason.trim()) {
+      setReauthError('A reason for access is required (e.g. FIR number).');
+      return;
+    }
+    setReauthError('');
+    setPiiRevealed(true);
+    setShowReauth(false);
+    setAccessReason('');
+    try {
+      await authFetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'PII Decryption',
+          details: `PII revealed for case ${caseId} by ${user?.email ?? 'unknown'} (badge ${user?.badge ?? 'n/a'}, role ${role}). Reason: ${accessReason.trim()}`,
+          action_type: 'security',
+          case_id: caseId,
+        }),
+      });
+    } catch {}
   };
 
   return (
@@ -163,7 +178,7 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
                 onClick={() => setShowReauth(true)}
                 className="px-2 py-1 bg-[#f59e0b]/10 text-[11px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
               >
-                <KeyRound size={10} /> Decrypt PII for FIR
+                <KeyRound size={10} /> Request victim details
               </button>
             ) : (
               <button
@@ -178,22 +193,23 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
 
         {showReauth && (
           <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded-lg p-3 mb-3">
-            <p className="text-xs text-[#f59e0b] mb-2">Re-authenticate to view PII (DPDP Act 2023 compliance)</p>
+            <p className="text-xs text-[#f59e0b] mb-2">Inspector/admin only — access is audit-logged with your identity and reason (DPDP Act 2023 compliance)</p>
             <div className="flex items-center gap-2">
               <input
-                type="password"
-                value={reauthPin}
-                onChange={e => setReauthPin(e.target.value)}
-                placeholder="Enter inspector PIN"
+                type="text"
+                value={accessReason}
+                onChange={e => setAccessReason(e.target.value)}
+                placeholder="Reason for access (e.g. FIR no.)"
                 className="px-3 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#f59e0b]"
               />
               <button onClick={handleDecrypt} className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-xs font-medium rounded hover:bg-[#d97706]">
                 Verify
               </button>
-              <button onClick={() => setShowReauth(false)} className="px-3 py-1.5 bg-[#F3F4F6] text-xs text-[#6B7280] rounded hover:bg-[#E5E7EB]">
+              <button onClick={() => { setShowReauth(false); setReauthError(''); }} className="px-3 py-1.5 bg-[#F3F4F6] text-xs text-[#6B7280] rounded hover:bg-[#E5E7EB]">
                 Cancel
               </button>
             </div>
+            {reauthError && <p className="text-xs text-[#B91C1C] mt-2">{reauthError}</p>}
           </div>
         )}
 
@@ -241,8 +257,8 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
               <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Risk Score</div>
-              <div className="text-2xl font-bold text-[#ef4444]">92%</div>
-              <div className="text-[11px] text-[#6B7280]">Critical</div>
+              <div className="text-2xl font-bold text-[#ef4444]">{Math.round(p.risk_score)}%</div>
+              <div className="text-[11px] text-[#6B7280]">Model score — not a probability</div>
             </div>
             <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
               <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>

@@ -12,7 +12,7 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 
 - Security architecture (AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS)
 - Cryptographic evidence chain-of-custody with tamper-evident verification
-- Full-stack application with 54+ API endpoints, 104 passing backend tests, 29 passing E2E tests
+- Full-stack application with 54+ API endpoints, 110 passing backend tests, 29 passing E2E tests
 - PostGIS spatial indexing with haversine fallback
 - Multi-city support — 8 cities, 64 ATMs with live city switching on the map
 
@@ -241,6 +241,23 @@ SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
 ```
+
+---
+
+## Model Limitations (read before citing accuracy)
+
+From `backend/model/metadata.json` (40,000-sample eval set, 1,458 cash-out vs 38,542 negatives):
+
+| Metric | Value | Meaning |
+|---|---|---|
+| Accuracy | 97.7% | Inflated by the 96.4% majority class — **not** the headline metric |
+| Precision (cash-out) | 95.8% | When the model flags fraud, it's right ~96% of the time |
+| **Recall (cash-out)** | **39.4%** | Catches ~4 in 10 actual cash-out events |
+| F1 (cash-out) | 55.8% | The balanced metric that matters here |
+| PR-AUC | 0.446 | Ranking quality on imbalanced data |
+| Confusion | TP 574 · FP 25 · FN 884 · TN 38,517 | Misses (FN 884) dominate errors |
+
+Deliberate tradeoff: the threshold is tuned for **high precision to avoid alert fatigue** for officers, at the cost of recall on a 3.6%-minority class. The model is **decision support, not an enforcement decision** — every flagged case requires human review. No public Indian cybercrime transaction dataset exists to validate against; the pipeline is designed to retrain on authorized data.
 
 ---
 

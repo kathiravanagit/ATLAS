@@ -6,11 +6,16 @@ test.describe('Dashboard Welcome Page', () => {
     await page.locator('input[type="email"]').fill('admin@atlas.gov');
     await page.locator('input[type="password"]').fill('admin123');
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await page.waitForURL(/\/real/, { timeout: 15000 });
+    await page.goto('/dashboard');
   });
 
-  test('redirects to dashboard after login', async ({ page }) => {
-    await expect(page).toHaveURL(/\/dashboard/);
+  test('redirects to console after login', async ({ page }) => {
+    await page.goto('/login');
+    await page.locator('input[type="email"]').fill('admin@atlas.gov');
+    await page.locator('input[type="password"]').fill('admin123');
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL(/\/real/);
   });
 
   test('shows welcome content', async ({ page }) => {
@@ -29,21 +34,21 @@ test.describe('Console Overview', () => {
     await page.locator('input[type="email"]').fill('admin@atlas.gov');
     await page.locator('input[type="password"]').fill('admin123');
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await page.waitForURL(/\/real/, { timeout: 15000 });
     await page.goto('/real');
     await page.waitForTimeout(3000);
   });
 
   test('shows stat cards', async ({ page }) => {
-    await expect(page.locator('text=Active Cases')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=High-Risk Locations')).toBeVisible();
-    await expect(page.locator('text=Alerts Today')).toBeVisible();
-    await expect(page.locator('text=Avg. Lead Time')).toBeVisible();
+    await expect(page.locator('text=Active Cases').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=High-Risk Locations').first()).toBeVisible();
+    await expect(page.locator('text=Alerts Today').first()).toBeVisible();
+    await expect(page.locator('text=Avg. Lead Time').first()).toBeVisible();
   });
 
   test('shows impact metrics', async ({ page }) => {
-    await expect(page.locator('text=Prevented Fraud')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Mules Flagged')).toBeVisible();
+    await expect(page.locator('text=Estimated Exposure')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Linked Accounts Flagged')).toBeVisible();
   });
 
   test('shows prediction card', async ({ page }) => {
@@ -51,7 +56,7 @@ test.describe('Console Overview', () => {
   });
 
   test('shows demo mode indicator', async ({ page }) => {
-    await expect(page.locator('text=Demo Mode')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Demonstration Portal').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('shows user profile in TopNav', async ({ page }) => {

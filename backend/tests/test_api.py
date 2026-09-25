@@ -172,14 +172,51 @@ def test_resolve_case_requires_override(client, analyst_token):
 
 
 def test_resolve_case_works_for_inspector(client, inspector_token):
-    resp = client.post("/api/cases/CASE-001/resolve", headers=auth_header(inspector_token))
+    csrf = get_csrf_header(client, inspector_token)
+    resp = client.post("/api/cases/CASE-001/resolve", headers={**auth_header(inspector_token), **csrf})
     assert resp.status_code == 200
 
 
+def test_state_changing_endpoints_reject_missing_csrf(client, inspector_token, admin_token):
+    # P0-2: every authenticated mutation must require a CSRF token
+    cases = [
+        ("POST", "/api/auth/logout", {"refresh_token": "x"}, admin_token),
+        ("PUT", "/api/auth/me", {"name": "x"}, admin_token),
+        ("POST", "/api/auth/change-password", {"current_password": "x", "new_password": "y12345"}, admin_token),
+        ("POST", "/api/cases/CASE-001/resolve", None, inspector_token),
+        ("POST", "/api/cases/CASE-001/action", {"type": "acknowledge"}, inspector_token),
+        ("POST", "/api/review/CASE-001", {"action": "approve", "reason": "t", "reviewer_id": "INS-001"}, inspector_token),
+    ]
+    for method, path, body, token in cases:
+        resp = client.request(method, path, json=body, headers=auth_header(token))
+        assert resp.status_code == 403, f"{method} {path} accepted a mutation without CSRF"
+
+
+def test_transaction_returns_503_without_atm_data(client, admin_token):
+    # P0-3: controlled 503 (not 500) when prediction engine has no ATM reference data
+    from tests.conftest import TestingSessionLocal
+    from models_db import AtmLocation
+    db = TestingSessionLocal()
+    try:
+        db.query(AtmLocation).delete()
+        db.commit()
+        csrf = get_csrf_header(client, admin_token)
+        resp = client.post("/api/transactions", json={
+            "case_id": "CASE-001", "amount": 1000,
+            "from_account": "ACC-1", "to_account": "ACC-2",
+        }, headers={**auth_header(admin_token), **csrf})
+        assert resp.status_code == 503
+        assert "Prediction service" in resp.json()["detail"]
+    finally:
+        db.rollback()
+        db.close()
+
+
 def test_review_case_works_for_analyst(client, analyst_token):
+    csrf = get_csrf_header(client, analyst_token)
     resp = client.post("/api/review/CASE-001", json={
         "action": "approve", "reason": "test", "reviewer_id": "ANL-001"
-    }, headers=auth_header(analyst_token))
+    }, headers={**auth_header(analyst_token), **csrf})
     assert resp.status_code == 200
 
 

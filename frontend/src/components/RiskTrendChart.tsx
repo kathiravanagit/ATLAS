@@ -51,6 +51,11 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
         </div>
       </div>
       <div className="h-[200px]">
+        {data.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-[11px] text-[#6B7280]">
+            No trend data yet — connect the backend to populate this chart.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -91,6 +96,7 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

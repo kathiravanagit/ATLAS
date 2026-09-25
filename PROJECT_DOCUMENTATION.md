@@ -15,7 +15,7 @@ When a victim reports cybercrime on **cybercrime.gov.in**, stolen money is rapid
 - **Cryptographic evidence chain** — SHA-256 hash chain with Merkle tree verification
 - **PoW blockchain** — SHA-256 mining, Merkle roots, 3-node longest-chain consensus
 - **Full-stack application** — React + TypeScript frontend, FastAPI + PostgreSQL backend
-- **54+ API endpoints** with 104 passing backend tests and 29 passing E2E tests
+- **54+ API endpoints** with 110 passing backend tests and 29 passing E2E tests
 - **Multi-city support** — 8 Indian cities with 64 ATMs, live city switching on interactive map
 
 ---

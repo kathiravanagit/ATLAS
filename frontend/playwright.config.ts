@@ -15,6 +15,10 @@ export default defineConfig({
     port: 5173,
     reuseExistingServer: true,
     timeout: 30000,
+    env: {
+      // Exercise the demo-gated UI (quick logins, register link) the same way judges see it
+      VITE_DEMO_MODE: '1',
+    },
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },

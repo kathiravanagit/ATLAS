@@ -8,7 +8,7 @@ test.describe('Landing Page', () => {
 
   test('displays hero section with project name', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'ATLAS' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Predict fraud/i })).toBeVisible();
   });
 
   test('shows Access Investigator Console button', async ({ page }) => {

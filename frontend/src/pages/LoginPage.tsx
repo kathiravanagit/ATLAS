@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Explicit opt-in demo build only — never fake a session in production builds.
+  const isDemoBuild = import.meta.env.VITE_DEMO_MODE === '1' || import.meta.env.VITE_DEMO_MODE === 'true';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,14 +36,14 @@ export default function LoginPage() {
         setError(err.detail || 'Invalid credentials');
       }
     } catch {
-      if (email && password) {
+      if (isDemoBuild && email && password) {
         const user = {
           email, name: email.split('@')[0], role: 'inspector', id: 'INS-001', badge: 'OFFLINE'
         };
         setTokens('offline-token', 'offline-refresh', 3600, user);
         navigate('/real');
       } else {
-        setError('Enter valid credentials');
+        setError('Unable to authenticate — service unavailable');
       }
     }
     setLoading(false);
@@ -181,12 +183,18 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-4 text-center">
-                <span className="text-xs text-[#6B7280]">New official? </span>
-                <Link to="/register" className="text-xs text-[#1D4ED8] hover:text-[#1D355B] transition-colors font-medium">Register here</Link>
+                {isDemoBuild ? (
+                  <>
+                    <span className="text-xs text-[#6B7280]">New official? </span>
+                    <Link to="/register" className="text-xs text-[#1D4ED8] hover:text-[#1D355B] transition-colors font-medium">Register here</Link>
+                  </>
+                ) : (
+                  <span className="text-xs text-[#6B7280]">Request access through your department administrator.</span>
+                )}
               </div>
 
-              {/* Quick Demo Login */}
-              {import.meta.env.VITE_DEMO_MODE !== '0' && (
+              {/* Quick Demo Login — evaluation builds only */}
+              {isDemoBuild && (
                 <div className="mt-5 pt-4 border-t border-[#E5E7EB]">
                   <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-2 font-medium">Quick Demo Login</div>
                   <div className="grid grid-cols-2 gap-2">

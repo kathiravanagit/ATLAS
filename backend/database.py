@@ -11,7 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 # Try PostgreSQL, fallback to SQLite
 USE_SQLITE = False
 USE_POSTGIS = False
-if not DATABASE_URL or "localhost" in DATABASE_URL:
+if os.getenv("TESTING") == "1" or not DATABASE_URL or "localhost" in DATABASE_URL:
     USE_SQLITE = True
 
 if not USE_SQLITE:
