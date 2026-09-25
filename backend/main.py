@@ -19,7 +19,7 @@ from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_val
 from city_data import CITIES
 from evidence_chain import get_evidence_chain
 from blockchain import get_blockchain, get_network, Blockchain
-from auth import register_auth_routes, verify_token, require_permission, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
+from auth import register_auth_routes, verify_token, require_permission, require_role, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
 from city_data import get_city, get_all_cities, get_city_atms, get_city_stats, CITIES
 from spatial import find_nearby_atms, get_spatial_info, enable_postgis, add_geometry_column
 from typing import List, Optional
@@ -58,7 +58,7 @@ if DEMO_MODE:
     warnings.warn("DEMO MODE enabled — rate limiting disabled. Do NOT use in production!", stacklevel=2)
 
 # ─── Production Security Checks ───────────────────────────────────────────────
-_jwt_secret_key = os.getenv("JWT_SECRET_KEY", "")
+_jwt_secret_key = os.getenv("JWT_SECRET_KEY", "") or os.getenv("SECRET_KEY", "")
 _encryption_key = os.getenv("ENCRYPTION_KEY", "")
 
 if DEMO_MODE:
@@ -146,7 +146,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
 )
 
 # Register auth routes
@@ -747,7 +747,7 @@ def get_cases(user: dict = Depends(verify_token), db: Session = Depends(get_db))
 
 
 @app.post("/api/cases/{case_id}/resolve")
-def resolve_case(case_id: str, user: dict = Depends(require_permission("override")), db: Session = Depends(get_db)):
+def resolve_case(case_id: str, user: dict = Depends(require_permission("override")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
     case = db.query(Case).filter(Case.case_id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -757,7 +757,7 @@ def resolve_case(case_id: str, user: dict = Depends(require_permission("override
     case.last_updated = "Just now"
     db.commit()
 
-    add_audit(db, "Case Resolved", f"Case {case_id} marked as resolved", "case", case_id)
+    add_audit(db, "Case Resolved", f"Case {case_id} marked as resolved by {user.get('name', user.get('id', 'unknown'))} ({user.get('role', '?')})", "case", case_id)
 
     return {"status": "resolved", "case_id": case_id}
 
@@ -814,7 +814,14 @@ def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_per
 
     updated_prediction = get_predictions_for_case(tx.case_id, db)
 
-    primary = updated_prediction["primary_location"]
+    # Guard: prediction engine returns {"error": ...} when ATM reference data is absent.
+    # Return a controlled 503 instead of raising KeyError -> HTTP 500.
+    primary = (updated_prediction or {}).get("primary_location") if isinstance(updated_prediction, dict) else None
+    if not isinstance(primary, dict) or "risk_score" not in primary:
+        raise HTTPException(
+            status_code=503,
+            detail="Prediction service not initialized (no ATM reference data). Transaction recorded but no alert generated.",
+        )
     if primary["risk_score"] > 70:
         alert_msg = f"HIGH-RISK: New transaction of ₹{tx.amount:,.0f} detected. Top predicted cash-out at {primary['atm_id']} ({primary['location_name']}) — Risk Score {primary['risk_score']}%"
         alert = Alert(
@@ -1268,7 +1275,7 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
 # ─── SHAP-based Model Transparency ────────────────────────────────────────────
 
 @app.post("/api/cases/{case_id}/action")
-def case_action(case_id: str, action: dict, user: dict = Depends(require_permission("write")), db: Session = Depends(get_db)):
+def case_action(case_id: str, action: dict, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
     valid_types = ["acknowledge", "assign", "request_verification", "escalate", "close"]
     action_type = action.get("type")
     if action_type not in valid_types:
@@ -1511,7 +1518,7 @@ def spatial_info(user: dict = Depends(require_permission("read")), db: Session =
 
 
 @app.post("/api/model/spatial/enable-postgis")
-def setup_postgis(user: dict = Depends(require_permission("manage_users")), db: Session = Depends(get_db)):
+def setup_postgis(user: dict = Depends(require_role("admin")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
     """Enable PostGIS and add spatial index to ATM locations (admin only)."""
     if not enable_postgis(db):
         raise HTTPException(status_code=500, detail="Failed to enable PostGIS extension")
@@ -1579,7 +1586,7 @@ def get_review_queue(user: dict = Depends(require_permission("read")), status: s
 
 
 @app.post("/api/review/{case_id}")
-def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require_permission("write")), db: Session = Depends(get_db)):
+def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
     if action.action not in ["approve", "override", "dismiss"]:
         raise HTTPException(status_code=400, detail="Invalid action. Must be: approve, override, dismiss")
 

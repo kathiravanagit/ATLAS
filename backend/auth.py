@@ -471,7 +471,7 @@ def register_auth_routes(app):
         )
 
     @app.post("/api/auth/logout")
-    def logout(req: RefreshRequest, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    def logout(req: RefreshRequest, user: dict = Depends(verify_token), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
         db_token = db.query(RefreshToken).filter(RefreshToken.token == req.refresh_token).first()
         if db_token:
             db_token.revoked = True
@@ -490,7 +490,7 @@ def register_auth_routes(app):
         )
 
     @app.put("/api/auth/me")
-    def update_me(req: UpdateProfileRequest, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    def update_me(req: UpdateProfileRequest, user: dict = Depends(verify_token), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
         db_user = db.query(User).filter(User.email == user["email"]).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -508,7 +508,7 @@ def register_auth_routes(app):
         }}
 
     @app.post("/api/auth/change-password")
-    def change_password(req: ChangePasswordRequest, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    def change_password(req: ChangePasswordRequest, user: dict = Depends(verify_token), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
         db_user = db.query(User).filter(User.email == user["email"]).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -531,7 +531,7 @@ def register_auth_routes(app):
         ]
 
     @app.post("/api/auth/approve/{user_id}")
-    def approve_user(user_id: str, user: dict = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    def approve_user(user_id: str, user: dict = Depends(require_role("admin")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
         target = db.query(User).filter(User.id == user_id).first()
         if not target:
             raise HTTPException(status_code=404, detail="User not found")
@@ -540,7 +540,7 @@ def register_auth_routes(app):
         return {"status": "approved", "user_id": user_id}
 
     @app.post("/api/auth/reject/{user_id}")
-    def reject_user(user_id: str, user: dict = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    def reject_user(user_id: str, user: dict = Depends(require_role("admin")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
         target = db.query(User).filter(User.id == user_id).first()
         if not target:
             raise HTTPException(status_code=404, detail="User not found")

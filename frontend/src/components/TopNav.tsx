@@ -72,12 +72,19 @@ export default function TopNav({ selectedCity, onCityChange, usingFallback, last
       {/* ── Section 1: Demo Notice ─────────────────────────────────── */}
       <div className="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-1.5">
         <p className="text-center text-[10px] md:text-[11px] text-amber-800">
-          <span className="font-semibold">Demonstration Portal</span>
+          <span className="font-semibold">Demonstration Portal — Hackathon demo, synthetic data</span>
           {' — '}
           <span className="hidden sm:inline">This system uses synthetic data generated for SIH 2026 evaluation. Not connected to any live crime, banking, or government databases.</span>
           <span className="sm:hidden">Synthetic data only. Not connected to live systems.</span>
         </p>
       </div>
+      {usingFallback && (
+        <div className="bg-[#B91C1C] px-4 md:px-6 py-1.5" role="alert">
+          <p className="text-center text-[10px] md:text-[11px] text-white font-semibold">
+            DEMO DATA — backend unavailable, showing cached fallback. No live decisions permitted.
+          </p>
+        </div>
+      )}
 
       {/* ── Section 2: Institutional Header ────────────────────────── */}
       <div className="bg-white border-b border-[#E5E7EB] px-4 md:px-6 py-2">

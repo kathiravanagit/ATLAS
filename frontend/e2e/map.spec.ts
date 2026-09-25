@@ -5,7 +5,7 @@ async function loginAs(page: import('@playwright/test').Page) {
   await page.locator('input[type="email"]').fill('admin@atlas.gov');
   await page.locator('input[type="password"]').fill('admin123');
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  await page.waitForURL(/\/real/, { timeout: 15000 });
 }
 
 test.describe('Map Page', () => {

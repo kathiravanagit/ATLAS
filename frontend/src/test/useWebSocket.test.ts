@@ -16,7 +16,7 @@ class MockWebSocket {
   onerror: (() => void) | null = null
   readyState = 0 // CONNECTING
   sent: string[] = []
-  private _listeners: Record<string, Function[]> = {}
+  private _listeners: Record<string, ((...args: unknown[]) => void)[]> = {}
 
   constructor(url: string) {
     this.url = url
@@ -27,12 +27,12 @@ class MockWebSocket {
     }, 0)
   }
 
-  addEventListener(type: string, fn: Function) {
+  addEventListener(type: string, fn: (...args: unknown[]) => void) {
     if (!this._listeners[type]) this._listeners[type] = []
     this._listeners[type].push(fn)
   }
 
-  removeEventListener(type: string, fn: Function) {
+  removeEventListener(type: string, fn: (...args: unknown[]) => void) {
     this._listeners[type] = (this._listeners[type] || []).filter(f => f !== fn)
   }
 

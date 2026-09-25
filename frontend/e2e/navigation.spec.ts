@@ -5,7 +5,7 @@ async function loginAs(page: import('@playwright/test').Page) {
   await page.locator('input[type="email"]').fill('admin@atlas.gov');
   await page.locator('input[type="password"]').fill('admin123');
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  await page.waitForURL(/\/real/, { timeout: 15000 });
 }
 
 test.describe('Navigation', () => {
@@ -36,7 +36,7 @@ test.describe('Navigation', () => {
   test('shows offline or live status', async ({ page }) => {
     await page.goto('/real');
     await page.waitForTimeout(2000);
-    const status = page.locator('text=Backend Offline').or(page.locator('text=Live'));
+    const status = page.locator('text=Offline').or(page.locator('text=Connected'));
     await expect(status.first()).toBeVisible({ timeout: 10000 });
   });
 });

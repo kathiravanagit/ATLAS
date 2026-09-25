@@ -155,12 +155,10 @@ export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
     try {
-      await fetch('/api/auth/logout', {
+      // authFetch attaches the CSRF token required by POST /api/auth/logout
+      await authFetch('/api/auth/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken() || ''}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken }),
       });
     } catch {}
