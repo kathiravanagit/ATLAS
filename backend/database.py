@@ -6,13 +6,24 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 # Try PostgreSQL, fallback to SQLite
 USE_SQLITE = False
 USE_POSTGIS = False
 if not DATABASE_URL or "localhost" in DATABASE_URL:
     USE_SQLITE = True
+
+if not USE_SQLITE:
+    # Verify Postgres is actually reachable before committing to it
+    try:
+        _probe = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args={"connect_timeout": 5})
+        with _probe.connect():
+            pass
+        _probe.dispose()
+    except Exception as exc:
+        print(f"[DB] Postgres unreachable ({type(exc).__name__}) — falling back to SQLite")
+        USE_SQLITE = True
 
 if USE_SQLITE:
     DATABASE_URL = "sqlite:///./cybercrime_intel.db"
