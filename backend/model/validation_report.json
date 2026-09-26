@@ -1,0 +1,170 @@
+{
+  "protocol": "frozen-ensemble validation on synthetic benchmark",
+  "ensemble": "0.5*RF + 0.5*XGB, threshold 0.5",
+  "slices": {
+    "random_holdout_note": "original 80/20 stratified split \u2014 see metadata.json",
+    "time_holdout": {
+      "slice": "month>=cutoff",
+      "n": 33484,
+      "positives": 1239,
+      "positive_rate_pct": 3.7,
+      "precision": 0.9638,
+      "recall": 0.4084,
+      "f1": 0.5737,
+      "pr_auc": 0.6934,
+      "baseline_majority_accuracy_pct": 96.3
+    },
+    "location_holdout": {
+      "slice": "cities=['kolkata', 'ahmedabad']",
+      "n": 50206,
+      "positives": 1808,
+      "positive_rate_pct": 3.6,
+      "precision": 0.9716,
+      "recall": 0.3971,
+      "f1": 0.5638,
+      "pr_auc": 0.6978,
+      "baseline_majority_accuracy_pct": 96.4
+    }
+  },
+  "calibration_random_sample": {
+    "bins": [
+      {
+        "bin": [
+          0.0,
+          0.1
+        ],
+        "n": 1003,
+        "mean_predicted": 0.0769,
+        "empirical_rate": 0.002
+      },
+      {
+        "bin": [
+          0.1,
+          0.2
+        ],
+        "n": 12745,
+        "mean_predicted": 0.16,
+        "empirical_rate": 0.0087
+      },
+      {
+        "bin": [
+          0.2,
+          0.3
+        ],
+        "n": 3164,
+        "mean_predicted": 0.2218,
+        "empirical_rate": 0.0683
+      },
+      {
+        "bin": [
+          0.3,
+          0.4
+        ],
+        "n": 70,
+        "mean_predicted": 0.3295,
+        "empirical_rate": 0.6429
+      },
+      {
+        "bin": [
+          0.4,
+          0.5
+        ],
+        "n": 15,
+        "mean_predicted": 0.443,
+        "empirical_rate": 0.9333
+      },
+      {
+        "bin": [
+          0.5,
+          0.6
+        ],
+        "n": 9,
+        "mean_predicted": 0.5571,
+        "empirical_rate": 0.5556
+      },
+      {
+        "bin": [
+          0.6,
+          0.7
+        ],
+        "n": 12,
+        "mean_predicted": 0.6568,
+        "empirical_rate": 0.25
+      },
+      {
+        "bin": [
+          0.7,
+          0.8
+        ],
+        "n": 26,
+        "mean_predicted": 0.7576,
+        "empirical_rate": 0.1538
+      },
+      {
+        "bin": [
+          0.8,
+          0.9
+        ],
+        "n": 55,
+        "mean_predicted": 0.8578,
+        "empirical_rate": 0.6182
+      },
+      {
+        "bin": [
+          0.9,
+          1.0
+        ],
+        "n": 2901,
+        "mean_predicted": 0.9891,
+        "empirical_rate": 0.9862
+      }
+    ],
+    "brier_score": 0.0391,
+    "note": "scores are ranking scores, not calibrated probabilities"
+  },
+  "threshold_sweep_random_sample": [
+    {
+      "threshold": 0.3,
+      "precision": 0.9605,
+      "recall": 0.9002,
+      "f1": 0.9293,
+      "flagged": 3088
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.9679,
+      "recall": 0.8865,
+      "f1": 0.9254,
+      "flagged": 3018
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.968,
+      "recall": 0.8822,
+      "f1": 0.9232,
+      "flagged": 3003
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.9693,
+      "recall": 0.8807,
+      "f1": 0.9229,
+      "flagged": 2994
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.9722,
+      "recall": 0.8798,
+      "f1": 0.9237,
+      "flagged": 2982
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.9794,
+      "recall": 0.8786,
+      "f1": 0.9263,
+      "flagged": 2956
+    }
+  ],
+  "guidance": "pick the threshold from investigator capacity and false-positive cost using the sweep above; never cite accuracy alone on 3.6% positives."
+}

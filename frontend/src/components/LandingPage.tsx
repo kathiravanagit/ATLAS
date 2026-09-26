@@ -208,7 +208,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <GovtBadge size={28} />
             <div className="leading-tight">
-              <div className="text-[11px] text-[#6B7280] font-medium">Government of India — Demonstration Portal</div>
+              <div className="text-[11px] text-[#6B7280] font-medium">SIH 2026 Prototype — Demonstration Portal</div>
               <div className="text-sm font-semibold text-[#1F2937] tracking-tight">ATLAS — Advanced Threat Location & Alert System</div>
             </div>
           </div>
@@ -422,7 +422,7 @@ export default function LandingPage() {
               <span className="text-sm font-medium text-[#1F2937]">ATLAS — Advanced Threat Location & Alert System</span>
             </div>
             <div className="flex items-center gap-4 text-[11px] text-[#9CA3AF]">
-              <span>Ministry of Home Affairs</span>
+              <span>Unofficial SIH 2026 Prototype</span>
               <span className="w-1 h-1 rounded-full bg-[#D1D5DB]" />
               <span>Cybercrime Coordination Prototype</span>
               <span className="w-1 h-1 rounded-full bg-[#D1D5DB]" />
@@ -430,7 +430,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-4 text-center text-[11px] text-[#9CA3AF]">
-            For Law Enforcement Use Only · Synthetic Data · Not Connected to Live Systems
+            For Evaluation Use Only · Synthetic Data · Not Connected to Live Systems · Not affiliated with any government body
           </div>
         </div>
       </footer>

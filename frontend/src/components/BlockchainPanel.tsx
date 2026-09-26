@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Boxes, Pickaxe, Network, CheckCircle, XCircle, ChevronDown, ChevronUp, Hash, RefreshCw } from 'lucide-react';
 import { authFetch } from '@/lib/auth';
+import { can } from '@/lib/roles';
 
 interface ChainTx {
   tx_type: string;
@@ -190,7 +191,8 @@ export default function BlockchainPanel() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions — consensus operations need inspector/admin authority */}
+      {can('blockchain.operate') && (
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button
           onClick={handleMine}
@@ -214,6 +216,7 @@ export default function BlockchainPanel() {
             : 'Nodes diverged — run consensus'}
         </span>
       </div>
+      )}
 
       {consensusResult && (
         <div

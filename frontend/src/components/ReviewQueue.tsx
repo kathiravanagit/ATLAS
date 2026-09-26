@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle, Clock, User, MessageSquare, ChevronDown } from 'lucide-react';
 import { authFetch } from '@/lib/auth';
+import { can } from '@/lib/roles';
 
 interface ReviewItem {
   case_id: string;
@@ -155,9 +156,10 @@ export default function ReviewQueue() {
               </div>
             </div>
 
-            {/* Action form */}
-            {selectedCase === item.case_id && (
-              <motion.div
+              {/* Action form — hidden unless the role may decide reviews */}
+              {selectedCase === item.case_id && (
+                can('review.decide') ? (
+                <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 onClick={(e) => e.stopPropagation()}
@@ -198,7 +200,12 @@ export default function ReviewQueue() {
                   </button>
                 </div>
               </motion.div>
-            )}
+                ) : (
+                  <p className="mt-3 pt-3 border-t border-[#D1D5DB] text-[11px] text-[#6B7280]">
+                    Review decisions require an inspector, analyst, or admin role.
+                  </p>
+                )
+              )}
           </motion.div>
         ))}
       </div>

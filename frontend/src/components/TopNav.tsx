@@ -93,7 +93,7 @@ export default function TopNav({ selectedCity, onCityChange, usingFallback, last
           <div className="flex items-center gap-2.5 min-w-0">
             <GovtBadge size={24} className="flex-shrink-0 hidden sm:block" />
             <div className="leading-tight min-w-0">
-              <div className="text-[10px] md:text-[11px] text-[#6B7280] font-medium truncate">Government of India — Demonstration Portal</div>
+              <div className="text-[10px] md:text-[11px] text-[#6B7280] font-medium truncate">SIH 2026 Prototype — Demonstration Portal</div>
               <div className="text-xs md:text-sm font-semibold text-[#1F2937] tracking-tight truncate">ATLAS — Advanced Threat Location & Alert System</div>
             </div>
           </div>

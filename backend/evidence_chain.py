@@ -1,15 +1,37 @@
 """
 Cryptographic Evidence Chain-of-Custody
 SHA-256 hash chain with Merkle tree for tamper-evident audit trail.
-File-backed persistence for single-node deployment.
+
+Persistence backends:
+- file (default for offline demos/tests): local JSON under model/.
+- db   (default for Postgres deployments): transactional rows in the
+  evidence_blocks table — safe for concurrent workers and containers.
+Select with CHAIN_BACKEND=db|file (default: db on Postgres, else file).
 """
 import hashlib
 import json
 import time
 import os
-from typing import Optional
+from typing import Optional, Callable
 
 CHAIN_FILE = "model/evidence_chain.json"
+
+
+def _resolve_backend() -> str:
+    explicit = os.getenv("CHAIN_BACKEND", "").strip().lower()
+    if explicit in ("db", "file"):
+        return explicit
+    if os.getenv("TESTING") == "1":
+        return "file"
+    url = os.getenv("DATABASE_URL", "")
+    if url and "localhost" not in url and not url.startswith("sqlite"):
+        return "db"
+    return "file"
+
+
+def _default_session_factory() -> Callable:
+    from database import SessionLocal
+    return SessionLocal
 
 
 class MerkleNode:
@@ -27,65 +49,140 @@ class MerkleNode:
         return self.hash
 
 
-class EvidenceChain:
-    """Merkle-tree based evidence chain-of-custody with file persistence."""
+class FileEvidenceStore:
+    """Original single-node JSON persistence (offline demos, tests)."""
 
-    def __init__(self):
-        self.evidence_blocks = []
-        self.merkle_root = None
-        self._load()
-
-    def _load(self):
-        """Load chain from disk if it exists."""
+    def load(self):
         if os.path.exists(CHAIN_FILE):
             try:
                 with open(CHAIN_FILE, "r") as f:
                     data = json.load(f)
-                self.evidence_blocks = data.get("blocks", [])
-                self.merkle_root = data.get("merkle_root")
+                return data.get("blocks", []), data.get("merkle_root")
             except (json.JSONDecodeError, KeyError):
-                self.evidence_blocks = []
-                self.merkle_root = None
+                pass
+        return [], None
 
-    def _save(self):
-        """Persist chain to disk."""
+    def save(self, blocks, merkle_root):
         os.makedirs(os.path.dirname(CHAIN_FILE) if os.path.dirname(CHAIN_FILE) else ".", exist_ok=True)
         with open(CHAIN_FILE, "w") as f:
             json.dump({
-                "blocks": self.evidence_blocks,
-                "merkle_root": self.merkle_root,
-                "total_blocks": len(self.evidence_blocks),
+                "blocks": blocks,
+                "merkle_root": merkle_root,
+                "total_blocks": len(blocks),
                 "last_updated": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
             }, f, indent=2)
+
+    def persist_block(self, block):
+        # File store persists the whole chain in _save(); nothing to do per block.
+        return True
+
+
+class DbEvidenceStore:
+    """Transactional Postgres/SQLite persistence for multi-worker deployments."""
+
+    def __init__(self, session_factory=None):
+        self._session_factory = session_factory or _default_session_factory()
+
+    def _session(self):
+        return self._session_factory()
+
+    def load(self):
+        from models_db import EvidenceBlockRow
+        db = self._session()
+        try:
+            rows = db.query(EvidenceBlockRow).order_by(EvidenceBlockRow.block_id).all()
+            blocks = [json.loads(r.payload) for r in rows]
+            return blocks, None  # merkle root rebuilt in memory
+        finally:
+            db.close()
+
+    def save(self, blocks, merkle_root):
+        return None  # DB store persists per-block in persist_block
+
+    def persist_block(self, block):
+        """Insert one block transactionally. True if stored, False if already present."""
+        from sqlalchemy.exc import IntegrityError
+        from models_db import EvidenceBlockRow
+        db = self._session()
+        try:
+            db.add(EvidenceBlockRow(
+                block_id=block["block_id"],
+                case_id=block.get("case_id", ""),
+                block_hash=block["block_hash"],
+                prev_hash=block.get("previous_hash", ""),
+                payload=json.dumps(block),
+            ))
+            db.commit()
+            return True
+        except IntegrityError:
+            db.rollback()
+            return False
+        finally:
+            db.close()
+
+
+class EvidenceChain:
+    """Merkle-tree based evidence chain-of-custody with pluggable persistence."""
+
+    def __init__(self, store=None):
+        self.evidence_blocks = []
+        self.merkle_root = None
+        if store is None:
+            self.backend = _resolve_backend()
+            store = DbEvidenceStore() if self.backend == "db" else FileEvidenceStore()
+        else:
+            self.backend = "db" if isinstance(store, DbEvidenceStore) else "file"
+        self._store = store
+        self._load()
+
+    def _load(self):
+        """Load chain from the configured store."""
+        blocks, merkle_root = self._store.load()
+        self.evidence_blocks = blocks or []
+        self.merkle_root = merkle_root
+        if self.evidence_blocks and self.merkle_root is None:
+            self._rebuild_merkle()
+
+    def _save(self):
+        """Persist chain to the configured store."""
+        self._store.save(self.evidence_blocks, self.merkle_root)
 
     def hash_evidence(self, content: str) -> str:
         """Hash a piece of evidence content."""
         return hashlib.sha256(content.encode()).hexdigest()
 
     def add_evidence(self, case_id: str, evidence_type: str, content: str, officer_id: str) -> dict:
-        """Add evidence to the chain and persist."""
+        """Add evidence to the chain and persist (transactional on the db backend)."""
         evidence_hash = self.hash_evidence(content)
-        prev_hash = self.evidence_blocks[-1]["block_hash"] if self.evidence_blocks else "0" * 64
 
-        block = {
-            "block_id": len(self.evidence_blocks) + 1,
-            "case_id": case_id,
-            "evidence_type": evidence_type,
-            "hash": evidence_hash,
-            "content_preview": content[:100] + "..." if len(content) > 100 else content,
-            "officer_id": officer_id,
-            "timestamp": time.time(),
-            "timestamp_human": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
-            "previous_hash": prev_hash,
-        }
+        for _attempt in range(3):
+            prev_hash = self.evidence_blocks[-1]["block_hash"] if self.evidence_blocks else "0" * 64
 
-        # Chain integrity: block hash includes previous block hash
-        block_string = json.dumps(block, sort_keys=True)
-        block["block_hash"] = hashlib.sha256(block_string.encode()).hexdigest()
+            block = {
+                "block_id": len(self.evidence_blocks) + 1,
+                "case_id": case_id,
+                "evidence_type": evidence_type,
+                "hash": evidence_hash,
+                "content_preview": content[:100] + "..." if len(content) > 100 else content,
+                "officer_id": officer_id,
+                "timestamp": time.time(),
+                "timestamp_human": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                "previous_hash": prev_hash,
+            }
 
-        self.evidence_blocks.append(block)
-        self._rebuild_merkle()
-        self._save()
+            # Chain integrity: block hash includes previous block hash
+            block_string = json.dumps(block, sort_keys=True)
+            block["block_hash"] = hashlib.sha256(block_string.encode()).hexdigest()
+
+            self.evidence_blocks.append(block)
+            self._rebuild_merkle()
+            stored = self._store.persist_block(block)
+            if stored is False:
+                # Concurrent writer won this block_id — reload and retry with next id
+                self._load()
+                continue
+            self._save()
+            break
 
         return {
             "status": "anchored",

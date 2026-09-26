@@ -14,8 +14,9 @@ USE_POSTGIS = False
 if os.getenv("TESTING") == "1" or not DATABASE_URL or "localhost" in DATABASE_URL:
     USE_SQLITE = True
 
-if not USE_SQLITE:
-    # Verify Postgres is actually reachable before committing to it
+if not USE_SQLITE and not DATABASE_URL.startswith("sqlite"):
+    # Verify Postgres is actually reachable before committing to it.
+    # (SQLite URLs take the file path directly — no probe needed.)
     try:
         _probe = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args={"connect_timeout": 5})
         with _probe.connect():

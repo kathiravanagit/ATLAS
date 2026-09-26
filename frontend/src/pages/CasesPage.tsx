@@ -24,7 +24,13 @@ export default function CasesPage() {
       <NlpComplaintTriage />
       <CasesTable cases={cases} onSelectCase={handleCaseSelect} onResolveCase={handleResolveCase} onCaseUpdated={loadData} />
       {selectedCaseId && (
-        <CaseDetail caseId={selectedCaseId} prediction={prediction} onShowEvidence={() => setEvidenceModalOpen(true)} onResolve={handleResolveCase} />
+        <CaseDetail
+          caseId={selectedCaseId}
+          caseData={cases.find(c => c.case_id === selectedCaseId)}
+          prediction={prediction}
+          onShowEvidence={() => setEvidenceModalOpen(true)}
+          onResolve={handleResolveCase}
+        />
       )}
     </motion.div>
   );

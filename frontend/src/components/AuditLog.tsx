@@ -59,13 +59,23 @@ const ACTION_CONFIG: Record<string, { icon: React.ReactNode; label: string; icon
 export default function AuditLog() {
   const [logs, setLogs] = useState<AuditEntry[]>(FALLBACK_AUDIT);
   const [filter, setFilter] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const [actor, setActor] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    authFetch('/api/audit')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && data.length > 0) setLogs(data); })
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
+    if (actor.trim()) params.set('actor', actor.trim());
+    if (filter !== 'all') params.set('action_type', filter);
+    const qs = params.toString();
+    authFetch(`/api/audit${qs ? `?${qs}` : ''}`)
+      .then(async r => {
+        // API reachable → trust it, including an empty search result set.
+        if (r.ok) setLogs(await r.json() as AuditEntry[]);
+      })
       .catch(() => {});
-  }, []);
+  }, [query, actor, filter, refreshKey]);
 
   const types = ['all', ...new Set(logs.map(l => l.action_type))];
   const filtered = filter === 'all' ? logs : logs.filter(l => l.action_type === filter);
@@ -78,6 +88,38 @@ export default function AuditLog() {
             <Clock size={14} className="text-[#6B7280]" />
             <h3 className="text-base font-semibold text-[#1F2937]">Audit Log</h3>
             <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">{filtered.length} entries</span>
+          </div>
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            className="p-1.5 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] transition-colors"
+            title="Refresh audit log"
+            aria-label="Refresh audit log"
+          >
+            <RefreshCw size={12} />
+          </button>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search action or details…"
+              aria-label="Search audit log"
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#1D4ED8]"
+            />
+          </div>
+          <div className="relative sm:w-56">
+            <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <input
+              type="text"
+              value={actor}
+              onChange={e => setActor(e.target.value)}
+              placeholder="Filter by officer…"
+              aria-label="Filter audit log by actor"
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#1D4ED8]"
+            />
           </div>
         </div>
         <div className="flex gap-1 flex-wrap">
@@ -98,6 +140,20 @@ export default function AuditLog() {
       </div>
 
       <div className="space-y-2">
+        {filtered.length === 0 && (
+          <div className="card p-6 text-center">
+            <Search size={18} className="text-[#9CA3AF] mx-auto mb-2" />
+            <p className="text-sm text-[#6B7280]">No audit entries match the current search or filter.</p>
+            {(query || actor) && (
+              <button
+                onClick={() => { setQuery(''); setActor(''); }}
+                className="mt-2 text-[11px] text-[#1D4ED8] hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
+        )}
         {filtered.map((entry, i) => {
           const config = ACTION_CONFIG[entry.action_type] || ACTION_CONFIG.system;
           return (
@@ -106,9 +162,12 @@ export default function AuditLog() {
                 {config.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="text-base font-medium text-[#1F2937]">{entry.action}</span>
                   <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded">{config.label}</span>
+                  {entry.case_id && (
+                    <span className="text-[11px] text-[#1D4ED8] bg-[#1D4ED8]/10 px-1.5 py-0.5 rounded font-mono">{entry.case_id}</span>
+                  )}
                 </div>
                 <p className="text-sm text-[#6B7280]">{entry.details}</p>
               </div>

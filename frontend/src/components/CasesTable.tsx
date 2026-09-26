@@ -2,6 +2,7 @@ import { Case } from '../types';
 import { Eye, CheckCircle, Circle, AlertTriangle, Search, ChevronDown, ChevronUp, UserPlus, ShieldAlert, FileSearch, X, FolderOpen } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { authFetch } from '../lib/auth';
+import { can } from '../lib/roles';
 
 interface CasesTableProps {
   cases: Case[];
@@ -149,14 +150,14 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
         <table className="w-full text-lg">
           <thead>
             <tr className="text-xs text-[#6B7280] uppercase border-b border-[#D1D5DB]">
-              <th className="text-left px-4 py-2 font-medium">Case ID</th>
-              <th className="text-left px-4 py-2 font-medium">Crime Type</th>
-              <th className="text-left px-4 py-2 font-medium">Victim</th>
-              <th className="text-left px-4 py-2 font-medium">Amount</th>
-              <th className="text-center px-4 py-2 font-medium">Accounts</th>
-              <th className="text-left px-4 py-2 font-medium">Risk Level</th>
-              <th className="text-left px-4 py-2 font-medium">Status</th>
-              <th className="text-center px-4 py-2 font-medium">Actions</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Case ID</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Crime Type</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Victim</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Amount</th>
+              <th scope="col" className="text-center px-4 py-2 font-medium">Accounts</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Risk Level</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">Status</th>
+              <th scope="col" className="text-center px-4 py-2 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -216,20 +217,24 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                     <div className="flex items-center justify-center gap-1 relative">
                       {c.status !== 'resolved' && actionLoading !== c.case_id && (
                         <>
-                          {c.status === 'new' && (
+                          {c.status === 'new' && can('case.acknowledge') && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'acknowledge'); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Acknowledge"
+                              aria-label={`Acknowledge case ${c.case_id}`}
                             >
                               <Eye size={14} className="text-[#1D4ED8]" />
                             </button>
                           )}
+                          {can('case.assign') && (
                           <div className="relative">
                             <button
                               onClick={(e) => { e.stopPropagation(); setAssignDropdown(assignDropdown === c.case_id ? null : c.case_id); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Assign Officer"
+                              aria-label={`Assign officer to case ${c.case_id}`}
+                              aria-expanded={assignDropdown === c.case_id}
                             >
                               <UserPlus size={14} className="text-[#B45309]" />
                             </button>
@@ -247,26 +252,32 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                               </div>
                             )}
                           </div>
-                          {c.current_risk !== "High" && c.current_risk !== "Resolved" && (
+                          )}
+                          {c.current_risk !== "High" && c.current_risk !== "Resolved" && can('case.escalate') && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'escalate'); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Escalate Risk"
+                              aria-label={`Escalate risk for case ${c.case_id}`}
                             >
                               <ShieldAlert size={14} className="text-[#B91C1C]" />
                             </button>
                           )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setCloseReasonModal(c.case_id); }}
-                            className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
-                            title="Close Case"
-                          >
-                            <CheckCircle size={14} className="text-[#15803D]" />
-                          </button>
+                          {can('case.resolve') && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCloseReasonModal(c.case_id); }}
+                              className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                              title="Close Case"
+                              aria-label={`Close case ${c.case_id}`}
+                            >
+                              <CheckCircle size={14} className="text-[#15803D]" />
+                            </button>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); onSelectCase?.(c.case_id); }}
                             className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                             title="View Prediction"
+                            aria-label={`View prediction for case ${c.case_id}`}
                           >
                             <FileSearch size={14} className="text-[#6B7280]" />
                           </button>
@@ -312,12 +323,12 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-[#D1D5DB] text-[#6B7280]">
-                    <th className="text-left px-3 py-2">Rank</th>
-                    <th className="text-left px-3 py-2">ATM ID</th>
-                    <th className="text-left px-3 py-2">Location</th>
-                    <th className="text-right px-3 py-2">Risk Score</th>
-                    <th className="text-left px-3 py-2">Window</th>
-                    <th className="text-left px-3 py-2">Status</th>
+                    <th scope="col" className="text-left px-3 py-2">Rank</th>
+                    <th scope="col" className="text-left px-3 py-2">ATM ID</th>
+                    <th scope="col" className="text-left px-3 py-2">Location</th>
+                    <th scope="col" className="text-right px-3 py-2">Risk Score</th>
+                    <th scope="col" className="text-left px-3 py-2">Window</th>
+                    <th scope="col" className="text-left px-3 py-2">Status</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -19,7 +19,8 @@ async function fetchApi<T>(url: string, fallback: T): Promise<{ data: T; fromFal
   }
 }
 
-export function useDashboardData(selectedCity: string = 'puducherry') {
+export function useDashboardData(selectedCity: string = 'puducherry', opts?: { forceFallback?: boolean }) {
+  const forceFallback = opts?.forceFallback ?? false;
   const [stats, setStats] = useState<DashboardStats>(FALLBACK_STATS);
   const [cases, setCases] = useState<Case[]>(FALLBACK_CASES);
   const [prediction, setPrediction] = useState<Prediction>(FALLBACK_PREDICTION);
@@ -35,6 +36,15 @@ export function useDashboardData(selectedCity: string = 'puducherry') {
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
+    // /demo route: never touch the live API — explicit synthetic-data console.
+    if (forceFallback) {
+      setStats(FALLBACK_STATS);
+      setCases(FALLBACK_CASES);
+      setAlerts(FALLBACK_ALERTS);
+      setUsingFallback(true);
+      setIsRefreshing(false);
+      return;
+    }
     let anyFallback = false;
     try {
       const [s, c, a] = await Promise.all([
@@ -101,7 +111,7 @@ export function useDashboardData(selectedCity: string = 'puducherry') {
       setUsingFallback(anyFallback);
       setIsRefreshing(false);
     }
-  }, [selectedCity]);
+  }, [selectedCity, forceFallback]);
 
   useEffect(() => { loadData(); const i = setInterval(loadData, 30000); return () => clearInterval(i); }, [loadData]);
   useEffect(() => { const i = setInterval(() => setRelativeTime(timeAgo(lastPredictionUpdate)), 5000); return () => clearInterval(i); }, [lastPredictionUpdate]);

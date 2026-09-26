@@ -53,6 +53,10 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          {/* Explicit demo console: fallback data only, visibly labelled. */}
+          <Route path="/demo" element={<RequireAuth><DashboardLayout demoMode /></RequireAuth>}>
+            <Route index element={<OverviewPage />} />
+          </Route>
           <Route path="/real" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
             <Route index element={<OverviewPage />} />
             <Route path="predictions" element={<Suspense fallback={<PageFallback />}><PredictionsPage /></Suspense>} />

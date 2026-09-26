@@ -19,6 +19,7 @@ xgboost==2.1.1
 shap==0.46.0
 networkx==3.3
 geoalchemy2==0.15.2
+alembic==1.14.1
 # blockchain: stdlib-only (hashlib/json) — no extra deps
 
 twilio==8.2.2

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status, Query, WebSocket, Request
+from fastapi import Depends, HTTPException, status, Query, WebSocket, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -30,13 +30,26 @@ if not os.getenv("REFRESH_SECRET_KEY"):
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+# Self-registration is a demo affordance, off by default for production deployments.
+REGISTRATION_ENABLED = os.getenv(
+    "REGISTRATION_ENABLED", "true" if DEMO_MODE else "false"
+).lower() in ("true", "1", "yes")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
-# ── Rate Limiting ─────────────────────────────────────────────────────────────
+# ── Password Policy ───────────────────────────────────────────────────────────
 
-DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+def validate_password_policy(password: str) -> None:
+    """Minimum bar: 8+ chars with at least one letter and one digit."""
+    if len(password) < 8 or not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters and include both a letter and a number",
+        )
+
+# ── Rate Limiting ─────────────────────────────────────────────────────────────
 
 class RateLimiter:
     """Simple in-memory rate limiter per IP."""
@@ -51,7 +64,7 @@ class RateLimiter:
         }
 
     def is_rate_limited(self, ip: str, action: str) -> tuple[bool, int]:
-        if DEMO_MODE:
+        if DEMO_MODE or os.getenv("TESTING") == "1":
             return False, 0
         now = time.time()
         cutoff = now - self._window
@@ -159,7 +172,7 @@ class TokenResponse(BaseModel):
     user: dict
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = ""  # optional: HttpOnly cookie is the primary channel
 
 class UserProfile(BaseModel):
     id: str
@@ -220,18 +233,21 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
+DEMO_USER_SEEDS = [
+    {"id": "INS-001", "name": "Inspector Rajesh Kumar", "email": "inspector@atlas.gov",
+     "password": "inspector123", "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division"},
+    {"id": "ANL-001", "name": "Analyst Priya Sharma", "email": "analyst@atlas.gov",
+     "password": "analyst123", "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit"},
+    {"id": "BNK-001", "name": "Bank Officer Amit Patel", "email": "bank@atlas.gov",
+     "password": "bank123", "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing"},
+    {"id": "ADM-001", "name": "Admin Suresh Nair", "email": "admin@atlas.gov",
+     "password": "admin123", "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division"},
+]
+
+
 def seed_demo_users(db: Session):
     """Create demo users if they don't exist."""
-    demo_users = [
-        {"id": "INS-001", "name": "Inspector Rajesh Kumar", "email": "inspector@atlas.gov",
-         "password": "inspector123", "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division"},
-        {"id": "ANL-001", "name": "Analyst Priya Sharma", "email": "analyst@atlas.gov",
-         "password": "analyst123", "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit"},
-        {"id": "BNK-001", "name": "Bank Officer Amit Patel", "email": "bank@atlas.gov",
-         "password": "bank123", "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing"},
-        {"id": "ADM-001", "name": "Admin Suresh Nair", "email": "admin@atlas.gov",
-         "password": "admin123", "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division"},
-    ]
+    demo_users = DEMO_USER_SEEDS
     for u in demo_users:
         existing = db.query(User).filter(User.email == u["email"]).first()
         if not existing:
@@ -337,7 +353,15 @@ def consume_ws_ticket(ticket: str) -> Optional[dict]:
 
 def register_auth_routes(app):
     @app.post("/api/auth/login", response_model=TokenResponse)
-    def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
+    def login(request: Request, response: Response, req: LoginRequest, db: Session = Depends(get_db)):
+        client_ip = request.client.host if request.client else "unknown"
+        limited, wait = rate_limiter.is_rate_limited(client_ip, "login")
+        if limited:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many login attempts. Try again in {wait} seconds.",
+                headers={"Retry-After": str(wait)},
+            )
         user = get_user_by_email(db, req.email)
         if not user or not pwd_context.verify(req.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -351,6 +375,7 @@ def register_auth_routes(app):
         # Update last login
         user.last_login = datetime.now(timezone.utc)
         db.commit()
+        rate_limiter.reset(client_ip, "login")
 
         # Create tokens
         access_token = create_access_token({"sub": user.email, "role": user.role})
@@ -365,6 +390,18 @@ def register_auth_routes(app):
         db.add(db_refresh)
         db.commit()
 
+        # HttpOnly refresh cookie: JS never reads the refresh token (XSS mitigation).
+        # The body still carries it for API clients/tests; browsers should prefer the cookie.
+        response.set_cookie(
+            "atlas_refresh",
+            refresh_token,
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+            httponly=True,
+            secure=os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes"),
+            samesite="strict",
+            path="/api/auth",
+        )
+
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -378,6 +415,12 @@ def register_auth_routes(app):
 
     @app.post("/api/auth/register", response_model=TokenResponse)
     def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
+        if not REGISTRATION_ENABLED:
+            raise HTTPException(
+                status_code=403,
+                detail="Self-registration is disabled. Ask your administrator to provision an account.",
+            )
+        validate_password_policy(req.password)
         client_ip = request.client.host if request.client else "unknown"
 
         # Rate limit: 3 registrations per 15 min per IP
@@ -414,7 +457,7 @@ def register_auth_routes(app):
         )
 
     @app.post("/api/auth/refresh", response_model=TokenResponse)
-    def refresh_token(request: Request, req: RefreshRequest, db: Session = Depends(get_db)):
+    def refresh_token(request: Request, response: Response, req: RefreshRequest, db: Session = Depends(get_db)):
         client_ip = request.client.host if request.client else "unknown"
 
         # Rate limit: 10 refreshes per 15 min per IP
@@ -425,7 +468,11 @@ def register_auth_routes(app):
                 detail=f"Too many refresh attempts. Try again in {wait} seconds.",
                 headers={"Retry-After": str(wait)},
             )
-        payload = decode_refresh_token(req.refresh_token)
+        # Body token first (API clients/tests); HttpOnly cookie is the browser path.
+        refresh_token_value = req.refresh_token or request.cookies.get("atlas_refresh", "")
+        if not refresh_token_value:
+            raise HTTPException(status_code=401, detail="Missing refresh token")
+        payload = decode_refresh_token(refresh_token_value)
         email = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -436,7 +483,7 @@ def register_auth_routes(app):
 
         # Check if refresh token exists and is not revoked
         db_token = db.query(RefreshToken).filter(
-            RefreshToken.token == req.refresh_token,
+            RefreshToken.token == refresh_token_value,
             RefreshToken.revoked == False,
         ).first()
 
@@ -459,6 +506,16 @@ def register_auth_routes(app):
         db.add(new_db_token)
         db.commit()
 
+        response.set_cookie(
+            "atlas_refresh",
+            new_refresh,
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+            httponly=True,
+            secure=os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes"),
+            samesite="strict",
+            path="/api/auth",
+        )
+
         return TokenResponse(
             access_token=new_access,
             refresh_token=new_refresh,
@@ -471,11 +528,13 @@ def register_auth_routes(app):
         )
 
     @app.post("/api/auth/logout")
-    def logout(req: RefreshRequest, user: dict = Depends(verify_token), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
-        db_token = db.query(RefreshToken).filter(RefreshToken.token == req.refresh_token).first()
+    def logout(request: Request, response: Response, req: RefreshRequest, user: dict = Depends(verify_token), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+        token_value = req.refresh_token or request.cookies.get("atlas_refresh", "")
+        db_token = db.query(RefreshToken).filter(RefreshToken.token == token_value).first() if token_value else None
         if db_token:
             db_token.revoked = True
             db.commit()
+        response.delete_cookie("atlas_refresh", path="/api/auth")
         return {"status": "logged_out"}
 
     @app.get("/api/auth/me")
@@ -514,8 +573,7 @@ def register_auth_routes(app):
             raise HTTPException(status_code=404, detail="User not found")
         if not pwd_context.verify(req.current_password, db_user.hashed_password):
             raise HTTPException(status_code=400, detail="Current password is incorrect")
-        if len(req.new_password) < 6:
-            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        validate_password_policy(req.new_password)
         db_user.hashed_password = pwd_context.hash(req.new_password)
         db.commit()
         return {"status": "password_changed"}
@@ -548,6 +606,22 @@ def register_auth_routes(app):
         target.is_active = False
         db.commit()
         return {"status": "rejected", "user_id": user_id}
+
+    @app.get("/api/auth/demo-credentials")
+    def demo_credentials():
+        """Demo-mode-only: quick-login credentials for the judge demo portal.
+
+        Kept server-side (not in the JS bundle) and 404s outside DEMO_MODE so
+        production builds ship no embedded credentials. Emails are public
+        demo identities; passwords are only disclosed while DEMO_MODE is on.
+        """
+        if not DEMO_MODE:
+            raise HTTPException(status_code=404, detail="Not found")
+        return [
+            {"label": u["role"].replace("_", " ").title(), "email": u["email"],
+             "password": u["password"]}
+            for u in DEMO_USER_SEEDS
+        ]
 
     @app.get("/api/auth/ws-ticket")
     def get_ws_ticket(user: dict = Depends(verify_token)):

@@ -7,10 +7,10 @@ import EvidenceModal from '../components/EvidenceModal';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { DashboardDataContext } from '../context/DashboardContext';
 
-export default function DashboardLayout() {
+export default function DashboardLayout({ demoMode = false }: { demoMode?: boolean }) {
   const [selectedCity, setSelectedCity] = useState('puducherry');
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
-  const data = useDashboardData(selectedCity);
+  const data = useDashboardData(selectedCity, demoMode ? { forceFallback: true } : undefined);
   const location = useLocation();
 
   const activeView = (() => {
@@ -28,13 +28,26 @@ export default function DashboardLayout() {
   return (
     <DashboardDataContext.Provider value={{ ...data, evidenceModalOpen, setEvidenceModalOpen }}>
       <div className="min-h-screen bg-[#F8F9FA] text-[#1F2937]">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[1200] focus:bg-white focus:px-3 focus:py-2 focus:rounded focus:text-sm"
+        >
+          Skip to main content
+        </a>
+        {demoMode && (
+          <div className="bg-[#1D355B] px-4 md:px-6 py-1.5" role="note">
+            <p className="text-center text-[10px] md:text-[11px] text-white font-semibold">
+              DEMO ROUTE — explicit synthetic-data console. No live data is shown here by design.
+            </p>
+          </div>
+        )}
         <TopNav
           selectedCity={selectedCity}
           onCityChange={setSelectedCity}
           usingFallback={data.usingFallback}
           lastUpdated={data.lastUpdated}
         />
-        <main className="p-6 pb-32">
+        <main id="main-content" className="p-6 pb-32" tabIndex={-1}>
           <Outlet />
         </main>
         <FloatingDockNav activeView={activeView} />
