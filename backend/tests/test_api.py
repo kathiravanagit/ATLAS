@@ -13,12 +13,23 @@ def get_csrf_header(client, token):
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
-def test_health(client):
-    resp = client.get("/api/health")
+def test_health(client, admin_token):
+    resp = client.get("/api/health", headers=auth_header(admin_token))
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "healthy"
     assert data["mode"] in ("sqlite", "postgresql")
+
+
+def test_health_liveness_is_public(client):
+    resp = client.get("/health/live")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_health_requires_auth(client):
+    assert client.get("/api/health").status_code in (401, 403)
+    assert client.get("/api/health/db-check").status_code in (401, 403)
 
 
 # ─── Auth Flow ────────────────────────────────────────────────────────────────
@@ -388,7 +399,7 @@ def test_city_atms(client, admin_token):
 # ─── Security Headers ─────────────────────────────────────────────────────────
 
 def test_security_headers(client):
-    resp = client.get("/api/health")
+    resp = client.get("/health/live")
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
     assert resp.headers.get("X-Frame-Options") == "DENY"
     assert "Strict-Transport-Security" in resp.headers

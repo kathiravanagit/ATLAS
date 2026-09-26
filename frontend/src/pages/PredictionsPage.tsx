@@ -61,8 +61,8 @@ export default function PredictionsPage() {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[#1F2937]">Live Predictions</h2>
-          <p className="text-base text-[#374151] mt-1">Real-time risk scoring and location forecasting</p>
+          <h2 className="text-xl font-bold text-[#1F2937]">Predictions</h2>
+          <p className="text-base text-[#374151] mt-1">Risk scoring and location forecasting · synthetic-data prototype</p>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-[#6B7280] bg-white px-3 py-1.5 rounded-lg border border-[#D1D5DB]">
           <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} />
@@ -114,7 +114,7 @@ export default function PredictionsPage() {
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
           <Activity size={16} className="text-[#22c55e]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Live Activity Feed</h3>
+          <h3 className="text-base font-semibold text-[#1F2937]">Activity Feed</h3>
           <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
         </div>
         <div className="space-y-3 max-h-[200px] overflow-y-auto">

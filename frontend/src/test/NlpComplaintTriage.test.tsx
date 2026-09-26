@@ -151,6 +151,10 @@ describe('NlpComplaintTriage', () => {
     })
 
     resolvePromise!(mockTriageResponse())
+    // Flush the resolution inside act() so no setState leaks past test end
+    await waitFor(() => {
+      expect(screen.getByText('UPI Fraud')).toBeDefined()
+    })
   })
 
   it('handles unrecognized complaint format gracefully', async () => {

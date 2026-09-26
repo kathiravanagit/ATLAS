@@ -44,9 +44,9 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
           <span className="text-[10px] text-[#6B7280] bg-white px-2 py-1 rounded-lg border border-[#D1D5DB]">
             Updated {relativeTime}
           </span>
-          <div className="flex items-center gap-1.5 text-[10px] text-[#15803D]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#15803D] animate-pulse"></span>
-            Live
+          <div className="flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#6B7280]"></span>
+            Demo view
           </div>
         </div>
       </div>

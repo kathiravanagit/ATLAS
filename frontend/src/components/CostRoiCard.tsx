@@ -27,6 +27,9 @@ export default function CostRoiCard() {
         <div className="flex items-center gap-2">
           <DollarSign size={16} className="text-[#B45309]" />
           <h3 className="text-base font-semibold text-[#1F2937]">Cost / ROI Estimation</h3>
+          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
+            Simulated targets
+          </span>
           <span className="text-[11px] text-[#B45309] bg-[#B45309]/10 px-2 py-0.5 rounded font-mono">
             {metrics.roi} ROI
           </span>

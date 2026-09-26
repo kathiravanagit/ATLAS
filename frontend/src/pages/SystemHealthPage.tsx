@@ -97,7 +97,7 @@ export default function SystemHealthPage() {
           </button>
           <div>
             <h2 className="text-xl font-bold text-[#1F2937]">System Health</h2>
-            <p className="text-sm text-[#6B7280] mt-0.5">Real-time operational status of all ATLAS services</p>
+            <p className="text-sm text-[#6B7280] mt-0.5">Operational status of all ATLAS services · synthetic-data prototype</p>
           </div>
         </div>
         <button onClick={fetchAll} disabled={loading}

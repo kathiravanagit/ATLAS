@@ -159,7 +159,7 @@ const FEATURES = [
     num: '1',
     icon: <AlertTriangle size={22} />,
     title: 'Complaint Received',
-    desc: 'As soon as a victim files a complaint on cybercrime.gov.in, ATLAS begins analyzing the case — no manual handoff needed.',
+    desc: 'In a future authorised deployment, ATLAS could receive approved complaint and financial intelligence feeds. This SIH prototype demonstrates the workflow using synthetic data.',
   },
   {
     num: '2',
@@ -177,7 +177,7 @@ const FEATURES = [
     num: '4',
     icon: <Eye size={22} />,
     title: 'Proactive Deployment',
-    desc: 'Investigators receive real-time alerts with actionable intelligence — enabling interception before funds are withdrawn.',
+    desc: 'Investigators receive near-real-time alerts with actionable intelligence in an authorised deployment — enabling interception before funds are withdrawn.',
   },
 ];
 
@@ -253,7 +253,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                 className="text-lg text-[#6B7280] leading-relaxed mb-8 max-w-lg"
               >
-                ATLAS gives investigators the lead time they need to prevent cash-out fraud — analyzing complaint data in real-time and predicting where stolen funds will be withdrawn.
+                ATLAS gives investigators the lead time they need to prevent cash-out fraud — analyzing complaint data in this synthetic-data prototype and predicting where stolen funds will be withdrawn.
               </motion.p>
 
               <motion.div
@@ -276,7 +276,7 @@ export default function LandingPage() {
                   className="px-6 py-3 bg-white text-[#1F2937] font-medium rounded-lg border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-all duration-200 flex items-center gap-2"
                 >
                   <Lock size={14} />
-                  File Complaint (Govt Portal)
+                  Visit NCRP Information Portal
                 </a>
               </motion.div>
 
@@ -342,7 +342,7 @@ export default function LandingPage() {
                 Built around how cybercrime investigations actually work
               </h2>
               <p className="text-[#6B7280] max-w-2xl mx-auto text-lg">
-                From complaint filing to fraud prevention — ATLAS bridges the gap with real-time AI prediction and location intelligence.
+                From complaint filing to fraud prevention — ATLAS bridges the gap with predictive analytics and location intelligence.
               </p>
             </div>
           </ScrollRevealSection>
@@ -376,7 +376,7 @@ export default function LandingPage() {
                 Investigator Console
               </h2>
               <p className="text-[#6B7280] max-w-xl mx-auto">
-                Real-time risk maps, ranked locations, case management, and audit trails — all in one place.
+                Near-real-time risk maps in an authorised deployment, ranked locations, case management, and audit trails — all in one place.
               </p>
             </div>
           </ScrollRevealSection>

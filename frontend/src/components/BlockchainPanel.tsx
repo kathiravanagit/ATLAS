@@ -141,7 +141,7 @@ export default function BlockchainPanel() {
           <Boxes size={16} className="text-[#1D4ED8]" />
           <h3 className="text-base font-semibold text-[#1F2937]">Blockchain Evidence Ledger</h3>
           <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
-            PoW · SHA-256
+            PoW · SHA-256 · prototype
           </span>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
@@ -165,6 +165,10 @@ export default function BlockchainPanel() {
           </button>
         </div>
       </div>
+      <p className="text-[11px] text-[#6B7280] mb-4">
+        Prototype proof-of-work ledger — nodes are simulated in-process. A production
+        deployment would anchor evidence to an institutionally governed shared ledger.
+      </p>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2 mb-4">
