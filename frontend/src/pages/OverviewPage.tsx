@@ -13,7 +13,7 @@ import Pipeline from '../components/Pipeline';
 import { FolderOpen, MapPin, Bell, Clock, ExternalLink, RefreshCw, ShieldCheck, AlertOctagon } from 'lucide-react';
 
 export default function OverviewPage() {
-  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, evidenceModalOpen, setEvidenceModalOpen, setSelectedLocation } = useDashboard();
+  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, evidenceModalOpen, setEvidenceModalOpen, setSelectedLocation, usingFallback } = useDashboard();
 
   return (
     <div className="space-y-6">
@@ -42,7 +42,7 @@ export default function OverviewPage() {
         <StatCard icon={ShieldCheck} label="Estimated Exposure" value={`₹${(stats.prevented_fraud / 100000).toFixed(1)}L`} sub="Resolved case value" color="success" className="animate-fade-in-up" style={{ animationDelay: '240ms' }} />
         <StatCard icon={AlertOctagon} label="Linked Accounts Flagged" value={stats.mules_flagged} sub="High-risk accounts" color="error" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
       </div>
-      <div className="text-[11px] text-[#6B7280] text-right">Source: Synthetic data (200k transactions, 8 cities, 400 ATMs) | Fraud rate: 3.65% | Model: RF+XGBoost ensemble</div>
+      <div className="text-[11px] text-[#6B7280] text-right">Source: Synthetic data (200k transactions, 8 cities, 400 ATMs) | Fraud rate: 3.65% | Model: RF+XGBoost ensemble | Last refreshed {relativeTime} · {usingFallback ? 'Demo fallback data' : 'Live API'}</div>
 
       <div className="grid grid-cols-2 gap-6">
         <PredictionCard prediction={prediction} onShowEvidence={() => setEvidenceModalOpen(true)} />

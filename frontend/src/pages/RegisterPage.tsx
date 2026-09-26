@@ -5,13 +5,15 @@ import GovtBadge from '../components/GovtBadge';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', department: '', badge: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', department: '' });
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [error, setError] = useState('');
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -33,10 +35,10 @@ export default function RegisterPage() {
         }
       } else {
         const err = await res.json().catch(() => ({ detail: 'Registration failed' }));
-        alert(err.detail || 'Registration failed');
+        setError(err.detail || 'Registration failed');
       }
     } catch {
-      alert('Backend not reachable');
+      setError('Unable to reach the server — please try again later.');
     }
     setLoading(false);
   };
@@ -64,6 +66,11 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-3.5">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3" role="alert">
+                <span className="text-sm text-[#B91C1C]">{error}</span>
+              </div>
+            )}
             {pendingApproval ? (
               <div className="text-center py-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#B45309]/10 mb-4">
@@ -119,19 +126,6 @@ export default function RegisterPage() {
                   value={form.department}
                   onChange={e => update('department', e.target.value)}
                   placeholder="Cybercrime Division"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#D1D5DB] rounded-xl text-base text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]/20 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[13px] text-[#374151] block mb-1.5 font-medium">Badge ID</label>
-              <div className="relative">
-                <BadgeCheck size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
-                <input
-                  value={form.badge}
-                  onChange={e => update('badge', e.target.value)}
-                  placeholder="IND-2026-XXXX"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#D1D5DB] rounded-xl text-base text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]/20 transition-colors"
                 />
               </div>

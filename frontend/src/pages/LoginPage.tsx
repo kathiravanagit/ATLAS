@@ -87,13 +87,13 @@ export default function LoginPage() {
               <span className="text-[#1D4ED8]">Investigation Portal</span>
             </h1>
             <p className="text-[#6B7280] mb-8 leading-relaxed">
-              AI-powered prediction and location intelligence for preventing cash-out fraud. Access the investigator console to view real-time risk assessments.
+              Predictive-analytics prototype for preventing cash-out fraud. Access the investigator console to view risk assessments.
             </p>
             <div className="space-y-4">
               {[
                 { num: '1', text: 'Complaint analysis and risk scoring' },
                 { num: '2', text: 'Ranked ATM location predictions' },
-                { num: '3', text: 'Real-time alert and case management' },
+                { num: '3', text: 'Near-real-time alert and case management (authorised deployment)' },
               ].map((item) => (
                 <div key={item.num} className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-md bg-[#12355B] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">

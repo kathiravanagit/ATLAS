@@ -41,18 +41,20 @@ logger = logging.getLogger("atlas")
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# Seed demo users
-from auth import seed_demo_users
-_db = next(get_db())
-try:
-    seed_demo_users(_db)
-finally:
+# Seed demo users — demo builds only. Production startup must never create
+# well-known credentials; provision officers out of band instead.
+from auth import seed_demo_users, DEMO_MODE
+if DEMO_MODE:
+    _db = next(get_db())
     try:
-        _db.close()
-    except Exception:
-        pass
-
-from auth import DEMO_MODE
+        seed_demo_users(_db)
+    finally:
+        try:
+            _db.close()
+        except Exception:
+            pass
+else:
+    logger.info("Demo user seeding skipped (DEMO_MODE off)")
 if DEMO_MODE:
     import warnings
     warnings.warn("DEMO MODE enabled — rate limiting disabled. Do NOT use in production!", stacklevel=2)
@@ -173,6 +175,23 @@ async def security_headers(request: Request, call_next):
         "font-src 'self'"
     )
     return response
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Attach a request ID for log correlation; echo it back to the caller."""
+    request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Never leak tracebacks / internals to API clients; log with request ID."""
+    logger.error(f"Unhandled error [{getattr(request.state, 'request_id', '-')}] {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.middleware("http")
@@ -475,8 +494,14 @@ def add_audit(db: Session, action: str, details: str, action_type: str = "action
 
 # ─── API Endpoints ────────────────────────────────────────────────────────────
 
+@app.get("/health/live")
+def liveness_check():
+    """Public liveness probe — status only, no operational details."""
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
-def health_check(db: Session = Depends(get_db)):
+def health_check(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     model_meta = get_metadata()
     try:
         pred_count = db.query(Prediction).count()
@@ -507,7 +532,7 @@ def health_check(db: Session = Depends(get_db)):
 
 
 @app.get("/api/health/db-check")
-def db_health_check(db: Session = Depends(get_db)):
+def db_health_check(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     """Verify that predictions and ranked_locations are actually growing."""
     from sqlalchemy import func
     try:
@@ -718,8 +743,8 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
 
 
 @app.get("/api/cases")
-def get_cases(user: dict = Depends(verify_token), db: Session = Depends(get_db)):
-    cases = db.query(Case).all()
+def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), db: Session = Depends(get_db)):
+    cases = db.query(Case).order_by(Case.case_id).limit(limit).all()
 
     def _dec(val):
         if val and ENCRYPTION_KEY and is_encrypted(val):
@@ -919,8 +944,8 @@ def create_alert(alert_data: AlertCreate, user: dict = Depends(require_permissio
 
 
 @app.get("/api/alerts")
-def get_alerts(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    alerts = db.query(Alert).order_by(Alert.timestamp.desc()).all()
+def get_alerts(user: dict = Depends(require_permission("read")), limit: int = Query(default=100, ge=1, le=500), db: Session = Depends(get_db)):
+    alerts = db.query(Alert).order_by(Alert.timestamp.desc()).limit(limit).all()
     return [
         {
             "alert_id": a.alert_id,
@@ -1708,9 +1733,10 @@ def verify_evidence(block_id: int, user: dict = Depends(require_permission("read
 
 
 @app.get("/api/evidence/chain")
-def get_evidence_chain_list(user: dict = Depends(require_permission("read")), case_id: str = Query(default=None)):
+def get_evidence_chain_list(user: dict = Depends(require_permission("read")), case_id: str = Query(default=None), limit: int = Query(default=200, ge=1, le=1000)):
     chain = get_evidence_chain()
-    return {"blocks": chain.get_chain(case_id), "stats": chain.get_stats()}
+    blocks = chain.get_chain(case_id)
+    return {"blocks": blocks[-limit:], "stats": chain.get_stats()}
 
 
 @app.get("/api/evidence/proof/{block_id}")

@@ -89,7 +89,7 @@ export default function DashboardPage() {
           <Lock size={32} className="text-[#6B7280] mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#1F2937] mb-2">Investigator Console</h2>
           <p className="text-base text-[#6B7280] mb-6 max-w-md mx-auto">
-            Access the full prediction dashboard with real-time risk scoring, case management, and alert system.
+              Access the full prediction dashboard with near-real-time risk scoring in an authorised deployment, case management, and alert system.
           </p>
           <button
             onClick={() => navigate('/real')}
