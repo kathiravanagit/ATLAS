@@ -3,12 +3,15 @@ import { Case, Prediction, EvidenceItem } from '../types';
 import { User, Phone, FileText, MapPin, Clock, AlertTriangle, ChevronRight, ExternalLink, Shield, Activity, GitBranch, History, CheckCircle, Circle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import ResolutionModal from './ResolutionModal';
 import { authFetch, getUser } from '../lib/auth';
+import { can } from '../lib/roles';
 
 interface CaseDetailProps {
   caseId: string;
   prediction: Prediction;
   onShowEvidence: () => void;
   onResolve: (caseId: string) => void;
+  /** Live case record from the API (preferred source for victim details). */
+  caseData?: Case;
 }
 
 const evidenceIcons: Record<string, React.ReactNode> = {
@@ -25,7 +28,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   resolved: { label: "Resolved", color: "bg-[#22c55e]/10 text-[#22c55e]", icon: <CheckCircle size={12} /> },
 };
 
-const MOCK_CASES: Record<string, { victim_name: string; contact: string; description: string }> = {
+// Synthetic fallback detail — only bundled into explicit demo builds (the
+// production bundle gets an empty object and relies on live API case data).
+// The env check is inlined into the ternary so bundlers can tree-shake it out.
+const MOCK_CASES: Record<string, { victim_name: string; contact: string; description: string }> =
+  import.meta.env.VITE_DEMO_MODE === '1' || import.meta.env.VITE_DEMO_MODE === 'true' ? {
   "CC-2026-0147": {
     victim_name: "Rajesh Kumar",
     contact: "+91-9876543210",
@@ -51,7 +58,7 @@ const MOCK_CASES: Record<string, { victim_name: string; contact: string; descrip
     contact: "+91-9876543214",
     description: "Stolen identity used for 4 bank transfers totaling ₹89,400. KYC documents forged. Linked accounts being monitored.",
   },
-};
+} : {};
 
 function maskName(name: string): string {
   if (!name || name === 'Unknown') return '***';
@@ -66,14 +73,17 @@ function maskContact(contact: string): string {
   return contact.slice(0, 3) + '****' + contact.slice(-4);
 }
 
-export default function CaseDetail({ caseId, prediction, onShowEvidence, onResolve }: CaseDetailProps) {
+export default function CaseDetail({ caseId, prediction, onShowEvidence, onResolve, caseData }: CaseDetailProps) {
   const [piiRevealed, setPiiRevealed] = useState(false);
   const [accessReason, setAccessReason] = useState('');
   const [showReauth, setShowReauth] = useState(false);
   const [reauthError, setReauthError] = useState('');
   const [resolutionOpen, setResolutionOpen] = useState(false);
 
-  const info = MOCK_CASES[caseId] || { victim_name: "Unknown", contact: "N/A", description: "No details available" };
+  // Live API case data wins; MOCK_CASES only exists in demo builds.
+  const info = (caseData && caseData.case_id === caseId
+    ? { victim_name: caseData.victim_name ?? 'Unknown', contact: caseData.contact ?? 'N/A', description: caseData.description ?? 'No details available' }
+    : MOCK_CASES[caseId]) || { victim_name: "Unknown", contact: "N/A", description: "No details available" };
   const evidence = Object.entries(prediction.evidence);
   const p = prediction.primary_location;
 
@@ -174,12 +184,14 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
           </h3>
           <div className="flex items-center gap-2">
             {!piiRevealed ? (
+              can('pii.request') && (
               <button
                 onClick={() => setShowReauth(true)}
                 className="px-2 py-1 bg-[#f59e0b]/10 text-[11px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
               >
                 <KeyRound size={10} /> Request victim details
               </button>
+              )
             ) : (
               <button
                 onClick={() => setPiiRevealed(false)}

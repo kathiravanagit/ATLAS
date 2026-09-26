@@ -51,7 +51,7 @@ export default function RegisterPage() {
         <div className="text-center mb-2">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1D355B]/5 border border-[#1D355B]/10 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-[#15803D] animate-pulse" />
-            <span className="text-[11px] text-[#1D355B] font-medium tracking-wide">OFFICIAL REGISTRATION</span>
+            <span className="text-[11px] text-[#1D355B] font-medium tracking-wide">DEMONSTRATION REGISTRATION</span>
           </div>
         </div>
 
@@ -61,8 +61,8 @@ export default function RegisterPage() {
           </div>
 
           <div className="text-center mb-6">
-            <h1 className="text-xl font-semibold text-[#1F2937] tracking-tight">Create Official Account</h1>
-            <p className="text-[13px] text-[#6B7280] mt-1.5">Register for investigator access</p>
+            <h1 className="text-xl font-semibold text-[#1F2937] tracking-tight">Create Prototype Account</h1>
+            <p className="text-[13px] text-[#6B7280] mt-1.5">Register for investigator access (demo build)</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-3.5">
@@ -174,11 +174,11 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center space-y-2">
           <div className="inline-flex items-center gap-4 text-[11px] text-[#6B7280]">
-            <span>Ministry of Home Affairs</span>
+            <span>SIH 2026 Prototype</span>
             <span className="w-1 h-1 rounded-full bg-[#D1D5DB]" />
-            <span>National Cybercrime Reporting Portal</span>
+            <span>Cybercrime Coordination Prototype</span>
           </div>
-          <p className="text-[11px] text-[#9CA3AF]">Officials only · All access is monitored and logged</p>
+          <p className="text-[11px] text-[#9CA3AF]">Demo build · All access is monitored and logged · Not affiliated with any government body</p>
         </div>
       </div>
     </div>

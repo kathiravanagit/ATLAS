@@ -1,7 +1,8 @@
 import { Alert } from '../types';
-import { AlertTriangle, CheckCircle, Clock, Plus, X, History, MessageSquare, Mail, Send } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, CheckCircle, Clock, Plus, X, History, MessageSquare, Mail, Send, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '@/lib/auth';
+import { can } from '@/lib/roles';
 
 interface AlertPanelProps {
   alerts: Alert[];
@@ -15,6 +16,17 @@ interface NotificationLog {
   channel: 'sms' | 'email' | 'api';
   status: 'sent' | 'delivered' | 'failed';
   timestamp: string;
+}
+
+/** Real dispatch rows from the durable notification_jobs table. */
+interface NotificationJob {
+  id: number;
+  kind: string;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  created_at: string | null;
 }
 
 function generateNotificationLogs(alerts: Alert[]): NotificationLog[] {
@@ -46,6 +58,24 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
   const [created, setCreated] = useState(false);
   const [createError, setCreateError] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "acknowledged">("all");
+  const [jobs, setJobs] = useState<NotificationJob[]>([]);
+  const [jobsError, setJobsError] = useState(false);
+  const [jobsLoading, setJobsLoading] = useState(false);
+
+  const loadJobs = () => {
+    setJobsLoading(true);
+    setJobsError(false);
+    authFetch(`${API_BASE}/notifications/jobs?limit=50`)
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('unavailable'))))
+      .then((rows: NotificationJob[]) => setJobs(Array.isArray(rows) ? rows : []))
+      .catch(() => setJobsError(true))
+      .finally(() => setJobsLoading(false));
+  };
+
+  // Fetch the durable dispatch log whenever the notification view opens.
+  useEffect(() => {
+    if (showNotifications) loadJobs();
+  }, [showNotifications]);
 
   const filtered = alerts.filter(a => {
     if (filter === "pending") return !a.acknowledged;
@@ -89,7 +119,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             {showNotifications ? "Notification Log" : showHistory ? "Alert History" : "Active Alerts"}
           </h3>
           <span className="text-sm text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
-            {showNotifications ? `${notifLogs.length} dispatched` : `${pendingCount} pending`}
+            {showNotifications ? `${jobs.length || notifLogs.length} dispatched` : `${pendingCount} pending`}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -111,6 +141,8 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             onClick={() => setShowCreate(!showCreate)}
             className={`p-1.5 rounded-lg transition-colors ${showCreate ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
             title="Create Alert"
+            aria-label="Create alert"
+            style={can('alert.create') ? undefined : { display: 'none' }}
           >
             {showCreate ? <X size={12} /> : <Plus size={12} />}
           </button>
@@ -137,20 +169,36 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
         <div className="space-y-2">
           {/* Notification Delivery Summary */}
           <div className="card p-4 border-l-2 border-l-[#1D4ED8]">
-            <div className="text-sm font-medium text-[#1F2937] mb-3">Alert & Notification System</div>
-            <div className="text-[11px] text-[#6B7280] mb-3">
-              SMS and Email channels are optional (Twilio/SMTP). Below shows simulated dispatch counts — actual delivery requires credentials in .env
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium text-[#1F2937]">Alert & Notification System</div>
+              <button
+                onClick={loadJobs}
+                className="p-1 rounded hover:bg-[#E5E7EB] text-[#6B7280] transition-colors"
+                title="Refresh dispatch log"
+                aria-label="Refresh notification log"
+              >
+                <RefreshCw size={12} className={jobsLoading ? 'animate-spin' : ''} />
+              </button>
             </div>
-            <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="text-[11px] text-[#6B7280] mb-3">
+              Durable dispatch log from <span className="font-mono">notification_jobs</span> — each alert enqueues
+              SMS/email work transactionally (retry + dead-letter). External delivery requires Twilio/SMTP credentials in .env.
+            </div>
+            <div className="grid grid-cols-4 gap-2 mb-1">
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
                 <MessageSquare size={14} className="text-[#15803D] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{notifLogs.filter(n => n.channel === 'sms').length}</div>
-                <div className="text-[11px] text-[#6B7280]">SMS Sent</div>
+                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.kind === 'sms').length}</div>
+                <div className="text-[11px] text-[#6B7280]">SMS Jobs</div>
               </div>
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
                 <Mail size={14} className="text-[#1D4ED8] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{notifLogs.filter(n => n.channel === 'email').length}</div>
-                <div className="text-[11px] text-[#6B7280]">Emails Sent</div>
+                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.kind === 'email').length}</div>
+                <div className="text-[11px] text-[#6B7280]">Email Jobs</div>
+              </div>
+              <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
+                <CheckCircle size={14} className="text-[#15803D] mx-auto mb-1" />
+                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.status === 'sent').length}</div>
+                <div className="text-[11px] text-[#6B7280]">Sent</div>
               </div>
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
                 <Send size={14} className="text-[#B45309] mx-auto mb-1" />
@@ -160,43 +208,55 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             </div>
           </div>
 
-          {/* Individual notification logs */}
-          {notifLogs.map((log, i) => {
-            const alert = alerts.find(a => a.alert_id === log.alertId);
-            return (
-              <div key={`${log.alertId}-${log.channel}-${i}`} className="card p-3 border-l-2 border-l-[#D1D5DB]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {log.channel === 'sms' ? (
-                      <MessageSquare size={12} className="text-[#15803D]" />
-                    ) : log.channel === 'email' ? (
-                      <Mail size={12} className="text-[#1D4ED8]" />
-                    ) : (
-                      <Send size={12} className="text-[#B45309]" />
-                    )}
-                    <span className="text-[11px] font-mono text-[#1F2937]">{log.alertId}</span>
-                    <span className="text-[11px] text-[#6B7280]">→</span>
-                    <span className="text-[11px] text-[#4B5563] uppercase">{log.channel}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[11px] px-1.5 py-0.5 rounded ${
-                      log.status === 'delivered' ? "bg-[#15803D]/10 text-[#15803D]" :
-                      log.status === 'sent' ? "bg-[#B45309]/10 text-[#B45309]" :
-                      "bg-[#B91C1C]/10 text-[#B91C1C]"
-                    }`}>
-                      {log.status === 'delivered' ? "Delivered" : log.status === 'sent' ? "Sent" : "Failed"}
-                    </span>
-                    <span className="text-[11px] text-[#6B7280]">{log.timestamp}</span>
-                  </div>
-                </div>
-                {alert && (
-                  <div className="mt-1.5 text-[11px] text-[#6B7280]">
-                    {alert.risk_level} Risk — {alert.location} — {alert.message.slice(0, 60)}...
-                  </div>
-                )}
+          {/* Real dispatch rows from the API */}
+          {jobsError && (
+            <div className="card p-3 border border-[#B45309]/40 bg-[#B45309]/5">
+              <div className="text-[11px] text-[#B45309] text-center">
+                Dispatch log unavailable — backend may be offline.
               </div>
-            );
-          })}
+            </div>
+          )}
+          {!jobsError && jobs.length === 0 && !jobsLoading && (
+            <div className="card p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] text-center">
+                No notification jobs yet — dispatch rows appear here once an alert is created.
+              </div>
+            </div>
+          )}
+          {jobs.map(job => (
+            <div key={job.id} className="card p-3 border-l-2 border-l-[#D1D5DB]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {job.kind === 'sms' ? (
+                    <MessageSquare size={12} className="text-[#15803D]" />
+                  ) : (
+                    <Mail size={12} className="text-[#1D4ED8]" />
+                  )}
+                  <span className="text-[11px] font-mono text-[#1F2937]">job #{job.id}</span>
+                  <span className="text-[11px] text-[#6B7280]">→</span>
+                  <span className="text-[11px] text-[#4B5563] uppercase">{job.kind}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded ${
+                    job.status === 'sent' ? "bg-[#15803D]/10 text-[#15803D]" :
+                    job.status === 'queued' || job.status === 'sending' ? "bg-[#B45309]/10 text-[#B45309]" :
+                    "bg-[#B91C1C]/10 text-[#B91C1C]"
+                  }`}>
+                    {job.status}
+                  </span>
+                  <span className="text-[11px] text-[#6B7280]">
+                    attempt {job.attempts}/{job.max_attempts}
+                  </span>
+                </div>
+              </div>
+              {job.last_error && (
+                <div className="mt-1.5 text-[11px] text-[#B91C1C]">{job.last_error}</div>
+              )}
+              {job.created_at && (
+                <div className="mt-1 text-[11px] text-[#6B7280]">{job.created_at}</div>
+              )}
+            </div>
+          ))}
 
           <div className="card p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] text-center">

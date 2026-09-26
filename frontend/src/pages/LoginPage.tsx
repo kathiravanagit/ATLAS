@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Lock, User, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import GovtBadge from '../components/GovtBadge';
 import { setTokens } from '@/lib/auth';
+
+interface DemoCredential {
+  label: string;
+  email: string;
+  password: string;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,6 +20,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   // Explicit opt-in demo build only — never fake a session in production builds.
   const isDemoBuild = import.meta.env.VITE_DEMO_MODE === '1' || import.meta.env.VITE_DEMO_MODE === 'true';
+  // Demo credentials come from the backend (DEMO_MODE only) so no passwords
+  // are embedded in the JS bundle; buttons render without them if the fetch fails.
+  const [demoCredentials, setDemoCredentials] = useState<DemoCredential[]>([]);
+
+  useEffect(() => {
+    if (!isDemoBuild) return;
+    fetch('/api/auth/demo-credentials')
+      .then(r => (r.ok ? r.json() : []))
+      .then((rows: DemoCredential[]) => {
+        if (Array.isArray(rows) && rows.length > 0) setDemoCredentials(rows);
+      })
+      .catch(() => {});
+  }, [isDemoBuild]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +84,7 @@ export default function LoginPage() {
         <div className="max-w-6xl mx-auto flex items-center gap-3">
           <GovtBadge size={28} />
           <div className="leading-tight">
-            <div className="text-[11px] text-[#6B7280] font-medium">Government of India</div>
+            <div className="text-[11px] text-[#6B7280] font-medium">SIH 2026 Prototype</div>
             <div className="text-sm font-semibold text-[#1F2937]">ATLAS — Advanced Threat Location & Alert System</div>
           </div>
         </div>
@@ -185,7 +204,7 @@ export default function LoginPage() {
               <div className="mt-4 text-center">
                 {isDemoBuild ? (
                   <>
-                    <span className="text-xs text-[#6B7280]">New official? </span>
+                    <span className="text-xs text-[#6B7280]">New here? </span>
                     <Link to="/register" className="text-xs text-[#1D4ED8] hover:text-[#1D355B] transition-colors font-medium">Register here</Link>
                   </>
                 ) : (
@@ -193,21 +212,26 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* Quick Demo Login — evaluation builds only */}
+              {/* Quick Demo Login — evaluation builds only.
+                  Labels/emails are public demo identities; passwords are fetched
+                  from the DEMO_MODE-only backend endpoint, never bundled. */}
               {isDemoBuild && (
                 <div className="mt-5 pt-4 border-t border-[#E5E7EB]">
                   <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-2 font-medium">Quick Demo Login</div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { label: 'Inspector', email: 'inspector@atlas.gov', password: 'inspector123', color: 'text-[#1D4ED8]' },
-                      { label: 'Analyst', email: 'analyst@atlas.gov', password: 'analyst123', color: 'text-[#15803D]' },
-                      { label: 'Bank Officer', email: 'bank@atlas.gov', password: 'bank123', color: 'text-[#B45309]' },
-                      { label: 'Admin', email: 'admin@atlas.gov', password: 'admin123', color: 'text-[#12355B]' },
+                      { label: 'Inspector', email: 'inspector@atlas.gov', color: 'text-[#1D4ED8]' },
+                      { label: 'Analyst', email: 'analyst@atlas.gov', color: 'text-[#15803D]' },
+                      { label: 'Bank Officer', email: 'bank@atlas.gov', color: 'text-[#B45309]' },
+                      { label: 'Admin', email: 'admin@atlas.gov', color: 'text-[#12355B]' },
                     ].map(demo => (
                       <button
                         key={demo.label}
                         type="button"
-                        onClick={() => { setEmail(demo.email); setPassword(demo.password); }}
+                        onClick={() => {
+                          setEmail(demo.email);
+                          setPassword(demoCredentials.find(c => c.email === demo.email)?.password ?? '');
+                        }}
                         className="px-3 py-2 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-left hover:bg-[#F3F4F6] hover:border-[#D1D5DB] transition-all duration-200"
                       >
                         <div className={`text-[11px] font-medium ${demo.color}`}>{demo.label}</div>
@@ -225,7 +249,7 @@ export default function LoginPage() {
       {/* Footer */}
       <footer className="border-t border-[#E5E7EB] bg-white px-6 py-4">
         <div className="text-center text-[11px] text-[#9CA3AF]">
-          Ministry of Home Affairs · Cybercrime Coordination Prototype · SIH 2026
+          Cybercrime Coordination Prototype · SIH 2026 · Not affiliated with any government body
         </div>
       </footer>
     </div>

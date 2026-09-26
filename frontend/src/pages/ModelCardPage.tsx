@@ -1,8 +1,49 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Cpu, Target, Database, GitBranch, Activity, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Cpu, Target, Database, GitBranch, Activity, AlertTriangle, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../lib/auth';
+
+interface HoldoutSlice {
+  slice: string;
+  n: number;
+  positives: number;
+  positive_rate_pct: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  pr_auc: number;
+  baseline_majority_accuracy_pct: number;
+}
+
+interface ThresholdRow {
+  threshold: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  flagged: number;
+}
+
+interface ValidationProtocol {
+  data?: string;
+  split?: string;
+  baseline_majority_accuracy?: string | null;
+  calibration_status?: string;
+  threshold_guidance?: string;
+  intended_use?: string;
+  prohibited_use?: string;
+  holdout_revalidation?: {
+    protocol?: string;
+    ensemble?: string;
+    slices?: {
+      random_holdout_note?: string;
+      time_holdout?: HoldoutSlice;
+      location_holdout?: HoldoutSlice;
+    };
+    calibration?: { brier_score?: number; note?: string } | null;
+    threshold_sweep?: ThresholdRow[] | null;
+  } | null;
+}
 
 interface ModelCard {
   model_type: string;
@@ -26,6 +67,7 @@ interface ModelCard {
   dataset?: string;
   cities?: number;
   atms?: number;
+  validation_protocol?: ValidationProtocol;
 }
 
 interface FeatureStat {
@@ -123,6 +165,164 @@ export default function ModelCardPage() {
           <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] text-center">
             <div className="text-[11px] text-[#6B7280] uppercase mb-1">Samples Trained</div>
             <div className="text-sm font-medium text-[#1F2937]">{card.n_samples?.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Data & Model Lineage */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <GitBranch size={16} className="text-[#1D355B]" />
+          <h3 className="text-base font-semibold text-[#1F2937]">Data & Model Lineage</h3>
+        </div>
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+          {[
+            { label: 'Dataset', value: card.dataset || 'synthetic benchmark' },
+            { label: 'Cohort', value: `${card.cities ?? '—'} cities · ${card.atms ?? '—'} ATMs` },
+            { label: 'Features', value: `${card.n_features} columns · ${card.n_samples?.toLocaleString()} rows` },
+            { label: 'Training', value: `${card.ensemble_method || 'Ensemble'} · ${card.training_date}` },
+            { label: 'Validation', value: card.validation_protocol?.holdout_revalidation ? 'Holdout revalidation report' : 'Random holdout only' },
+          ].map((step, i, arr) => (
+            <div key={step.label} className="flex items-center gap-2 flex-1">
+              <div className="bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5 flex-1 min-w-0">
+                <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">{step.label}</div>
+                <div className="text-[11px] text-[#1F2937] font-medium truncate" title={step.value}>{step.value}</div>
+              </div>
+              {i < arr.length - 1 && <ChevronRight size={14} className="text-[#9CA3AF] shrink-0 hidden md:block" />}
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-[#6B7280] mt-3">
+          Every prediction links back to this lineage: {card.feature_columns?.length} engineered features feed a frozen
+          {' '}{card.ensemble_method || 'ensemble'} whose weights ({card.ensemble_method?.includes('50') ? '50/50 RF + XGB' : 'see ensemble section'})
+          {' '}were not changed during revalidation.
+        </p>
+      </div>
+
+      {/* Validation Protocol & Holdout Revalidation */}
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Target size={16} className="text-[#1D355B]" />
+          <h3 className="text-base font-semibold text-[#1F2937]">Validation Protocol &amp; Holdout Revalidation</h3>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase mb-1">Majority Baseline</div>
+              <div className="text-lg font-bold text-[#1F2937]">
+                {card.validation_protocol?.baseline_majority_accuracy ?? 'n/a'}
+              </div>
+              <div className="text-[10px] text-[#6B7280]">accuracy of always-normal</div>
+            </div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase mb-1">Calibration</div>
+              <div className="text-lg font-bold text-[#B45309]">
+                {card.validation_protocol?.holdout_revalidation?.calibration?.brier_score != null
+                  ? `Brier ${card.validation_protocol.holdout_revalidation.calibration.brier_score}`
+                  : 'Uncalibrated'}
+              </div>
+              <div className="text-[10px] text-[#6B7280]">{card.validation_protocol?.calibration_status || 'scores are ranking scores, not probabilities'}</div>
+            </div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase mb-1">Split</div>
+              <div className="text-[11px] font-medium text-[#1F2937] leading-snug">
+                {card.validation_protocol?.split || 'random holdout'}
+              </div>
+            </div>
+            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="text-[11px] text-[#6B7280] uppercase mb-1">Intended Use</div>
+              <div className="text-[11px] font-medium text-[#1F2937] leading-snug">
+                {card.validation_protocol?.intended_use || 'decision support with human review'}
+              </div>
+            </div>
+          </div>
+
+          {/* Time/location holdouts */}
+          {card.validation_protocol?.holdout_revalidation?.slices ? (
+            <div>
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">
+                Holdout Revalidation — {card.validation_protocol.holdout_revalidation.protocol}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-[#6B7280] border-b border-[#D1D5DB]">
+                      <th className="text-left py-1.5 pr-3 font-medium">Slice</th>
+                      <th className="text-right py-1.5 px-3 font-medium">n</th>
+                      <th className="text-right py-1.5 px-3 font-medium">Precision</th>
+                      <th className="text-right py-1.5 px-3 font-medium">Recall</th>
+                      <th className="text-right py-1.5 px-3 font-medium">F1</th>
+                      <th className="text-right py-1.5 px-3 font-medium">PR-AUC</th>
+                      <th className="text-right py-1.5 pl-3 font-medium">Majority Baseline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(['time_holdout', 'location_holdout'] as const)
+                      .map(k => ({ k, s: card.validation_protocol!.holdout_revalidation!.slices![k] }))
+                      .filter(row => row.s)
+                      .map(row => (
+                        <tr key={row.k} className="border-b border-[#F3F4F6] text-[#374151]">
+                          <td className="py-1.5 pr-3">
+                            {row.k === 'time_holdout' ? 'Time holdout' : 'Location holdout'}
+                            <div className="text-[10px] text-[#9CA3AF] font-mono">{row.s!.slice}</div>
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-mono">{row.s!.n.toLocaleString()}</td>
+                          <td className="py-1.5 px-3 text-right font-mono">{(row.s!.precision * 100).toFixed(1)}%</td>
+                          <td className="py-1.5 px-3 text-right font-mono text-[#B45309]">{(row.s!.recall * 100).toFixed(1)}%</td>
+                          <td className="py-1.5 px-3 text-right font-mono">{row.s!.f1.toFixed(3)}</td>
+                          <td className="py-1.5 px-3 text-right font-mono">{row.s!.pr_auc.toFixed(3)}</td>
+                          <td className="py-1.5 pl-3 text-right font-mono text-[#6B7280]">{row.s!.baseline_majority_accuracy_pct}%</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-[10px] text-[#6B7280] mt-1.5">
+                {card.validation_protocol.holdout_revalidation.slices.random_holdout_note}
+              </div>
+            </div>
+          ) : (
+            <div className="text-[11px] text-[#6B7280] bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-3">
+              No holdout revalidation report on disk — run <span className="font-mono">backend/revalidate_model.py</span> to
+              generate time/location holdouts, calibration, and a threshold sweep.
+            </div>
+          )}
+
+          {/* Threshold sweep */}
+          {card.validation_protocol?.holdout_revalidation?.threshold_sweep && (
+            <div>
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Threshold Sweep (choose from investigator capacity)</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="text-[#6B7280] border-b border-[#D1D5DB]">
+                      <th className="text-left py-1.5 pr-3 font-medium">Threshold</th>
+                      <th className="text-right py-1.5 px-3 font-medium">Precision</th>
+                      <th className="text-right py-1.5 px-3 font-medium">Recall</th>
+                      <th className="text-right py-1.5 px-3 font-medium">F1</th>
+                      <th className="text-right py-1.5 pl-3 font-medium">Flagged</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {card.validation_protocol.holdout_revalidation.threshold_sweep.map(row => (
+                      <tr key={row.threshold} className={`border-b border-[#F3F4F6] text-[#374151] ${row.threshold === 0.5 ? 'bg-[#1D4ED8]/5 font-medium' : ''}`}>
+                        <td className="py-1.5 pr-3 font-mono">{row.threshold.toFixed(1)}{row.threshold === 0.5 && ' (prod)'}</td>
+                        <td className="py-1.5 px-3 text-right font-mono">{(row.precision * 100).toFixed(1)}%</td>
+                        <td className="py-1.5 px-3 text-right font-mono">{(row.recall * 100).toFixed(1)}%</td>
+                        <td className="py-1.5 px-3 text-right font-mono">{row.f1.toFixed(3)}</td>
+                        <td className="py-1.5 pl-3 text-right font-mono">{row.flagged.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="text-[11px] text-[#6B7280] bg-[#B45309]/5 border border-[#B45309]/20 rounded-lg p-3">
+            <span className="font-medium text-[#B45309]">Prohibited use:</span>{' '}
+            {card.validation_protocol?.prohibited_use || 'automated enforcement, legal determination, or live operational decisions'}.
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ When a victim reports cybercrime on **cybercrime.gov.in**, stolen money is rapid
 - **Cryptographic evidence chain** — SHA-256 hash chain with Merkle tree verification
 - **PoW blockchain** — SHA-256 mining, Merkle roots, 3-node longest-chain consensus
 - **Full-stack application** — React + TypeScript frontend, FastAPI + PostgreSQL backend
-- **54+ API endpoints** with 110 passing backend tests and 29 passing E2E tests
+- **56+ API endpoints** with 133 passing backend tests and 29 passing E2E tests
 - **Multi-city support** — 8 Indian cities with 64 ATMs, live city switching on interactive map
 
 ---
@@ -182,7 +182,12 @@ This is where ATLAS is genuinely production-grade. Most hackathon projects stop 
 - **TLS/HTTPS** — Supported via uvicorn SSL context (requires SSL_CERTFILE and SSL_KEYFILE env vars; app starts without TLS if unset)
 - **HSTS** — `max-age=31536000; includeSubDomains`
 - **CORS** — Explicit allowed origins (not wildcard)
-- **7 security headers** — CSP, X-Frame-Options, X-Content-Type-Options, etc.
+- **8 security headers** — CSP (script-src without `unsafe-inline`/`unsafe-eval`, plus `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`), X-Frame-Options, X-Content-Type-Options, etc.
+- **Password policy** — 8+ chars with a letter and a digit (register + change-password)
+- **Registration gate** — self-registration returns 403 with an actionable message when disabled (DEMO_MODE precedence over REGISTRATION_ENABLED)
+- **Demo credentials API** — `GET /api/auth/demo-credentials` serves demo logins to the UI only in DEMO_MODE (404 otherwise); demo passwords are never shipped in the JS bundle
+- **HttpOnly refresh cookie** — `atlas_refresh` (path `/api/auth`, SameSite=Strict) issued on login/refresh/logout with body-token fallback; login rate limiting with reset on success
+- **Data retention** — `GET /api/admin/retention` (policy) + `POST /api/admin/retention/purge` (admin+CSRF) purges only audit/notification/idempotency rows; cases/evidence/alerts are never purged
 
 ### Rate Limiting
 1. **slowapi** — Global API rate limiter
@@ -261,6 +266,12 @@ Trained on **200,000+ synthetic transactions** across **400 ATMs in 8 Indian cit
 
 > **Note:** Accuracy is misleading on imbalanced data (1 in 27 transactions is fraud). We lead with Recall and F1 — the metrics that matter for fraud detection.
 
+### Validation & Holdout Revalidation
+- **Time holdout** + **location holdout** revalidation runs (`backend/revalidate_model.py`) write `backend/model/validation_report.json`
+- **Calibration**: 10-bin reliability curve + Brier score; **threshold sweep** reported alongside the default operating point
+- Served on `GET /api/model/card` as `validation_protocol.holdout_revalidation`, rendered in the Model Card page (Data & Model Lineage + Holdout Revalidation cards)
+- Protocol is explicit: majority-class baseline accuracy is shown so 96%+ accuracy is never read as model skill
+
 ### Explainability
 SHAP KernelExplainer generates per-case feature contributions, cached to avoid repeated slow computation during demos.
 
@@ -291,7 +302,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 
 ---
 
-## API Endpoints (54+)
+## API Endpoints (56+)
 
 ### Authentication (8)
 | Method | Endpoint | Description |
@@ -304,6 +315,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 | POST | `/api/auth/change-password` | Change password |
 | GET | `/api/csrf-token` | Get CSRF token |
 | POST | `/api/auth/approve/{user_id}` | Approve user (admin) |
+| GET | `/api/auth/demo-credentials` | Demo logins for quick-login buttons (DEMO_MODE only, 404 otherwise) |
 
 ### Core Data (5)
 | Method | Endpoint | Description |
@@ -371,13 +383,28 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 ### Audit & Admin
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/audit` | Audit log entries |
+| GET | `/api/audit` | Audit log entries (limit/offset + `q`, `actor`, `action_type` search; returns `date`, `case_id`) |
 | GET | `/api/audit/recent` | Recent activity (last 50) |
 | GET | `/api/review/history` | Review decision history |
 | GET | `/api/auth/users` | List all users (admin/inspector) |
 | GET | `/api/auth/tokens` | List refresh tokens (admin) |
 | GET | `/api/scenarios` | Available demo scenarios |
 | GET | `/api/scenarios/{id}` | Run a demo scenario |
+| GET | `/health/live` | Public liveness probe (`{"status": "ok"}` only) |
+| GET | `/api/notifications/jobs` | Durable notification dispatch states (queued/sending/sent/failed/dead) |
+| GET | `/api/admin/retention` | Documented retention policy (audit/notification/idempotency) (admin) |
+| POST | `/api/admin/retention/purge` | Purge rows older than `days`; case/evidence/alerts untouched (admin+CSRF) |
+
+### Reliability, Versioning & Deployment
+| Concern | Implementation |
+|---------|----------------|
+| **Idempotency** | `Idempotency-Key` header on POST `/api/transactions`, `/api/alerts`, `/api/evidence/anchor` — replays return the original response (`X-Idempotent-Replay: true`), no duplicate side effects |
+| **Notifications** | `notification_jobs` table + tracked worker with retry (3 attempts) + dead-letter; replaces fire-and-forget threads |
+| **API versioning** | `/api/v1/*` serves the current API (prefix-strip middleware) |
+| **Migrations** | Alembic (`backend/alembic/`, revision `0001_production_hardening`): hardening tables + `cases.assigned_to`/`department` — run `alembic upgrade head` |
+| **Chain storage** | `CHAIN_BACKEND=db` (default on Postgres) persists evidence/blockchain blocks transactionally; `file` for offline demos/tests |
+| **Ownership scoping** | `GET /api/cases`: admins see all; other roles see own department + assigned + shared pool |
+| **Frontend guard** | `RequireAuth` on `/real`; explicit `/demo` fallback-only console; role matrix in `frontend/src/lib/roles.ts` |
 
 ### WebSocket
 | Protocol | Endpoint | Description |
@@ -503,7 +530,7 @@ INVESTIGATOR_EMAIL=investigator@atlas.gov
 ## Tests
 
 ```bash
-# Backend — 104 passing, 1 skipped
+# Backend — 133 passing, 1 skipped
 cd backend && python -m pytest tests/ -v
 
 # Frontend — TypeScript strict mode
@@ -514,7 +541,7 @@ cd frontend && npx playwright test
 ```
 
 ### What We Test
-**Backend (104 tests):**
+**Backend (133 tests + 1 skipped):**
 - Authentication (login, register, refresh, token reuse)
 - RBAC (all 4 roles for read/write/override)
 - CSRF protection on state-changing endpoints
@@ -523,7 +550,12 @@ cd frontend && npx playwright test
 - ML endpoints (predictions, model card, metrics, drift, SHAP, mule network, anomaly)
 - NLP triage (vishing, UPI fraud, non-cybercrime fallback)
 - City endpoints (list, info, ATMs, predictions)
-- Security headers validation
+- Security headers validation (CSP without unsafe-inline/unsafe-eval, object-src/base-uri/frame-ancestors)
+- Demo credentials endpoint (DEMO_MODE gating + no passwords in bundle)
+- Retention policy/purge (admin/CSRF enforcement, old audit rows purged, cases untouched)
+- Audit search (`q`/`actor` filters, auth required, `case_id`/`date` fields)
+- Alert row-level scoping (department/assigned/shared pool, non-admin exclusion)
+- Password policy + registration gate + rate-limit bypass under TESTING
 
 **E2E (29 tests):**
 - Landing page (5) — title, hero, CTA, problem statement
@@ -557,7 +589,7 @@ Red "Backend Offline — Demo Data" banner appears. Switch to backup video.
 ```
 sih-prototype/
 ├── backend/
-│   ├── main.py              # FastAPI — 54+ endpoints, request logging
+│   ├── main.py              # FastAPI — 56+ endpoints, request logging
 │   ├── auth.py              # JWT, RBAC, CSRF, rate limiting
 │   ├── encryption.py        # AES-256-GCM
 │   ├── spatial.py           # PostGIS + haversine fallback

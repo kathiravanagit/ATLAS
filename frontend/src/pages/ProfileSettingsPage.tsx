@@ -315,7 +315,7 @@ export default function ProfileSettingsPage() {
       {/* Footer */}
       <div className="text-center text-[10px] text-[#9CA3AF] pb-8">
         <p>ATLAS — Advanced Threat Location & Alert System</p>
-        <p className="mt-1">For Official Use Only | Government of India</p>
+        <p className="mt-1">For Evaluation Use Only | SIH 2026 Prototype</p>
       </div>
     </motion.div>
   );

@@ -69,6 +69,8 @@ export interface AuditEntry {
   action: string;
   details: string;
   action_type: string;
+  date?: string;
+  case_id?: string;
 }
 
 export type RiskFilter = 'all' | 'High' | 'Medium' | 'Low' | 'Watch';

@@ -2,14 +2,20 @@ from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import engine, get_db, Base, USE_SQLITE
+from database import engine, get_db, Base, USE_SQLITE, SessionLocal
+from reliability import (
+    idempotency_key_from, check_replay, store_replay,
+    enqueue_notification, run_notification_worker,
+)
+from models_db import NotificationJob
 from models_db import (
     Case, Prediction, RankedLocation, Alert, Suspect,
-    AuditLog, AtmLocation, FieldOutcome, RefreshToken
+    AuditLog, AtmLocation, FieldOutcome, RefreshToken, IdempotencyKey
 )
 from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
@@ -168,13 +174,32 @@ async def security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https://*.tile.openstreetmap.org; "
+        # Production bundle ships no eval/Function-constructor and no inline
+        # scripts (verified against dist/) — drop both unsafe directives.
+        "script-src 'self'; "
+        # 'unsafe-inline' still required for React inline style attributes;
+        # leaflet.css (unpkg) + Google Fonts are the only external assets.
+        "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; "
+        "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; "
         "connect-src 'self' ws: wss:; "
-        "font-src 'self'"
+        "font-src 'self' https://fonts.gstatic.com; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'none'"
     )
     return response
+
+
+@app.middleware("http")
+async def api_version_prefix(request: Request, call_next):
+    """Foundation for versioned integration: /api/v1/* serves the current API."""
+    path = request.url.path
+    if path == "/api/v1" or path.startswith("/api/v1/"):
+        # Strip only the /v1 segment so /api/v1/cases -> /api/cases.
+        stripped = "/api" + path[len("/api/v1"):] or "/api/"
+        request.scope["path"] = stripped
+        request.scope["raw_path"] = stripped.encode()
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -743,8 +768,18 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
 
 
 @app.get("/api/cases")
-def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), db: Session = Depends(get_db)):
-    cases = db.query(Case).order_by(Case.case_id).limit(limit).all()
+def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)):
+    q = db.query(Case).order_by(Case.case_id)
+    # Ownership scoping: admins see all; others see their department's cases,
+    # cases assigned to them, plus the shared (unassigned) pool.
+    if user.get("role") != "admin":
+        dept = user.get("department", "") or ""
+        uid = user.get("id", "") or ""
+        q = q.filter(or_(
+            Case.department == "", Case.department.is_(None), Case.department == dept,
+            Case.assigned_to == uid,
+        ))
+    cases = q.offset(offset).limit(limit).all()
 
     def _dec(val):
         if val and ENCRYPTION_KEY and is_encrypted(val):
@@ -763,6 +798,8 @@ def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200
             "current_risk": c.current_risk,
             "last_updated": c.last_updated,
             "status": c.status,
+            "assigned_to": c.assigned_to,
+            "department": c.department or "",
             "victim_name": _dec(c.victim_name) if can_see_pii else "[REDACTED]",
             "contact": _dec(c.contact) if can_see_pii else "[REDACTED]",
             "description": _dec(c.description) if can_see_pii else "[REDACTED]",
@@ -804,7 +841,12 @@ def get_prediction(request: Request, case_id: str, user: dict = Depends(require_
 
 
 @app.post("/api/transactions")
-def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    idem_key = idempotency_key_from(request)
+    if idem_key:
+        replay = check_replay(db, idem_key, "POST", "/api/transactions")
+        if replay is not None:
+            return replay
     case = db.query(Case).filter(Case.case_id == tx.case_id).first()
     if not case:
         # Auto-create case from synthetic ID (allows simulation for city-generated case IDs)
@@ -862,9 +904,18 @@ def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_per
         db.add(alert)
         db.commit()
 
-        # Send SMS and Email alerts asynchronously
-        threading.Thread(target=send_sms_alert, args=(alert_msg,)).start()
-        threading.Thread(target=send_email_alert, args=(f"High-Risk Cash-Out Alert ({tx.case_id})", alert_msg)).start()
+        # Durable dispatch: enqueue SMS/email as tracked jobs (retry + dead-letter)
+        # instead of untracked fire-and-forget threads.
+        enqueue_notification(db, "sms", {"message": alert_msg})
+        enqueue_notification(
+            db, "email",
+            {"subject": f"High-Risk Cash-Out Alert ({tx.case_id})", "message": alert_msg},
+        )
+        threading.Thread(
+            target=run_notification_worker,
+            args=(SessionLocal, send_sms_alert, send_email_alert),
+            daemon=True,
+        ).start()
 
         # Broadcast alert via WebSocket to all connected clients
         import asyncio
@@ -886,7 +937,7 @@ def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_per
         except RuntimeError:
             pass
 
-    return {
+    return _finalize_transaction_response(db, idem_key, {
         "status": "transaction_recorded",
         "transaction": {
             "case_id": tx.case_id,
@@ -895,16 +946,27 @@ def simulate_transaction(tx: TransactionCreate, user: dict = Depends(require_per
             "to_account": tx.to_account,
         },
         "updated_prediction": updated_prediction,
-    }
+    })
+
+
+def _finalize_transaction_response(db, idem_key, body: dict):
+    if idem_key:
+        store_replay(db, idem_key, "POST", "/api/transactions", 200, body)
+    return body
 
 
 @app.post("/api/alerts")
-def create_alert(alert_data: AlertCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+def create_alert(request: Request, alert_data: AlertCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    idem_key = idempotency_key_from(request)
+    if idem_key:
+        replay = check_replay(db, idem_key, "POST", "/api/alerts")
+        if replay is not None:
+            return replay
     case = db.query(Case).filter(Case.case_id == alert_data.case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    alert_id = f"ALT-{datetime.now(timezone.utc).strftime('%H%M%S')}"
+    alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
     alert = Alert(
         alert_id=alert_id,
         case_id=alert_data.case_id,
@@ -926,7 +988,7 @@ def create_alert(alert_data: AlertCreate, user: dict = Depends(require_permissio
         case_id=alert_data.case_id
     )
 
-    return {
+    return _finalize_alert_response(db, idem_key, {
         "status": "created",
         "alert_id": alert_id,
         "alert": {
@@ -940,12 +1002,27 @@ def create_alert(alert_data: AlertCreate, user: dict = Depends(require_permissio
             "acknowledged": False,
             "acknowledged_at": None,
         }
-    }
+    })
+
+
+def _finalize_alert_response(db, idem_key, body: dict):
+    if idem_key:
+        store_replay(db, idem_key, "POST", "/api/alerts", 200, body)
+    return body
 
 
 @app.get("/api/alerts")
-def get_alerts(user: dict = Depends(require_permission("read")), limit: int = Query(default=100, ge=1, le=500), db: Session = Depends(get_db)):
-    alerts = db.query(Alert).order_by(Alert.timestamp.desc()).limit(limit).all()
+def get_alerts(user: dict = Depends(require_permission("read")), limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)):
+    q = db.query(Alert)
+    # Row-level isolation: alerts inherit their case's visibility.
+    if user.get("role") != "admin":
+        dept = user.get("department", "") or ""
+        uid = user.get("id", "") or ""
+        q = q.join(Case, Alert.case_id == Case.case_id).filter(or_(
+            Case.department == "", Case.department.is_(None), Case.department == dept,
+            Case.assigned_to == uid,
+        ))
+    alerts = q.order_by(Alert.timestamp.desc()).offset(offset).limit(limit).all()
     return [
         {
             "alert_id": a.alert_id,
@@ -987,14 +1064,33 @@ def get_locations(user: dict = Depends(require_permission("read")), db: Session 
 
 
 @app.get("/api/audit")
-def get_audit_log(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(50).all()
+def get_audit_log(
+    user: dict = Depends(require_permission("read")),
+    db: Session = Depends(get_db),
+    q: Optional[str] = Query(default=None, max_length=200),
+    action_type: Optional[str] = Query(default=None, max_length=50),
+    actor: Optional[str] = Query(default=None, max_length=100),
+    limit: int = Query(default=50, ge=1, le=500),
+):
+    """Auditor feed with server-side search/filter (text, action type, actor)."""
+    qry = db.query(AuditLog)
+    if action_type:
+        qry = qry.filter(AuditLog.action_type == action_type)
+    if q:
+        like = f"%{q}%"
+        qry = qry.filter(or_(AuditLog.action.ilike(like), AuditLog.details.ilike(like)))
+    if actor:
+        # Actor identity is recorded inside details (e.g. "by officer x@y.gov").
+        qry = qry.filter(AuditLog.details.ilike(f"%{actor}%"))
+    logs = qry.order_by(AuditLog.timestamp.desc()).limit(limit).all()
     return [
         {
             "time": l.timestamp.strftime("%H:%M:%S") if l.timestamp else "",
+            "date": l.timestamp.strftime("%Y-%m-%d") if l.timestamp else "",
             "action": l.action,
             "details": l.details,
             "action_type": l.action_type,
+            "case_id": l.case_id or "",
         }
         for l in logs
     ]
@@ -1158,6 +1254,43 @@ def model_card(user: dict = Depends(require_permission("read"))):
         "dataset": meta.get("dataset"),
         "cities": meta.get("cities"),
         "atms": meta.get("atms"),
+        **_validation_protocol_block(meta),
+    }
+
+
+def _validation_protocol_block(meta: dict) -> dict:
+    """Honest synthetic-benchmark protocol: baseline, calibration, thresholds."""
+    cm = meta.get("confusion_matrix") or {}
+    tp = cm.get("tp", 0); fp = cm.get("fp", 0)
+    fn = cm.get("fn", 0); tn = cm.get("tn", 0)
+    total = tp + fp + fn + tn
+    # Majority-class baseline: accuracy of always predicting the majority class.
+    baseline = f"{max(tn + fp, tp + fn) / total * 100:.2f}%" if total else None
+    # Frozen-ensemble holdout revalidation (revalidate_model.py), if present.
+    holdouts = None
+    try:
+        with open("model/validation_report.json") as _vf:
+            _vr = json.load(_vf)
+        holdouts = {
+            "protocol": _vr.get("protocol"),
+            "slices": _vr.get("slices"),
+            "calibration": _vr.get("calibration_random_sample"),
+            "threshold_sweep": _vr.get("threshold_sweep_random_sample"),
+        }
+    except (OSError, ValueError):
+        holdouts = None
+    return {
+        "validation_protocol": {
+            "data": "synthetic benchmark (see dataset/version in metadata)",
+            "split": "random holdout — time-based and location-based holdouts recommended before any operational use",
+            "baseline_majority_accuracy": baseline,
+            "calibration_status": "uncalibrated — risk scores are ranking scores, NOT probabilities",
+            "threshold_guidance": "threshold trades precision (alert fatigue) against recall (missed cash-outs); "
+                                  "set it from investigator capacity and false-positive cost, not from accuracy",
+            "intended_use": "decision support with mandatory human review",
+            "prohibited_use": "automated enforcement, legal determination, or live operational decisions",
+            "holdout_revalidation": holdouts,
+        },
     }
 
 
@@ -1659,7 +1792,12 @@ def review_history(user: dict = Depends(require_permission("read")), case_id: st
 # ─── Evidence Chain Endpoints ─────────────────────────────────────────────────
 
 @app.post("/api/evidence/anchor")
-def anchor_evidence(ev: EvidenceAnchor, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf)):
+def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    idem_key = idempotency_key_from(request)
+    if idem_key:
+        replay = check_replay(db, idem_key, "POST", "/api/evidence/anchor")
+        if replay is not None:
+            return replay
     chain = get_evidence_chain()
     result = chain.add_evidence(ev.case_id, ev.evidence_type, ev.content, ev.officer_id)
 
@@ -1678,7 +1816,82 @@ def anchor_evidence(ev: EvidenceAnchor, user: dict = Depends(require_permission(
     )
     mined = bc.mine_pending(miner="node-cybercell-mumbai")
     result["blockchain"] = {"tx": tx, "mined": mined}
+    if idem_key:
+        store_replay(db, idem_key, "POST", "/api/evidence/anchor", 200, result)
     return result
+
+
+@app.get("/api/notifications/jobs")
+def list_notification_jobs(user: dict = Depends(require_permission("read")),
+                           status: str = Query(default=None),
+                           limit: int = Query(default=50, ge=1, le=200),
+                           db: Session = Depends(get_db)):
+    """Durable notification dispatch states: queued|sending|sent|failed|dead."""
+    q = db.query(NotificationJob).order_by(NotificationJob.id.desc())
+    if status:
+        q = q.filter(NotificationJob.status == status)
+    return [
+        {
+            "id": j.id, "kind": j.kind, "status": j.status,
+            "attempts": j.attempts, "max_attempts": j.max_attempts,
+            "last_error": j.last_error,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+        }
+        for j in q.limit(limit).all()
+    ]
+
+
+# ─── Data Retention ───────────────────────────────────────────────────────────
+
+RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "365"))
+
+
+@app.get("/api/admin/retention")
+def get_retention_policy(user: dict = Depends(require_role("admin"))):
+    """Documented retention policy — purging is explicit (POST), never automatic."""
+    return {
+        "audit_log_days": RETENTION_DAYS,
+        "idempotency_key_hours": 24,
+        "notification_job_days": RETENTION_DAYS,
+        "refresh_token": "expired/revoked tokens pruned every 10 minutes",
+        "enforcement": "manual purge endpoint for admins; no automatic deletion of case data",
+    }
+
+
+@app.post("/api/admin/retention/purge")
+def retention_purge(
+    user: dict = Depends(require_role("admin")),
+    csrf: None = Depends(require_csrf),
+    db: Session = Depends(get_db),
+    days: int = Query(default=RETENTION_DAYS, ge=7, le=3650),
+):
+    """Delete audit/notification/idempotency rows older than `days` days."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    purged = {}
+
+    purged["audit_logs"] = (
+        db.query(AuditLog).filter(AuditLog.timestamp < cutoff).delete(synchronize_session=False)
+    )
+    purged["notification_jobs"] = (
+        db.query(NotificationJob)
+        .filter(NotificationJob.created_at < cutoff, NotificationJob.status.in_(["sent", "dead"]))
+        .delete(synchronize_session=False)
+    )
+    # Never touch cases, predictions, alerts, evidence, or field outcomes.
+    purged["idempotency_keys"] = (
+        db.query(IdempotencyKey)
+        .filter(IdempotencyKey.created_at < datetime.now(timezone.utc) - timedelta(hours=24))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+
+    add_audit(
+        db, "Retention Purge",
+        f"Admin {user.get('email', '?')} purged rows older than {days} days: "
+        + ", ".join(f"{k}={v}" for k, v in purged.items()),
+        "system",
+    )
+    return {"purged": purged, "days": days, "note": "Case/evidence/alert records are never purged."}
 
 
 # ─── Blockchain Endpoints ────────────────────────────────────────────────────

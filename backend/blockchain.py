@@ -7,14 +7,16 @@ Features:
 - SHA-256 PoW blocks (nonce mining, configurable difficulty)
 - Merkle root over block transactions
 - Simulated multi-node network + longest-chain consensus
-- File-backed persistence (single-node deployment)
+- Pluggable persistence: local JSON file (offline demos/tests) or
+  transactional Postgres rows (multi-worker deployments).
+  Select with CHAIN_BACKEND=db|file (default: db on Postgres, else file).
 """
 import hashlib
 import json
 import os
 import threading
 import time
-from typing import Optional
+from typing import Optional, Callable
 
 CHAIN_FILE = "model/atlas_chain.json"
 DEFAULT_DIFFICULTY = 3  # leading hex zeros required
@@ -33,6 +35,23 @@ DEFAULT_NODES = [
 
 def _sha256(data: str) -> str:
     return hashlib.sha256(data.encode()).hexdigest()
+
+
+def _resolve_backend() -> str:
+    explicit = os.getenv("CHAIN_BACKEND", "").strip().lower()
+    if explicit in ("db", "file"):
+        return explicit
+    if os.getenv("TESTING") == "1":
+        return "file"
+    url = os.getenv("DATABASE_URL", "")
+    if url and "localhost" not in url and not url.startswith("sqlite"):
+        return "db"
+    return "file"
+
+
+def _default_session_factory() -> Callable:
+    from database import SessionLocal
+    return SessionLocal
 
 
 def merkle_root(hashes: list) -> Optional[str]:
@@ -128,15 +147,24 @@ class Block:
 
 
 class Blockchain:
-    def __init__(self, node_id: str = "node-0", difficulty: int = DEFAULT_DIFFICULTY, persist: bool = True):
+    def __init__(self, node_id: str = "node-0", difficulty: int = DEFAULT_DIFFICULTY, persist: bool = True,
+                 backend: str = "auto", session_factory=None, chain_name: str = "primary"):
         self.node_id = node_id
         self.difficulty = max(int(difficulty), MIN_DIFFICULTY)
         self.persist = persist
+        self.chain_name = chain_name
+        if backend == "auto":
+            backend = _resolve_backend()
+        self.backend = backend
+        self._session_factory = session_factory
         self.chain: list[Block] = []
         self.pending: list[dict] = []
         self._lock = threading.Lock()
-        if persist and os.path.exists(CHAIN_FILE):
-            self._load()
+        if persist:
+            if backend == "db":
+                self._load_db()
+            elif os.path.exists(CHAIN_FILE):
+                self._load()
         if not self.chain:
             self._create_genesis()
 
@@ -248,6 +276,7 @@ class Blockchain:
     def get_status(self) -> dict:
         return {
             "node_id": self.node_id,
+            "backend": self.backend,
             "height": len(self.chain),
             "difficulty": self.difficulty,
             "pending_transactions": len(self.pending),
@@ -275,7 +304,17 @@ class Blockchain:
                 self._save()
             return {"replaced": True, "height": len(self.chain)}
 
+    def _session(self):
+        factory = self._session_factory or _default_session_factory()
+        return factory()
+
     def _save(self):
+        if self.backend == "db":
+            self._save_db()
+        else:
+            self._save_file()
+
+    def _save_file(self):
         os.makedirs(os.path.dirname(CHAIN_FILE) or ".", exist_ok=True)
         payload = {
             "node_id": self.node_id,
@@ -291,6 +330,50 @@ class Blockchain:
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp_path, CHAIN_FILE)
+
+    def _save_db(self):
+        """Persist only blocks not yet stored (transactional; converges on conflict)."""
+        from sqlalchemy import func
+        from sqlalchemy.exc import IntegrityError
+        from models_db import BlockchainBlockRow
+        db = self._session()
+        try:
+            stored_max = db.query(func.max(BlockchainBlockRow.block_index)).filter(
+                BlockchainBlockRow.chain_name == self.chain_name).scalar()
+            stored_max = stored_max if stored_max is not None else -1
+            for block in self.chain:
+                if block.index <= stored_max:
+                    continue
+                d = block.to_dict()
+                db.add(BlockchainBlockRow(
+                    chain_name=self.chain_name,
+                    block_index=block.index,
+                    block_hash=block.hash,
+                    prev_hash=block.previous_hash,
+                    payload=json.dumps(d),
+                ))
+            db.commit()
+        except IntegrityError:
+            # A concurrent miner won this height — adopt whatever is stored.
+            db.rollback()
+            self._load_db()
+        finally:
+            db.close()
+
+    def _load_db(self):
+        from models_db import BlockchainBlockRow
+        db = self._session()
+        try:
+            rows = db.query(BlockchainBlockRow).filter(
+                BlockchainBlockRow.chain_name == self.chain_name).order_by(
+                BlockchainBlockRow.block_index).all()
+            self.chain = [Block.from_dict(json.loads(r.payload)) for r in rows]
+            self.pending = []
+        except Exception:
+            self.chain = []
+            self.pending = []
+        finally:
+            db.close()
 
     def _load(self):
         try:
