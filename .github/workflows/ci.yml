@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
@@ -45,6 +45,32 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Set up backend for E2E tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: pip install -r ../backend/requirements.txt
+
+      - name: Start demo backend
+        working-directory: backend
+        env:
+          DEMO_MODE: "true"
+          DATABASE_URL: "sqlite:///./atlas-e2e.db"
+          COOKIE_SECURE: "false"
+        run: |
+          python start.py > ../backend-e2e.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/api/health > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl --fail http://127.0.0.1:8000/api/health
 
       - name: Type check
         run: npx tsc --noEmit
