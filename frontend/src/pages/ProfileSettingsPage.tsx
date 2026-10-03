@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { User, Shield, Lock, Save, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, Building2, Hash } from 'lucide-react';
-import { getUser, setTokens, getAccessToken, getRefreshToken, fetchProfile, updateProfile, changePassword, authFetch } from '@/lib/auth';
+import { getUser, setTokens, getAccessToken, fetchProfile, updateProfile, changePassword } from '@/lib/auth';
 
 export default function ProfileSettingsPage() {
   const navigate = useNavigate();
-  const storedUser = getUser() as Record<string, string> | null;
-
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [badge, setBadge] = useState('');
@@ -35,6 +33,7 @@ export default function ProfileSettingsPage() {
   };
 
   useEffect(() => {
+    const storedUser = getUser() as Record<string, string> | null;
     if (storedUser) {
       setName(storedUser.name || '');
       setEmail(storedUser.email || '');
@@ -54,7 +53,7 @@ export default function ProfileSettingsPage() {
         // Update stored user
         const current = getUser() || {};
         const expires = parseInt(localStorage.getItem('atlas_token_expires') || '0') - Date.now();
-        setTokens(getAccessToken() || '', getRefreshToken() || '', expires, { ...current, ...profile });
+        setTokens(getAccessToken() || '', '', expires, { ...current, ...profile });
       }
     });
   }, []);

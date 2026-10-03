@@ -14,7 +14,7 @@ interface City {
 interface TopNavProps {
   selectedCity: string;
   onCityChange: (cityId: string) => void;
-  usingFallback: boolean;
+  dataMode: 'live' | 'demo' | 'unavailable';
   lastUpdated: Date;
 }
 
@@ -33,7 +33,7 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) + ' IST';
 }
 
-export default function TopNav({ selectedCity, onCityChange, usingFallback, lastUpdated }: TopNavProps) {
+export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdated }: TopNavProps) {
   const navigate = useNavigate();
   const [cities, setCities] = useState<City[]>(DEFAULT_CITIES);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -78,10 +78,10 @@ export default function TopNav({ selectedCity, onCityChange, usingFallback, last
           <span className="sm:hidden">Synthetic data only. Not connected to live systems.</span>
         </p>
       </div>
-      {usingFallback && (
+      {dataMode === 'unavailable' && (
         <div className="bg-[#B91C1C] px-4 md:px-6 py-1.5" role="alert">
           <p className="text-center text-[10px] md:text-[11px] text-white font-semibold">
-            DEMO DATA — backend unavailable, showing cached fallback. No live decisions permitted.
+            LIVE DATA UNAVAILABLE — no operational data is being shown. Do not take action until the service recovers.
           </p>
         </div>
       )}
@@ -101,8 +101,8 @@ export default function TopNav({ selectedCity, onCityChange, usingFallback, last
           {/* Right: Status + Utility Links — desktop only */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
-              {usingFallback ? <WifiOff size={11} className="text-[#B91C1C]" /> : <Wifi size={11} className="text-[#15803D]" />}
-              <span>{usingFallback ? 'Offline' : 'Connected'}</span>
+              {dataMode === 'unavailable' ? <WifiOff size={11} className="text-[#B91C1C]" /> : <Wifi size={11} className="text-[#15803D]" />}
+              <span>{dataMode === 'unavailable' ? 'Unavailable' : dataMode === 'demo' ? 'Demo' : 'Connected'}</span>
             </div>
             <div className="w-px h-3.5 bg-[#E5E7EB]" />
             <span className="text-[11px] text-[#6B7280]">Synthetic data</span>
@@ -122,7 +122,7 @@ export default function TopNav({ selectedCity, onCityChange, usingFallback, last
           {/* Mobile: compact status */}
           <div className="flex lg:hidden items-center gap-2 flex-shrink-0">
             <div className="flex items-center gap-1 text-[10px] text-[#6B7280]">
-              {usingFallback ? <WifiOff size={10} className="text-[#B91C1C]" /> : <Wifi size={10} className="text-[#15803D]" />}
+              {dataMode === 'unavailable' ? <WifiOff size={10} className="text-[#B91C1C]" /> : <Wifi size={10} className="text-[#15803D]" />}
             </div>
             <button onClick={handleLogout} className="text-[10px] text-[#B91C1C] font-medium">Logout</button>
           </div>

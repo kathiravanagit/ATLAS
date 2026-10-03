@@ -70,7 +70,12 @@ scikit-learn 1.5 (RandomForest) · XGBoost 2.1 · SHAP 0.46 · NetworkX 3.3 (Lou
 cd backend
 pip install -r requirements.txt
 cp ../.env.example .env    # configure secrets
-uvicorn main:app --reload --port 8000
+# Demo only: creates the local demo schema and seeds synthetic data
+DEMO_MODE=true python start.py
+
+# Production/staging: apply migrations before starting the API
+alembic upgrade head
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend
@@ -102,6 +107,15 @@ python seed.py
 | Bank Officer | <bank@atlas.gov> | bank123 |
 
 > Demo credentials are plaintext for hackathon evaluation only. Production uses hashed passwords.
+
+### Operational safety
+
+- Use `/demo` only for synthetic demonstration data.
+- Use `/real` only after the backend and database health checks are green.
+- The live console does not replace failed API responses with synthetic data.
+- Every prediction records the model version used to generate it.
+- Field outcomes are recorded for human-reviewed evaluation; predictions are not automated enforcement decisions.
+- Production must use PostgreSQL and run `alembic upgrade head` before startup.
 
 ---
 

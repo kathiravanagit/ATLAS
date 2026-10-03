@@ -7,12 +7,19 @@ import os
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+TESTING = os.getenv("TESTING") == "1"
 
 # Try PostgreSQL, fallback to SQLite
 USE_SQLITE = False
 USE_POSTGIS = False
-if os.getenv("TESTING") == "1" or not DATABASE_URL or "localhost" in DATABASE_URL:
+if TESTING or DEMO_MODE or DATABASE_URL.startswith("sqlite"):
     USE_SQLITE = True
+elif not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is required outside DEMO_MODE/TESTING. "
+        "Configure PostgreSQL or explicitly use a sqlite:// URL for a local development database."
+    )
 
 if not USE_SQLITE and not DATABASE_URL.startswith("sqlite"):
     # Verify Postgres is actually reachable before committing to it.
@@ -23,8 +30,10 @@ if not USE_SQLITE and not DATABASE_URL.startswith("sqlite"):
             pass
         _probe.dispose()
     except Exception as exc:
-        print(f"[DB] Postgres unreachable ({type(exc).__name__}) — falling back to SQLite")
-        USE_SQLITE = True
+        raise RuntimeError(
+            "Configured PostgreSQL is unreachable. Refusing to silently switch to SQLite "
+            "because that could make the officer console display or write to the wrong database."
+        ) from exc
 
 if USE_SQLITE:
     DATABASE_URL = "sqlite:///./cybercrime_intel.db"

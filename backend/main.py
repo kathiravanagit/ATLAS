@@ -44,12 +44,15 @@ from encryption import is_encrypted, encrypt as aes_encrypt, decrypt as aes_decr
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("atlas")
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 # Seed demo users — demo builds only. Production startup must never create
 # well-known credentials; provision officers out of band instead.
 from auth import seed_demo_users, DEMO_MODE
+
+# Development/demo and tests may create their isolated schema. Production
+# deployments must run `alembic upgrade head` before starting the application.
+if DEMO_MODE or os.getenv("TESTING") == "1":
+    Base.metadata.create_all(bind=engine)
+
 if DEMO_MODE:
     _db = next(get_db())
     try:
@@ -460,6 +463,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]],
         "evidence": evidence,
         "model_info": {
+            "model_version": model_meta.get("model_version", "unversioned") if model_meta else "unversioned",
             "accuracy": model_accuracy,
             "model_type": "Ensemble (RF + XGBoost)",
             "features_used": 15,
@@ -479,10 +483,16 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         if existing:
             existing.status = result["status"]
             existing.risk_trend = json.dumps(result["risk_trend"])
+            existing.model_version = result["model_info"]["model_version"]
             pred_id = existing.id
             db.query(RankedLocation).filter(RankedLocation.prediction_id == pred_id).delete()
         else:
-            pred = Prediction(case_id=case_id, status=result["status"], risk_trend=json.dumps(result["risk_trend"]))
+            pred = Prediction(
+                case_id=case_id,
+                status=result["status"],
+                risk_trend=json.dumps(result["risk_trend"]),
+                model_version=result["model_info"]["model_version"],
+            )
             db.add(pred)
             db.flush()
             pred_id = pred.id
@@ -1233,6 +1243,8 @@ def model_card(user: dict = Depends(require_permission("read"))):
         raise HTTPException(status_code=404, detail="No model trained yet")
     return {
         "model_type": meta.get("model_type"),
+        "model_version": meta.get("model_version", "unversioned"),
+        "top_k_accuracy": meta.get("top_k_accuracy"),
         "accuracy": meta.get("accuracy"),
         "precision": meta.get("precision"),
         "recall": meta.get("recall"),
@@ -1282,7 +1294,7 @@ def _validation_protocol_block(meta: dict) -> dict:
     return {
         "validation_protocol": {
             "data": "synthetic benchmark (see dataset/version in metadata)",
-            "split": "random holdout — time-based and location-based holdouts recommended before any operational use",
+            "split": "random holdout plus frozen temporal and location holdouts on a synthetic benchmark",
             "baseline_majority_accuracy": baseline,
             "calibration_status": "uncalibrated — risk scores are ranking scores, NOT probabilities",
             "threshold_guidance": "threshold trades precision (alert fatigue) against recall (missed cash-outs); "
@@ -2013,7 +2025,9 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
         "false_positive": "False Positive (Model Retraining Signal)",
     }
     add_audit(db, outcome_labels[req.outcome],
-              f"Case {req.case_id} at {req.atm_id}: {req.outcome}. Officer: {user['id']}. {req.notes}",
+              f"Case {req.case_id} at {req.atm_id}: {req.outcome}. Officer: {user['id']}. "
+              f"Model version: {get_metadata().get('model_version', 'unversioned') if get_metadata() else 'unversioned'}. "
+              f"{req.notes}",
               "field_outcome", req.case_id)
 
     # Trigger simulated model recalibration for false positives

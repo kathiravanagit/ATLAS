@@ -397,7 +397,7 @@ def register_auth_routes(app):
             refresh_token,
             max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
             httponly=True,
-            secure=os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes"),
+            secure=os.getenv("COOKIE_SECURE", "false" if DEMO_MODE else "true").lower() in ("true", "1", "yes"),
             samesite="strict",
             path="/api/auth",
         )
@@ -511,7 +511,7 @@ def register_auth_routes(app):
             new_refresh,
             max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
             httponly=True,
-            secure=os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes"),
+            secure=os.getenv("COOKIE_SECURE", "false" if DEMO_MODE else "true").lower() in ("true", "1", "yes"),
             samesite="strict",
             path="/api/auth",
         )

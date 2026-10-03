@@ -20,6 +20,7 @@ interface ModelCard {
   n_features: number;
   ensemble_method: string;
   training_date: string;
+  model_version?: string;
   feature_columns: string[];
   positive_ratio: number;
   confusion_matrix?: { tp: number; fp: number; fn: number; tn: number };
@@ -68,7 +69,7 @@ export default function ModelCardPanel() {
         <div className="flex items-center gap-2">
           <Cpu size={16} className="text-[#15803D]" />
           <h3 className="text-base font-semibold text-[#1F2937]">ML Model Card</h3>
-          <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">v3</span>
+          <span className="max-w-[190px] truncate text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono" title={card.model_version || 'unversioned'}>{card.model_version || 'unversioned'}</span>
         </div>
         {expanded ? <ChevronUp size={14} className="text-[#d4d4d8]" /> : <ChevronDown size={14} className="text-[#d4d4d8]" />}
       </button>

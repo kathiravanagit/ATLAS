@@ -204,6 +204,7 @@ def train_model():
     }
 
     metadata = {
+        "model_version": f"rf-xgb-synthetic-v5-{datetime.now().strftime('%Y%m%d')}",
         "model_type": "Ensemble (RF + XGBoost)" if has_xgb else "RandomForestClassifier",
         "rf_params": {
             "n_estimators": 200, "max_depth": 12,

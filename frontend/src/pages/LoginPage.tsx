@@ -43,6 +43,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -59,7 +60,7 @@ export default function LoginPage() {
         const user = {
           email, name: email.split('@')[0], role: 'inspector', id: 'INS-001', badge: 'OFFLINE'
         };
-        setTokens('offline-token', 'offline-refresh', 3600, user);
+        setTokens('offline-token', '', 3600, user);
         navigate('/real');
       } else {
         setError('Unable to authenticate — service unavailable');

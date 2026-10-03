@@ -274,6 +274,7 @@ def predict_cashout(features: dict, case_id: str = "") -> dict:
     _log_prediction(risk_score, X, case_id)
 
     return {
+        "model_version": _metadata.get("model_version", "unversioned") if _metadata else "unversioned",
         "risk_score": risk_score,
         "prediction": 1 if ensemble_prob > 0.5 else 0,
         "confidence": round(float(max(ensemble_prob, 1 - ensemble_prob) * 100), 1),
@@ -292,6 +293,7 @@ def get_model_card() -> dict:
         "ensemble_weights": {"random_forest": 0.5, "xgboost": 0.5},
         "total_predictions": _prediction_counter,
         "training_date": _metadata.get("training_date", "unknown") if _metadata else "unknown",
+        "model_version": _metadata.get("model_version", "unversioned") if _metadata else "unversioned",
         "top_k_accuracy": _metadata.get("top_k_accuracy") if _metadata else None,
     }
 

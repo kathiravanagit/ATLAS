@@ -44,12 +44,33 @@ export default function DashboardLayout({ demoMode = false }: { demoMode?: boole
         <TopNav
           selectedCity={selectedCity}
           onCityChange={setSelectedCity}
-          usingFallback={data.usingFallback}
+          dataMode={data.dataMode}
           lastUpdated={data.lastUpdated}
         />
+        {data.actionError && (
+          <div className="mx-6 mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {data.actionError}
+            <button className="ml-3 underline" onClick={data.clearActionError}>Dismiss</button>
+          </div>
+        )}
+        {!demoMode && data.dataMode === 'unavailable' ? (
+          <main id="main-content" className="p-6 pb-32" tabIndex={-1}>
+            <div className="mx-auto max-w-2xl rounded-xl border border-red-300 bg-red-50 p-8 text-center" role="alert">
+              <h1 className="text-xl font-bold text-red-900">Live investigator data is unavailable</h1>
+              <p className="mt-3 text-sm text-red-800">
+                The console is intentionally not showing synthetic or cached data. Confirm the backend and database are running before taking action.
+              </p>
+              {data.dataError && <p className="mt-3 break-words text-xs text-red-700">{data.dataError}</p>}
+              <button onClick={data.loadData} className="mt-5 rounded-lg bg-red-800 px-4 py-2 text-sm font-semibold text-white hover:bg-red-900">
+                Retry live data
+              </button>
+            </div>
+          </main>
+        ) : (
         <main id="main-content" className="p-6 pb-32" tabIndex={-1}>
           <Outlet />
         </main>
+        )}
         <FloatingDockNav activeView={activeView} />
         <LiveAlertToast />
         <EvidenceModal

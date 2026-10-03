@@ -1,4 +1,5 @@
 {
+  "model_version": "rf-xgb-synthetic-v5-20260916",
   "model_type": "Ensemble (RF + XGBoost)",
   "rf_params": {
     "n_estimators": 200,

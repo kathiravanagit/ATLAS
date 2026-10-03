@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Startup script for the backend.
-Creates tables and seeds initial data.
-"""
+"""Development/demo startup script for the backend."""
 import sys
 import os
 
@@ -10,10 +7,6 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from database import engine, Base
-from models_db import (
-    Case, Prediction, RankedLocation, Alert, Suspect,
-    AuditLog, AtmLocation
-)
 from seed import create_tables, seed_data
 
 
@@ -22,11 +15,21 @@ def main():
     print("ATLAS — Advanced Threat Location & Alert System")
     print("=" * 50)
     
-    print("\n[1/3] Creating database tables...")
-    create_tables()
-    
-    print("[2/3] Seeding initial data...")
-    seed_data()
+    demo_mode = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+    if demo_mode:
+        print("\n[1/3] Creating demo database tables...")
+        create_tables()
+    else:
+        print("\n[1/3] Applying database migrations...")
+        from alembic import command
+        from alembic.config import Config
+        command.upgrade(Config("alembic.ini"), "head")
+
+    if demo_mode:
+        print("[2/3] Seeding demo data...")
+        seed_data()
+    else:
+        print("[2/3] Skipping demo seed (production mode)...")
     
     print("[3/3] Starting server...")
     print("=" * 50)

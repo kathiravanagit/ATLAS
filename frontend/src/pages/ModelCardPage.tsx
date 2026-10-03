@@ -61,6 +61,8 @@ interface ModelCard {
   n_features: number;
   ensemble_method: string;
   training_date: string;
+  model_version?: string;
+  top_k_accuracy?: { top_1_hit_rate?: number; top_3_hit_rate?: number; top_5_hit_rate?: number };
   feature_columns: string[];
   positive_ratio: number;
   confusion_matrix?: { tp: number; fp: number; fn: number; tn: number };
@@ -76,8 +78,6 @@ interface FeatureStat {
   min: number;
   max: number;
 }
-
-const TOP_K_ACCURACY = { top1: 68.2, top3: 89.5, top5: 96.1 };
 
 export default function ModelCardPage() {
   const navigate = useNavigate();
@@ -359,9 +359,9 @@ export default function ModelCardPage() {
         <p className="text-xs text-[#6B7280] mb-4">How often the true cash-out location appears in the top K predicted locations. This is the primary operational metric.</p>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Top-1 Hit Rate', value: TOP_K_ACCURACY.top1, desc: 'True location is #1 ranked' },
-            { label: 'Top-3 Hit Rate', value: TOP_K_ACCURACY.top3, desc: 'True location in top 3' },
-            { label: 'Top-5 Hit Rate', value: TOP_K_ACCURACY.top5, desc: 'True location in top 5' },
+            { label: 'Top-1 Hit Rate', value: (card.top_k_accuracy?.top_1_hit_rate ?? 0) * 100, desc: 'True location is #1 ranked' },
+            { label: 'Top-3 Hit Rate', value: (card.top_k_accuracy?.top_3_hit_rate ?? 0) * 100, desc: 'True location in top 3' },
+            { label: 'Top-5 Hit Rate', value: (card.top_k_accuracy?.top_5_hit_rate ?? 0) * 100, desc: 'True location in top 5' },
           ].map((m) => (
             <div key={m.label} className="bg-[#1D355B] rounded-xl p-4 text-center">
               <div className="text-[11px] text-[#93c5fd] uppercase mb-1">{m.label}</div>

@@ -21,7 +21,10 @@ export interface DashboardData {
   setLastPredictionUpdate: (d: Date) => void;
   evidenceModalOpen: boolean;
   setEvidenceModalOpen: (open: boolean) => void;
-  usingFallback: boolean;
+  dataMode: 'live' | 'demo' | 'unavailable';
+  dataError: string | null;
+  actionError: string | null;
+  clearActionError: () => void;
   lastUpdated: Date;
   cityCenter?: [number, number];
 }

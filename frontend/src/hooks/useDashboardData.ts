@@ -1,22 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authFetch, getAccessToken } from '../lib/auth';
+import { authFetch } from '../lib/auth';
 import { timeAgo } from '../lib/utils';
 import {
   FALLBACK_STATS, FALLBACK_CASES, FALLBACK_PREDICTION, FALLBACK_ALERTS,
   DEMO_CASE_ID, FALLBACK_PREDICTIONS
 } from '../data/fallbackData';
-import { DashboardStats, Case, Prediction, Alert, PredictionLocation } from '../types';
+import { DashboardStats, Case, Prediction, Alert, PredictionLocation, EvidenceItem } from '../types';
 
 const API_BASE = '/api';
 
-async function fetchApi<T>(url: string, fallback: T): Promise<{ data: T; fromFallback: boolean }> {
-  try {
-    const res = await authFetch(`${API_BASE}${url}`);
-    if (!res.ok) throw new Error('API error');
-    return { data: await res.json(), fromFallback: false };
-  } catch {
-    return { data: fallback, fromFallback: true };
+async function fetchApi<T>(url: string): Promise<T> {
+  const res = await authFetch(`${API_BASE}${url}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`${url} returned ${res.status}${detail ? `: ${detail.slice(0, 160)}` : ''}`);
   }
+  return await res.json() as T;
 }
 
 export function useDashboardData(selectedCity: string = 'puducherry', opts?: { forceFallback?: boolean }) {
@@ -30,8 +29,10 @@ export function useDashboardData(selectedCity: string = 'puducherry', opts?: { f
   const [lastPredictionUpdate, setLastPredictionUpdate] = useState<Date>(new Date());
   const [relativeTime, setRelativeTime] = useState('just now');
   const [selectedLocation, setSelectedLocation] = useState<PredictionLocation | null>(null);
-  const [liveAlertCount, setLiveAlertCount] = useState(0);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [liveAlertCount] = useState(0);
+  const [dataMode, setDataMode] = useState<'live' | 'demo' | 'unavailable'>(forceFallback ? 'demo' : 'unavailable');
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [cityCenter, setCityCenter] = useState<[number, number] | undefined>(undefined);
 
   const loadData = useCallback(async () => {
@@ -41,101 +42,98 @@ export function useDashboardData(selectedCity: string = 'puducherry', opts?: { f
       setStats(FALLBACK_STATS);
       setCases(FALLBACK_CASES);
       setAlerts(FALLBACK_ALERTS);
-      setUsingFallback(true);
+      setPrediction(FALLBACK_PREDICTION);
+      setDataMode('demo');
+      setDataError(null);
       setIsRefreshing(false);
       return;
     }
-    let anyFallback = false;
     try {
       const [s, c, a] = await Promise.all([
-        fetchApi<DashboardStats>('/dashboard', FALLBACK_STATS),
-        fetchApi<Case[]>('/cases', FALLBACK_CASES),
-        fetchApi<Alert[]>('/alerts', FALLBACK_ALERTS),
+        fetchApi<DashboardStats>('/dashboard'),
+        fetchApi<Case[]>('/cases'),
+        fetchApi<Alert[]>('/alerts'),
       ]);
-      if (s.fromFallback || c.fromFallback || a.fromFallback) anyFallback = true;
-      setStats(s.data);
-      setCases(c.data);
-      setAlerts(a.data);
+      setStats(s);
+      setCases(c);
+      setAlerts(a);
 
       if (selectedCity) {
-        const cityResult = await fetchApi<any>(`/cities/${selectedCity}/predictions`, null);
-        if (!cityResult.fromFallback && cityResult.data) {
-          const cityPred = cityResult.data;
-          const topLoc = cityPred.ranked_locations?.[0];
-          const transformed: Prediction = {
-            case_id: cityPred.case_id || selectedCaseId,
-            status: topLoc && topLoc.risk_score > 70 ? 'HIGH PRIORITY' : 'MEDIUM PRIORITY',
-            primary_location: {
-              rank: 1,
-              atm_id: topLoc?.atm_id || 'N/A',
-              location_name: topLoc?.location_name || cityPred.city || '',
-              risk_score: topLoc?.risk_score || 0,
-              expected_window: topLoc?.expected_window || '18:00-20:00',
-              distance: topLoc?.distance || '0 km',
-              reason: topLoc?.reason || 'City-based prediction',
-              status: topLoc?.status || 'Medium',
-              latitude: topLoc?.latitude || 0,
-              longitude: topLoc?.longitude || 0,
-            },
-            ranked_locations: (cityPred.ranked_locations || []).map((loc: any, i: number) => ({
-              rank: loc.rank || i + 1,
-              atm_id: loc.atm_id,
-              location_name: loc.location_name,
-              risk_score: loc.risk_score,
-              expected_window: loc.expected_window || '18:00-20:00',
-              distance: loc.distance || '0 km',
-              reason: loc.reason || 'Historical pattern match',
-              status: loc.status || 'Medium',
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-            })),
-            risk_trend: cityPred.risk_trend || Array.from({ length: 6 }, (_, i) => Math.round(10 + Math.sin(i * 0.9) * 35 + i * 10)),
-            evidence: cityPred.evidence || {},
-          };
+        const cityPred = await fetchApi<{
+          case_id?: string;
+          city?: string;
+          center?: [number, number];
+          ranked_locations?: PredictionLocation[];
+          risk_trend?: number[];
+          evidence?: Record<string, EvidenceItem>;
+        }>(`/cities/${selectedCity}/predictions`);
+        const topLoc = cityPred.ranked_locations?.[0];
+        if (!topLoc) throw new Error(`No ranked prediction returned for ${selectedCity}`);
+        const transformed: Prediction = {
+          case_id: cityPred.case_id || selectedCaseId,
+          status: topLoc.risk_score > 70 ? 'HIGH PRIORITY' : 'MEDIUM PRIORITY',
+          primary_location: topLoc,
+          ranked_locations: cityPred.ranked_locations || [],
+          risk_trend: cityPred.risk_trend || [],
+          evidence: cityPred.evidence || {},
+        };
           setPrediction(transformed);
           setCityCenter(cityPred.center || undefined);
           setSelectedLocation(null);
           if (cityPred.case_id && cityPred.case_id !== selectedCaseId) {
             setSelectedCaseId(cityPred.case_id);
           }
-        } else {
-          anyFallback = true;
-        }
       } else {
-        const p = await fetchApi<Prediction>(`/predictions/${selectedCaseId}`, FALLBACK_PREDICTION);
-        if (p.fromFallback) anyFallback = true;
-        setPrediction(p.data);
+        setPrediction(await fetchApi<Prediction>(`/predictions/${selectedCaseId}`));
       }
+      setDataMode('live');
+      setDataError(null);
       setLastPredictionUpdate(new Date());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The live data service is unavailable.';
+      setDataMode('unavailable');
+      setDataError(`Live data unavailable. No operational data is being shown. ${message}`);
     } finally {
-      setUsingFallback(anyFallback);
       setIsRefreshing(false);
     }
-  }, [selectedCity, forceFallback]);
+  }, [selectedCity, forceFallback, selectedCaseId]);
 
   useEffect(() => { loadData(); const i = setInterval(loadData, 30000); return () => clearInterval(i); }, [loadData]);
   useEffect(() => { const i = setInterval(() => setRelativeTime(timeAgo(lastPredictionUpdate)), 5000); return () => clearInterval(i); }, [lastPredictionUpdate]);
 
   const handleCaseSelect = useCallback((caseId: string) => {
     setSelectedCaseId(caseId);
-    setPrediction(FALLBACK_PREDICTIONS[caseId] || FALLBACK_PREDICTION);
-  }, []);
+    if (forceFallback) {
+      setPrediction(FALLBACK_PREDICTIONS[caseId] || FALLBACK_PREDICTION);
+    }
+  }, [forceFallback]);
 
   const handleAcknowledge = useCallback(async (alertId: string) => {
-    setAlerts(prev => prev.map(a => a.alert_id === alertId ? { ...a, acknowledged: true, acknowledged_at: new Date().toLocaleTimeString() } : a));
-    try { await authFetch(`${API_BASE}/alerts/${alertId}/acknowledge`, { method: 'POST' }); } catch {}
+    try {
+      const res = await authFetch(`${API_BASE}/alerts/${alertId}/acknowledge`, { method: 'POST' });
+      if (!res.ok) throw new Error(`Alert acknowledgement failed (${res.status})`);
+      setAlerts(prev => prev.map(a => a.alert_id === alertId ? { ...a, acknowledged: true, acknowledged_at: new Date().toLocaleTimeString() } : a));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Alert acknowledgement failed.');
+    }
   }, []);
 
   const handleResolveCase = useCallback(async (caseId: string) => {
-    setCases(prev => prev.map(c => c.case_id === caseId ? { ...c, status: 'resolved' as const, current_risk: 'Resolved' } : c));
-    try { await authFetch(`${API_BASE}/cases/${caseId}/resolve`, { method: 'POST' }); } catch {}
+    try {
+      const res = await authFetch(`${API_BASE}/cases/${caseId}/resolve`, { method: 'POST' });
+      if (!res.ok) throw new Error(`Case resolution failed (${res.status})`);
+      setCases(prev => prev.map(c => c.case_id === caseId ? { ...c, status: 'resolved' as const, current_risk: 'Resolved' } : c));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Case resolution failed.');
+    }
   }, []);
 
   return {
     stats, cases, prediction, alerts, selectedCaseId, setSelectedCaseId,
     isRefreshing, relativeTime, selectedLocation, setSelectedLocation,
     liveAlertCount, handleCaseSelect, handleAcknowledge, handleResolveCase,
-    loadData, setPrediction, setLastPredictionUpdate, usingFallback,
+    loadData, setPrediction, setLastPredictionUpdate, dataMode, dataError, actionError,
+    clearActionError: () => setActionError(null),
     lastUpdated: lastPredictionUpdate, cityCenter,
   };
 }

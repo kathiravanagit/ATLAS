@@ -16,12 +16,12 @@ beforeEach(() => {
 })
 
 describe('auth token management', () => {
-  it('setTokens stores all values in localStorage', () => {
+  it('setTokens stores access session state but never the refresh token', () => {
     const user = { id: '1', name: 'Test', role: 'admin' }
     setTokens('access123', 'refresh456', 3600, user)
 
     expect(localStorage.getItem('atlas_token')).toBe('access123')
-    expect(localStorage.getItem('atlas_refresh_token')).toBe('refresh456')
+    expect(localStorage.getItem('atlas_refresh_token')).toBeNull()
     expect(JSON.parse(localStorage.getItem('investigator') || '{}')).toEqual(user)
     expect(localStorage.getItem('atlas_token_expires')).toBeTruthy()
   })
@@ -35,9 +35,9 @@ describe('auth token management', () => {
     expect(getAccessToken()).toBeNull()
   })
 
-  it('getRefreshToken returns stored refresh token', () => {
+  it('getRefreshToken never exposes the HttpOnly refresh cookie', () => {
     localStorage.setItem('atlas_refresh_token', 'refresh123')
-    expect(getRefreshToken()).toBe('refresh123')
+    expect(getRefreshToken()).toBeNull()
   })
 
   it('getUser parses JSON from localStorage', () => {

@@ -3,7 +3,6 @@
  */
 
 const ACCESS_KEY = 'atlas_token';
-const REFRESH_KEY = 'atlas_refresh_token';
 const USER_KEY = 'investigator';
 const EXPIRES_KEY = 'atlas_token_expires';
 
@@ -12,7 +11,8 @@ export function getAccessToken(): string | null {
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_KEY);
+  // Refresh tokens are HttpOnly cookies and must never be readable by JavaScript.
+  return null;
 }
 
 export function getUser(): Record<string, unknown> | null {
@@ -24,16 +24,14 @@ export function getUser(): Record<string, unknown> | null {
   }
 }
 
-export function setTokens(accessToken: string, refreshToken: string, expiresIn: number, user: Record<string, unknown>) {
+export function setTokens(accessToken: string, _refreshToken: string, expiresIn: number, user: Record<string, unknown>) {
   localStorage.setItem(ACCESS_KEY, accessToken);
-  localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   localStorage.setItem(EXPIRES_KEY, String(Date.now() + expiresIn * 1000));
 }
 
 export function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(EXPIRES_KEY);
 }
@@ -54,14 +52,12 @@ export async function refreshAccessToken(): Promise<{
   expires_in: number;
   user: Record<string, unknown>;
 } | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
   try {
     const res = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include',
+      body: JSON.stringify({}),
     });
 
     if (!res.ok) {
@@ -70,7 +66,7 @@ export async function refreshAccessToken(): Promise<{
     }
 
     const data = await res.json();
-    setTokens(data.access_token, data.refresh_token, data.expires_in, data.user);
+    setTokens(data.access_token, '', data.expires_in, data.user);
     return data;
   } catch {
     return null;
@@ -116,7 +112,7 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     } catch {}
   }
 
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, { ...options, credentials: 'include', headers });
 
   // If 401, try refresh once
   if (res.status === 401) {
@@ -139,7 +135,7 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
           }
         } catch {}
       }
-      return fetch(url, { ...options, headers: retryHeaders });
+      return fetch(url, { ...options, credentials: 'include', headers: retryHeaders });
     }
     window.location.href = '/login';
     throw new Error('Session expired');
@@ -152,17 +148,14 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
  * Logout: revoke refresh token and clear storage.
  */
 export async function logout(): Promise<void> {
-  const refreshToken = getRefreshToken();
-  if (refreshToken) {
-    try {
-      // authFetch attaches the CSRF token required by POST /api/auth/logout
-      await authFetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-    } catch {}
-  }
+  try {
+    // The server reads and revokes the HttpOnly refresh cookie.
+    await authFetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+  } catch {}
   clearTokens();
 }
 
@@ -202,7 +195,7 @@ export async function updateProfile(data: { name?: string; badge?: string; depar
       const current = getUser() || {};
       setTokens(
         getAccessToken() || '',
-        getRefreshToken() || '',
+        '',
         parseInt(localStorage.getItem(EXPIRES_KEY || '') || '0') - Date.now(),
         { ...current, ...result.user },
       );

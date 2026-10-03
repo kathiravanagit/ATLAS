@@ -70,6 +70,7 @@ class Prediction(Base):
     case_id = Column(String, ForeignKey("cases.case_id"), nullable=False)
     status = Column(String, default="PENDING")
     risk_trend = Column(Text, default="[]")
+    model_version = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     case = relationship("Case", back_populates="predictions")

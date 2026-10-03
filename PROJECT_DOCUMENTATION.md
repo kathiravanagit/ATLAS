@@ -433,7 +433,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 - **Investigation Console** — Full workspace with map, cases, alerts, audit, ML model
 
 ### Key Components
-- **TopNav** — City selector (8 cities), red offline banner, scenario runner, Demo Mode indicator, user profile
+- **TopNav** — City selector (8 cities), explicit live/demo/unavailable status, scenario runner, user profile
 - **MapView** — Leaflet map with city-based remount, color-coded ATM markers (red >70%, orange 45-70%, blue <45%), risk heatmap circles
 - **PredictionCard** — Risk score visualization, primary ATM, time window, evidence signals
 - **ExplainabilityPanel** — Auto-generated "Investigative Briefing" + SHAP feature bars
@@ -449,8 +449,8 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 ### Demo Features
 - **Scenario Runner** — 3 pre-baked scenarios in TopNav dropdown
 - **Demo Login** — Quick-login buttons for all 4 roles
-- **Offline Mode** — Red "Backend Offline — Demo Data" banner with cached fallback
-- **Global Demo Mode** — Single pulse indicator in TopNav
+- **Live outage handling** — The live console blocks operational content when the API is unavailable and instructs officers not to act until recovery
+- **Explicit Demo Mode** — Synthetic data is available only through `/demo`; it is never substituted into `/real`
 
 ### Multi-City Map
 - **City Selector** — Dropdown in TopNav with 8 cities and their states
@@ -530,18 +530,21 @@ INVESTIGATOR_EMAIL=investigator@atlas.gov
 ## Tests
 
 ```bash
-# Backend — 133 passing, 1 skipped
+# Backend — run the suite after installing `backend/requirements.txt`
 cd backend && python -m pytest tests/ -v
 
 # Frontend — TypeScript strict mode
 cd frontend && npx tsc --noEmit
+
+# Frontend production bundle
+cd frontend && npm run build
 
 # E2E — Playwright (29 tests, Chromium)
 cd frontend && npx playwright test
 ```
 
 ### What We Test
-**Backend (133 tests + 1 skipped):**
+**Backend:** The suite covers:
 - Authentication (login, register, refresh, token reuse)
 - RBAC (all 4 roles for read/write/override)
 - CSRF protection on state-changing endpoints
