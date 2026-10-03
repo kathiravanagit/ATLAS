@@ -65,12 +65,12 @@ jobs:
         run: |
           python start.py > ../backend-e2e.log 2>&1 &
           for i in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8000/api/health > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:8000/health/live > /dev/null; then
               break
             fi
             sleep 2
           done
-          curl --fail http://127.0.0.1:8000/api/health
+          curl --fail http://127.0.0.1:8000/health/live
 
       - name: Type check
         run: npx tsc --noEmit
