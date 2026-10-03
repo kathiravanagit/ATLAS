@@ -22,9 +22,8 @@ test.describe('Dashboard Welcome Page', () => {
     await expect(page.locator('text=Welcome').or(page.locator('text=Investigator')).first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('has link to enter console', async ({ page }) => {
-    const enterBtn = page.locator('text=Enter Console').or(page.locator('text=Investigator Console')).first();
-    await expect(enterBtn).toBeVisible({ timeout: 10000 });
+  test('keeps the legacy dashboard URL pointed at the console', async ({ page }) => {
+    await expect(page).toHaveURL(/\/real/);
   });
 });
 
