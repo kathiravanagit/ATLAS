@@ -8,17 +8,17 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 
 ### Honest Scope
 
-**What's production-ready:**
+**What is implemented in this prototype:**
 
 - Security architecture (AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS)
 - Cryptographic evidence chain-of-custody with tamper-evident verification
-- Full-stack application with 56+ API endpoints, 135 passing backend tests, and 34 passing frontend unit tests
+- Full-stack application with 56+ documented API endpoints, 135 passing backend tests, and 34 passing frontend unit tests
 - PostgreSQL/PostGIS integration path with an explicit SQLite test fallback
-- Multi-city support — 8 cities, 64 ATMs with live city switching on the map
+- Multi-city support — 8 synthetic demonstration cities and 64 synthetic ATM records with city switching on the map
 
-**What's a working prototype needing real data:**
+**What remains unvalidated or prototype-only:**
 
-- The ML prediction model (trained on synthetic data — see accuracy note)
+- The ML prediction model and operational simulation (trained and evaluated only on synthetic data — see accuracy note)
 - NLP complaint triage (keyword-based, not transformer-based)
 - Mule network graph analysis (demonstrates the concept, needs real transaction graphs)
 
@@ -46,7 +46,7 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 
 React 18 · TypeScript 5.6 (strict) · Vite 5.4 · Tailwind CSS · daisyUI · Recharts · Leaflet · d3-force · React Router 6
 
-### Backend
+### Backend setup
 
 Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 + optional PostGIS / SQLite test fallback · python-jose · passlib
 
@@ -78,7 +78,7 @@ alembic upgrade head
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### Frontend
+### Frontend setup
 
 ```bash
 cd frontend
@@ -115,7 +115,7 @@ python seed.py
 - The live console does not replace failed API responses with synthetic data.
 - Every prediction records the model version used to generate it.
 - Field outcomes are recorded for human-reviewed evaluation; predictions are not automated enforcement decisions.
-- Production must use PostgreSQL and run `alembic upgrade head` before startup.
+- An authorised future deployment would require PostgreSQL and `alembic upgrade head` before startup; this repository does not provide a production deployment.
 
 ---
 
@@ -188,16 +188,18 @@ python seed.py
 
 ## Project Structure
 
-```
+```text
 sih-prototype/
 ├── backend/
-│   ├── main.py              # FastAPI app — 54+ endpoints
+│   ├── main.py              # FastAPI app — 56+ documented endpoints
 │   ├── auth.py              # JWT, RBAC, CSRF, rate limiting
 │   ├── encryption.py        # AES-256-GCM encryption
 │   ├── ml_engine.py         # RF+XGBoost ensemble, SHAP, drift
 │   ├── evidence_chain.py    # SHA-256 hash chain + Merkle tree
 │   ├── blockchain.py        # PoW blockchain: mining, multi-node consensus
 │   ├── spatial.py           # PostGIS / haversine fallback
+│   ├── models_db.py         # SQLAlchemy models, including synthetic transaction_records
+│   ├── alembic/              # Schema migrations (0001–0003)
 │   ├── seed.py              # Database seeder
 │   ├── city_data.py         # 8 cities, 64 ATMs
 │   └── tests/               # pytest suite (run the command below for the current count)
@@ -208,6 +210,7 @@ sih-prototype/
 │   │   ├── hooks/           # Data fetching, WebSocket
 │   │   └── lib/             # Auth, utilities
 │   └── e2e/                 # Playwright end-to-end tests
+├── model/                   # Synthetic model artifacts and metadata
 ├── docker-compose.yml
 └── .env.example
 ```
@@ -274,16 +277,16 @@ From `backend/model/metadata.json` (40,000-sample eval set, 1,458 cash-out vs 38
 | PR-AUC | 0.446 | Ranking quality on imbalanced data |
 | Confusion | TP 574 · FP 25 · FN 884 · TN 38,517 | Misses (FN 884) dominate errors |
 
-Deliberate tradeoff: the threshold is tuned for **high precision to avoid alert fatigue** for officers, at the cost of recall on a 3.6%-minority class. The model is **decision support, not an enforcement decision** — every flagged case requires human review. No public Indian cybercrime transaction dataset exists to validate against; the pipeline is designed to retrain on authorized data.
+Deliberate tradeoff: the threshold is tuned for **high precision to reduce simulated alert volume** on the synthetic benchmark. The model is **decision support, not an enforcement decision** — every flagged case requires human review. No real-data validation is claimed; any future retraining would require authorised data and an approved validation process.
 
 ---
 
 ## Data Disclaimer
 
-This prototype uses **only reproducible synthetic demonstration data**. No real or unauthorised banking, financial, crime, or government data is used. Runtime prediction records are stored in `transaction_records` and queried by the prediction engine; they are synthetic fixtures, not operational records. The model and operational simulation have not been validated on real data.
+This prototype uses **only reproducible synthetic demonstration data**. No real or unauthorised banking, financial, crime, or government data is used. Runtime prediction records are stored in `transaction_records` and queried by the prediction engine; they are synthetic fixtures, not operational records. The model and operational simulation have not been validated on real data. The `/real` route means the non-fallback application route, not a claim that its data is real.
 
 ---
 
 ## License
 
-Security-hardened prototype for Smart India Hackathon 2026. Built to demonstrate production-grade security architecture and evidence chain integrity.
+Security-focused prototype for Smart India Hackathon 2026. Built to demonstrate security controls and evidence-chain integrity; it is not a production deployment.

@@ -40,6 +40,9 @@ backend/model/atlas_chain.json
 *.swo
 *~
 
+# Local documentation tooling
+.markdownlint.json
+
 # OS files
 .DS_Store
 Thumbs.db
