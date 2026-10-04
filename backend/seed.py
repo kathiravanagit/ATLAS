@@ -9,9 +9,14 @@ import random
 import json
 import math
 import os
+import hashlib
 from encryption import is_encrypted, encrypt as aes_encrypt
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+
+
+def _stable_int(value: str) -> int:
+    return int.from_bytes(hashlib.sha256(value.encode("utf-8")).digest()[:4], "big")
 
 # City center coordinates for distance calculations
 CITY_CENTERS = {
@@ -269,7 +274,7 @@ def seed_data(force=False):
         prediction_count = 0
         ranked_count = 0
         for case in active_cases:
-            random.seed(hash(case.case_id) % 10000)
+            random.seed(_stable_int(case.case_id) % 10000)
             pred = Prediction(
                 case_id=case.case_id,
                 status="HIGH PRIORITY" if case.current_risk == "High" else "MEDIUM PRIORITY",

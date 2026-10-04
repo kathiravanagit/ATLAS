@@ -12,8 +12,8 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 
 - Security architecture (AES-256-GCM, JWT rotation, RBAC, CSRF, rate limiting, TLS)
 - Cryptographic evidence chain-of-custody with tamper-evident verification
-- Full-stack application with 54+ API endpoints, 110 passing backend tests, 29 passing E2E tests
-- PostGIS spatial indexing with haversine fallback
+- Full-stack application with 56+ API endpoints, 135 passing backend tests, and 34 passing frontend unit tests
+- PostgreSQL/PostGIS integration path with an explicit SQLite test fallback
 - Multi-city support — 8 cities, 64 ATMs with live city switching on the map
 
 **What's a working prototype needing real data:**
@@ -22,7 +22,7 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 - NLP complaint triage (keyword-based, not transformer-based)
 - Mule network graph analysis (demonstrates the concept, needs real transaction graphs)
 
-**The honest pitch for judges:** "The security infrastructure and evidence chain are built to production standards. The ML pipeline is end-to-end functional and ready for real data. No public Indian cybercrime transaction dataset exists to validate the model against — that's a data access problem, not an engineering one."
+**The honest pitch for judges:** "This is a security-focused investigation-console prototype. Its prediction workflow uses persisted, reproducible synthetic transaction fixtures. It has not been validated on real data, connected to a government system, or deployed to production."
 
 ---
 
@@ -48,7 +48,7 @@ React 18 · TypeScript 5.6 (strict) · Vite 5.4 · Tailwind CSS · daisyUI · Re
 
 ### Backend
 
-Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 (Supabase) / SQLite · PostGIS (auto-detect) · python-jose · passlib
+Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 + optional PostGIS / SQLite test fallback · python-jose · passlib
 
 ### AI/ML
 
@@ -62,7 +62,7 @@ scikit-learn 1.5 (RandomForest) · XGBoost 2.1 · SHAP 0.46 · NetworkX 3.3 (Lou
 
 - Python 3.13+
 - Node.js 20+
-- (Optional) PostgreSQL with PostGIS
+- (Optional) PostgreSQL 16 with PostGIS for integration testing; SQLite is used explicitly for local demo/test runs
 
 ### Backend
 
@@ -200,14 +200,14 @@ sih-prototype/
 │   ├── spatial.py           # PostGIS / haversine fallback
 │   ├── seed.py              # Database seeder
 │   ├── city_data.py         # 8 cities, 64 ATMs
-│   └── tests/               # 104 pytest tests
+│   └── tests/               # pytest suite (run the command below for the current count)
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/           # 8 route pages
 │   │   ├── components/      # 26+ components (incl. BlockchainPanel)
 │   │   ├── hooks/           # Data fetching, WebSocket
 │   │   └── lib/             # Auth, utilities
-│   └── e2e/                 # 29 Playwright tests
+│   └── e2e/                 # Playwright end-to-end tests
 ├── docker-compose.yml
 └── .env.example
 ```
@@ -217,13 +217,16 @@ sih-prototype/
 ## Testing
 
 ```bash
-# Backend (104 tests)
+# Backend
 cd backend && python -m pytest tests/ -v
+
+# Frontend unit tests (currently 34)
+cd frontend && npm test -- --run
 
 # Frontend (TypeScript strict)
 cd frontend && npx tsc --noEmit
 
-# E2E (29 Playwright tests)
+# E2E
 cd frontend && npx playwright test
 ```
 
@@ -277,7 +280,7 @@ Deliberate tradeoff: the threshold is tuned for **high precision to avoid alert 
 
 ## Data Disclaimer
 
-This prototype uses **entirely synthetic demonstration data**. No real banking, financial, or government data is used. All case IDs, amounts, locations, ATM coordinates, and risk scores are fabricated. The ML model requires authorized Indian cybercrime transaction data for production validation.
+This prototype uses **only reproducible synthetic demonstration data**. No real or unauthorised banking, financial, crime, or government data is used. Runtime prediction records are stored in `transaction_records` and queried by the prediction engine; they are synthetic fixtures, not operational records. The model and operational simulation have not been validated on real data.
 
 ---
 

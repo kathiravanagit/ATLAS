@@ -10,10 +10,11 @@ import ModelHealthCard from '../components/ModelHealthCard';
 import DriftIndicator from '../components/DriftIndicator';
 import CostRoiCard from '../components/CostRoiCard';
 import Pipeline from '../components/Pipeline';
+import SyntheticOperationalSimulation from '../components/SyntheticOperationalSimulation';
 import { FolderOpen, MapPin, Bell, Clock, ExternalLink, RefreshCw, ShieldCheck, AlertOctagon } from 'lucide-react';
 
 export default function OverviewPage() {
-  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, evidenceModalOpen, setEvidenceModalOpen, setSelectedLocation, dataMode } = useDashboard();
+  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, setEvidenceModalOpen, setSelectedLocation, dataMode } = useDashboard();
 
   return (
     <div className="space-y-6">
@@ -61,6 +62,7 @@ export default function OverviewPage() {
 
       <ModelPerformanceCard />
       <CostRoiCard />
+      <SyntheticOperationalSimulation />
 
       <RankedLocationsTable locations={prediction.ranked_locations} onSelect={setSelectedLocation} />
       <Pipeline stage={6} />

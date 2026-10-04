@@ -15,7 +15,8 @@ from reliability import (
 from models_db import NotificationJob
 from models_db import (
     Case, Prediction, RankedLocation, Alert, Suspect,
-    AuditLog, AtmLocation, FieldOutcome, RefreshToken, IdempotencyKey
+    AuditLog, AtmLocation, FieldOutcome, RefreshToken, IdempotencyKey,
+    TransactionRecord
 )
 from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
@@ -36,6 +37,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import threading
 import logging
+import hashlib
 from twilio_client import send_sms_alert
 from email_client import send_email_alert
 from encryption import is_encrypted, encrypt as aes_encrypt, decrypt as aes_decrypt
@@ -271,12 +273,42 @@ class AlertCreate(BaseModel):
     time_window: str
 
 
+def stable_int(value: str) -> int:
+    """Return a process-independent integer for reproducible synthetic fixtures."""
+    return int.from_bytes(hashlib.sha256(value.encode("utf-8")).digest()[:4], "big")
+
+
+def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms: list) -> list:
+    """Create and query synthetic records once; prediction signals come from DB rows."""
+    records = db.query(TransactionRecord).filter(TransactionRecord.case_id == case_id).all()
+    if records:
+        return records
+
+    seed = stable_int(f"{case_id}:{city_id}")
+    base_time = datetime(2026, 9, 1, 17, tzinfo=timezone.utc)
+    for index in range(12):
+        atm = atms[(seed + index) % len(atms)]
+        amount = float(12000 + ((seed + index * 7919) % 118000))
+        db.add(TransactionRecord(
+            case_id=case_id,
+            from_account=f"SYN-SRC-{(seed + index) % 97:03d}",
+            to_account=f"SYN-MULE-{(seed + index * 3) % 97:03d}",
+            amount=amount,
+            atm_id=atm["id"] if isinstance(atm, dict) else atm.atm_id,
+            location=atm["name"] if isinstance(atm, dict) else atm.name,
+            occurred_at=base_time + timedelta(hours=(seed + index) % 18),
+            source="synthetic-fixture",
+        ))
+    db.commit()
+    return db.query(TransactionRecord).filter(TransactionRecord.case_id == case_id).all()
+
+
 # ─── Risk Scoring Engine (ML-powered) ─────────────────────────────────────────
 
 def get_predictions_for_case(case_id: str, db: Session) -> dict:
     case = db.query(Case).filter(Case.case_id == case_id).first()
 
-    case_hash = hash(case_id) % 10000
+    case_hash = stable_int(case_id) % 10000
     random.seed(case_hash)
 
     atm_locations = db.query(AtmLocation).all()
@@ -301,6 +333,9 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     city_atms = [atm for atm in atm_locations if atm.atm_id.startswith(prefix)]
     if not city_atms:
         city_atms = atm_locations  # fallback to all if no match
+    synthetic_records = ensure_synthetic_transactions(db, case_id, city_id, city_atms)
+    record_total = sum(record.amount for record in synthetic_records)
+    record_accounts = len({record.to_account for record in synthetic_records})
 
     model_meta = get_metadata()
     model_accuracy = model_meta.get("accuracy", 72.7) if model_meta else 72.7
@@ -314,9 +349,9 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     suspect_offset_y = ((case_hash * 23 + 7) % 240 - 120) / 10000.0
     suspect_lat = victim_lat + suspect_offset_x
     suspect_lng = victim_lng + suspect_offset_y
-    amount = case.amount if case else round(20000 + (case_hash % 60001), 2)
-    num_mules = case.linked_accounts if case else 2 + (case_hash % 4)
-    hour = 6 + (case_hash % 18)
+    amount = case.amount if case and case.amount else record_total
+    num_mules = case.linked_accounts if case and case.linked_accounts else record_accounts
+    hour = max(6, min(23, int(sum(record.occurred_at.hour for record in synthetic_records) / len(synthetic_records))))
 
     def _expected_window(h):
         if 17 <= h < 18:
@@ -353,7 +388,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     for i, atm in enumerate(city_atms):
         dist_victim = haversine(victim_lat, victim_lng, atm.latitude, atm.longitude)
         dist_suspect = haversine(suspect_lat, suspect_lng, atm.latitude, atm.longitude)
-        atm_hash = hash(atm.atm_id) % 10000
+        atm_hash = stable_int(atm.atm_id) % 10000
 
         atm_type_map = {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}
         atm_type_val = getattr(atm, 'atm_type', None) or getattr(atm, 'type', None)
@@ -411,16 +446,16 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
 
     primary = ranked[0]
 
-    # Deterministic evidence values derived from case_id hash
-    _ev_hours = 2 + (case_hash % 7)
-    _ev_pct = 60 + (case_hash % 5) * 5
+    # Evidence values are derived from persisted synthetic records.
+    _ev_hours = max(2, min(9, len(synthetic_records) // 2))
+    _ev_pct = 60 + (record_accounts % 5) * 5
     _ev_geo_radius = 2 + (case_hash % 5)
-    _ev_geo_count = 3 + (case_hash % 5)
-    _ev_geo_total = 5 + (case_hash % 6)
+    _ev_geo_count = min(len(synthetic_records), 3 + (record_accounts % 5))
+    _ev_geo_total = len(synthetic_records)
     _ev_geo_km = 2 + (case_hash % 4)
-    _ev_net_hours = 3 + (case_hash % 6)
-    _ev_sim_pct = 60 + (case_hash % 25)
-    _ev_sim_count = 3 + (case_hash % 18)
+    _ev_net_hours = max(3, min(8, len(synthetic_records) // 2))
+    _ev_sim_pct = 60 + (record_total % 25)
+    _ev_sim_count = record_accounts
 
     evidence = {
         "transaction_pattern": {
@@ -619,17 +654,32 @@ def get_city_atm_list(city_id: str, user: dict = Depends(require_permission("rea
 
 
 @app.get("/api/cities/{city_id}/predictions")
-def get_city_predictions(city_id: str, user: dict = Depends(require_permission("read"))):
+def get_city_predictions(city_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     city = get_city(city_id)
     if not city:
         raise HTTPException(status_code=404, detail="City not found")
 
     atms = city["atms"]
-    city_hash = hash(city_id)
+    city_hash = stable_int(city_id)
+    synthetic_case_id = f"SYN-CITY-{city_id.upper()}"
+    if not db.query(Case).filter(Case.case_id == synthetic_case_id).first():
+        db.add(Case(
+            case_id=synthetic_case_id,
+            crime_type="Synthetic simulation",
+            amount=0,
+            linked_accounts=0,
+            current_risk="Medium",
+            status="active",
+            victim_name="SYNTHETIC-VICTIM",
+            contact="SYNTHETIC-ONLY",
+            description=f"Persisted synthetic city fixture for {city_id}",
+        ))
+        db.commit()
+    synthetic_records = ensure_synthetic_transactions(db, synthetic_case_id, city_id, atms)
 
     ranked = []
     for i, atm in enumerate(atms):
-        atm_h = hash(city_id + atm["id"]) % 10000
+        atm_h = stable_int(city_id + atm["id"]) % 10000
         _dist = round(0.5 + (atm_h % 751) / 100.0, 2)
         _crime = 1 + (atm_h % 15)
         _sus_dist = round(1.0 + (atm_h % 1101) / 100.0, 2)
@@ -687,15 +737,14 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         r["rank"] = i + 1
 
     primary = ranked[0] if ranked else None
-    num_mules = 2 + (city_hash % 5)
+    num_mules = len({record.to_account for record in synthetic_records})
 
-    # Deterministic evidence values derived from city_id hash
-    _ev_hours = 2 + (city_hash % 7)
-    _ev_amt = 50000 + (city_hash % 250001)
-    _ev_pct = 60 + (city_hash % 26)
+    _ev_hours = max(2, min(9, len(synthetic_records) // 2))
+    _ev_amt = sum(record.amount for record in synthetic_records)
+    _ev_pct = 60 + (len(synthetic_records) % 26)
     _ev_geo_radius = 2 + (city_hash % 5)
-    _ev_geo_count = 3 + (city_hash % 5)
-    _ev_geo_total = 5 + (city_hash % 6)
+    _ev_geo_count = min(len(synthetic_records), 3 + (city_hash % 5))
+    _ev_geo_total = len(synthetic_records)
     _ev_geo_km = 2 + (city_hash % 4)
     _ev_net_hours = 3 + (city_hash % 6)
     _ev_sim_pct = 60 + (city_hash % 25)
@@ -748,7 +797,8 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "primary_location": primary,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]] if primary else [],
         "evidence": evidence,
-        "disclaimer": "Risk scores are model-derived estimates on synthetic data. They indicate relative likelihood, not certainty. Officer judgment is required for all enforcement decisions.",
+        "disclaimer": "Synthetic operational simulation only. Risk scores are not real-world validation and require officer review.",
+        "data_source": "synthetic-fixture transaction_records",
     }
 
 
@@ -882,6 +932,16 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
         action_type="prediction",
         case_id=tx.case_id
     )
+    db.add(TransactionRecord(
+        case_id=tx.case_id,
+        from_account=tx.from_account,
+        to_account=tx.to_account,
+        amount=tx.amount,
+        atm_id=tx.atm_id,
+        location=tx.location,
+        occurred_at=datetime.now(timezone.utc),
+        source="synthetic-simulation",
+    ))
 
     case.amount = case.amount + tx.amount
     case.linked_accounts = max(case.linked_accounts, 2)
@@ -1115,7 +1175,7 @@ def get_suspects(case_id: str, user: dict = Depends(require_permission("read")),
     suspects = db.query(Suspect).filter(Suspect.case_id == case_id).all()
 
     if not suspects:
-        c_hash = hash(case_id) % 10000
+        c_hash = stable_int(case_id) % 10000
         atm_locations = db.query(AtmLocation).all()
         num_suspects = 1 + (c_hash % 3)
 
@@ -1364,16 +1424,16 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
     for c in cases:
         account_ids = [f"ACCT-{c.case_id}-{i}" for i in range(c.linked_accounts)]
         for i, acct in enumerate(account_ids):
-            acct_hash = hash(acct) % 10000
+            acct_hash = stable_int(acct) % 10000
             G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=round(5000 + (acct_hash % 495001), 2))
             if i > 0:
-                prev_acct_hash = hash(account_ids[i-1]) % 10000
+                prev_acct_hash = stable_int(account_ids[i-1]) % 10000
                 G.add_edge(account_ids[i-1], acct, weight=round(0.3 + ((acct_hash * 3) % 701) / 1000.0, 3),
                            amount=round(5000 + (acct_hash % 195001), 2),
                            timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (acct_hash % 72))).isoformat())
         if len(account_ids) > 2:
-            h_first = hash(account_ids[0]) % 10000
-            h_last = hash(account_ids[-1]) % 10000
+            h_first = stable_int(account_ids[0]) % 10000
+            h_last = stable_int(account_ids[-1]) % 10000
             G.add_edge(account_ids[0], account_ids[-1], weight=1.0,
                        amount=round(10000 + (h_first % 290001), 2),
                        timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_first % 48))).isoformat())
@@ -1567,7 +1627,7 @@ def shap_explanation(request: Request, case_id: str, user: dict = Depends(requir
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    case_hash = hash(case_id) % 10000
+    case_hash = stable_int(case_id) % 10000
     amount = case.amount if case else round(20000 + (case_hash % 60001), 2)
     num_mules = case.linked_accounts if case else 2 + (case_hash % 4)
     hour = 6 + (case_hash % 18)
@@ -1636,7 +1696,7 @@ def model_drift(request: Request, user: dict = Depends(require_permission("read"
     random.seed(42)
 
     for feature, train_stat in feature_stats.items():
-        _f_hash = hash(feature) % 10000
+        _f_hash = stable_int(feature) % 10000
         live_mean = train_stat["mean"] + ((_f_hash % 200 - 100) / 1000.0) * train_stat["std"] * 0.1
         live_std = train_stat["std"] * (0.9 + (_f_hash % 201) / 1000.0)
 
@@ -1737,7 +1797,7 @@ def get_review_queue(user: dict = Depends(require_permission("read")), status: s
 
     queue = []
     for c in cases:
-        c_hash = hash(c.case_id) % 10000
+        c_hash = stable_int(c.case_id) % 10000
         queue.append({
             "case_id": c.case_id,
             "crime_type": c.crime_type,

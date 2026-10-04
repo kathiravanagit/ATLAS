@@ -48,12 +48,12 @@ export default function FloatingDockNav({ activeView }: { activeView: string }) 
   });
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999]">
+    <nav aria-label="Investigation console navigation" data-active-view={activeView} className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2">
       <FloatingDock
         items={links}
         desktopClassName="bg-white border border-[#D1D5DB]"
         mobileClassName="translate-y-20"
       />
-    </div>
+    </nav>
   );
 }

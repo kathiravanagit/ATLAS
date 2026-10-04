@@ -15,7 +15,7 @@ When a victim reports cybercrime on **cybercrime.gov.in**, stolen money is rapid
 - **Cryptographic evidence chain** — SHA-256 hash chain with Merkle tree verification
 - **PoW blockchain** — SHA-256 mining, Merkle roots, 3-node longest-chain consensus
 - **Full-stack application** — React + TypeScript frontend, FastAPI + PostgreSQL backend
-- **56+ API endpoints** with 133 passing backend tests and 29 passing E2E tests
+- **56+ API endpoints** with 135 passing backend tests and 34 passing frontend unit tests (Playwright is a separate E2E suite)
 - **Multi-city support** — 8 Indian cities with 64 ATMs, live city switching on interactive map
 
 ---
@@ -58,7 +58,7 @@ Law enforcement needs **predictive intelligence** — not just forensic tracing 
 When a victim reports cybercrime, the system captures transaction amount, type (UPI/NEFT/RTGS/card fraud), victim's last known location, suspect account details, and time of incident.
 
 #### Phase 2: Transaction Simulation
-The backend simulates criminal operation patterns — money split across 3-5 mule accounts, each making withdrawal attempts at different ATMs. **Simulated transactions are ephemeral and not stored in the database.**
+The backend simulates criminal operation patterns — money split across 3-5 mule accounts, each making withdrawal attempts at different ATMs. **Synthetic transaction fixtures are persisted in `transaction_records` and queried by the prediction engine. They are reproducible synthetic records only, never real or unauthorised data.**
 
 #### Phase 3: ML Prediction Engine
 An ensemble of **Random Forest + XGBoost** classifiers analyzes **15 risk features** for every ATM in the region:
@@ -148,8 +148,8 @@ Investigators receive ranked locations, time windows, SHAP-based explainability,
 | **Graph** | d3-force + react-force-graph-2d | Mule network visualization |
 | **Backend** | FastAPI 0.115 (Python 3.13) | Async, auto-documentation |
 | **ORM** | SQLAlchemy 2.0 | Python ecosystem standard |
-| **Database** | PostgreSQL 16 (Supabase) | Managed, real-time capable |
-| **Spatial** | PostGIS auto-detection + haversine fallback | Efficient proximity queries |
+| **Database** | PostgreSQL 16 + SQLite test fallback | PostgreSQL is the intended integration database; no hosted deployment is included |
+| **Spatial** | Optional PostGIS auto-detection + haversine fallback | PostGIS integration is verified only when configured |
 | **ML** | scikit-learn 1.5 + XGBoost 2.1 | Ensemble accuracy |
 | **Explainability** | SHAP 0.46 (KernelExplainer) | Per-case feature contributions |
 | **Auth** | python-jose (JWT HS256) + passlib (bcrypt) | Production security |
@@ -329,7 +329,7 @@ SHAP KernelExplainer generates per-case feature contributions, cached to avoid r
 ### Transactions & Alerts (4)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/transactions` | Simulate transaction (ephemeral) |
+| POST | `/api/transactions` | Record a synthetic simulation transaction |
 | GET | `/api/alerts` | Active alerts |
 | POST | `/api/alerts` | Create alert |
 | POST | `/api/alerts/{id}/acknowledge` | Acknowledge alert |
@@ -539,7 +539,7 @@ cd frontend && npx tsc --noEmit
 # Frontend production bundle
 cd frontend && npm run build
 
-# E2E — Playwright (29 tests, Chromium)
+# E2E — Playwright (run separately with Chromium)
 cd frontend && npx playwright test
 ```
 
@@ -560,7 +560,7 @@ cd frontend && npx playwright test
 - Alert row-level scoping (department/assigned/shared pool, non-admin exclusion)
 - Password policy + registration gate + rate-limit bypass under TESTING
 
-**E2E (29 tests):**
+**E2E (Playwright suite; run separately):**
 - Landing page (5) — title, hero, CTA, problem statement
 - Login (6) — form, demo buttons, error handling, register
 - Dashboard (8) — stats, impact metrics, prediction, demo mode, user profile
@@ -574,7 +574,7 @@ cd frontend && npx playwright test
 
 1. **Dashboard Overview** (10 sec) — 6 stat cards, impact metrics
 2. **City Switching** (30 sec) — Switch between 8 cities, map updates with correct ATMs
-3. **Simulate Transaction** (1 min) — Interactive, show validation, ephemeral disclaimer
+3. **Simulate Transaction** (1 min) — Interactive, show validation, synthetic-record disclaimer
 4. **Map Prediction** (1 min) — Risk-ranked locations, lead time, SHAP explainability
 5. **NLP Triage** (1 min) — Paste complaint, entity extraction, non-cybercrime fallback
 6. **Review Queue** (30 sec) — Approve/override/dismiss cases
@@ -607,7 +607,7 @@ sih-prototype/
 │   ├── train_model.py       # Trains on 200k synthetic transactions
 │   ├── generate_data.py     # Generates training data (400 ATMs, 200k txns)
 │   ├── seed.py              # Seeds 64 ATMs, 23 cases, 77 audit logs
-│   └── tests/               # 104 backend tests
+│   └── tests/               # pytest suite; run the command for the current count
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/           # 8 page routes
@@ -617,7 +617,7 @@ sih-prototype/
 │   │   ├── lib/auth.ts      # Token management, CSRF auto-fetch
 │   │   ├── data/            # Fallback data for offline mode
 │   │   └── test/            # Frontend tests
-│   ├── e2e/                 # 29 Playwright E2E tests
+│   ├── e2e/                 # Playwright E2E tests
 │   │   ├── landing.spec.ts
 │   │   ├── login.spec.ts
 │   │   ├── dashboard.spec.ts
@@ -634,14 +634,14 @@ sih-prototype/
 
 ## Synthetic Data Disclaimer
 
-This prototype uses **entirely synthetic demonstration data**. No real banking, financial, or government data is used. All case IDs, amounts, locations, ATM coordinates, and risk scores are fabricated. The 200k training transactions were generated synthetically calibrated to public fraud statistics from RBI reports. The ML model needs real Indian cybercrime transaction data to validate — such a dataset does not currently exist publicly.
+This prototype uses **only reproducible synthetic demonstration data**. No real or unauthorised banking, financial, crime, or government data is used. Runtime prediction records are stored in `transaction_records` and queried by the prediction engine; they are synthetic fixtures, not operational records. The model and operational simulation have not been validated on real data.
 
 ---
 
 ## Prepared Answers for Judges
 
 **"Why isn't this real blockchain?"**
-> "We built a Proof-of-Work blockchain purpose-built for evidence custody: SHA-256 mining with nonces, Merkle roots per block, and a 3-node simulated network with longest-chain consensus. Full public-chain consensus (PoS/PoW across untrusting nodes) is overhead for single-agency evidence — but we keep the core blockchain primitives: blocks, PoW, Merkle proofs, and multi-node consensus. An evidence anchor auto-mines a block; judges can run consensus live on the Evidence page."
+> "This is a local simulated multi-node prototype for evidence-custody demonstrations. It is not a real government network, public blockchain, or production trust system."
 
 **"What's your accuracy on real data?"**
 > "The accuracy is 97.7%, but that's misleading — fraud is only 3.65% of transactions. The real question is: of the actual fraud cases, how many do we catch? That's our recall: 39.4%. On imbalanced data, F1 score (55.8%) and PR-AUC (0.446) are the meaningful metrics. Our precision is 95.8% — when the model flags fraud, it's right 95.8% of the time. No public Indian cybercrime transaction dataset exists. The pipeline is designed to retrain on authorized data."
@@ -656,7 +656,7 @@ This prototype uses **entirely synthetic demonstration data**. No real banking, 
 > "The architecture is designed to support Federated Learning for cross-bank model training without sharing raw data. For this prototype, we use centralized training with synthetic data."
 
 **"Show me where PostGIS is used."**
-> "The system auto-detects PostGIS at startup. If available, it uses spatial index queries. Otherwise, it falls back to haversine distance. Both produce the same results — PostGIS is faster at scale."
+> "PostGIS is an optional PostgreSQL integration path. The application reports extension availability and uses haversine fallback when it is absent. The integration fixture runs only when POSTGRES_TEST_DATABASE_URL is configured."
 
 **"How do you prevent overfitting to synthetic data?"**
 > "We used stratified 80/20 train-test split with 5-fold cross-validation. The model achieves 55.8% F1 and 0.446 PR-AUC on the held-out test set — metrics that account for class imbalance. The model learns signal from engineered features (amount, time, distance, crime density) — patterns that transfer to real data. We also validate against known fraud patterns from RBI reports."

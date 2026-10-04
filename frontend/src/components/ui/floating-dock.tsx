@@ -45,6 +45,9 @@ const FloatingDockMobile = ({
                 transition={{ delay: (items.length - 1 - idx) * 0.05 }}
               >
                 <button
+                  type="button"
+                  title={item.title}
+                  aria-label={item.title}
                   onClick={() => { item.onClick?.(); setOpen(false); }}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
                 >
@@ -56,6 +59,9 @@ const FloatingDockMobile = ({
         )}
       </AnimatePresence>
       <button
+        type="button"
+        aria-label={open ? "Close navigation" : "Open navigation"}
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
         className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
       >
@@ -144,7 +150,7 @@ function IconContainer({
   const heightIcon = useSpring(heightTransformIcon, { mass: 0.1, stiffness: 250, damping: 18 });
 
   return (
-    <button onClick={onClick} title={title}>
+    <button type="button" onClick={onClick} title={title} aria-label={title}>
       <motion.div
         ref={ref}
         style={{ width, height }}

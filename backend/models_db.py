@@ -149,6 +149,22 @@ class AtmLocation(Base):
     area = Column(String, nullable=False)
 
 
+class TransactionRecord(Base):
+    """Synthetic transaction fixture used by the prediction pipeline."""
+
+    __tablename__ = "transaction_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    case_id = Column(String, ForeignKey("cases.case_id"), nullable=False, index=True)
+    from_account = Column(String, nullable=False)
+    to_account = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    atm_id = Column(String, nullable=True, index=True)
+    location = Column(String, nullable=True)
+    occurred_at = Column(DateTime, nullable=False)
+    source = Column(String, nullable=False, default="synthetic-fixture")
+
+
 class FieldOutcome(Base):
     __tablename__ = "field_outcomes"
 
