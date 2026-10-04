@@ -53,7 +53,7 @@ export default function DashboardLayout({ demoMode = false }: { demoMode?: boole
             <button className="ml-3 underline" onClick={data.clearActionError}>Dismiss</button>
           </div>
         )}
-        {!demoMode && data.dataMode === 'unavailable' ? (
+        {!demoMode && data.dataMode === 'unavailable' && !data.isRefreshing ? (
           <main id="main-content" className="p-6 pb-32" tabIndex={-1}>
             <div className="mx-auto max-w-2xl rounded-xl border border-red-300 bg-red-50 p-8 text-center" role="alert">
               <h1 className="text-xl font-bold text-red-900">Live investigator data is unavailable</h1>

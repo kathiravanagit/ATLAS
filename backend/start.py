@@ -35,7 +35,9 @@ def main():
     print("=" * 50)
     
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # Keep one server process so the frontend cannot remain attached to a stale
+    # reloader child using a different environment or database.
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
 
 
 if __name__ == "__main__":

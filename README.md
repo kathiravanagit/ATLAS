@@ -1,6 +1,29 @@
 # ATLAS — Advanced Threat Location & Alert System
 
+[![CI](https://github.com/kathiravanagit/ATLAS/actions/workflows/ci.yml/badge.svg)](https://github.com/kathiravanagit/ATLAS/actions/workflows/ci.yml)
+[![Frontend](https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-2563eb)](./frontend)
+[![Backend](https://img.shields.io/badge/backend-FastAPI-059669)](./backend)
+
 ## Smart India Hackathon 2026 — Problem Statement 26184
+
+<p align="center">
+  <img src="assets/atlas-architecture.svg" alt="ATLAS system architecture: data to ML, geospatial ranking, SHAP, alerts, blockchain evidence, and dashboard" width="100%">
+</p>
+
+### Product tour
+
+The console is organised around the complete investigation loop:
+
+| Surface | What to look for |
+| --- | --- |
+| Dashboard | model status, lead time, ranked locations, and the notification count |
+| Ranked ATM map | city switching, time/risk filters, red high-risk zones, and the weighted heatmap |
+| SHAP panel | per-case feature contributions and the plain-language investigative briefing |
+| Alert flow | high-risk predictions become reviewable alerts; acknowledgement is recorded |
+| Blockchain evidence | hash-chain integrity, PoW status, Merkle proof, and validation state |
+| Heatmap | intensity is weighted by risk score; critical zones are outlined in red |
+
+Screenshots and a short walkthrough GIF should be captured from the synthetic `/demo` console before a presentation. The repository intentionally does not ship screenshots of real operational data.
 
 ### What This Is
 
@@ -25,6 +48,14 @@ ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, run
 **The honest pitch for judges:** "This is a security-focused investigation-console prototype. Its prediction workflow uses persisted, reproducible synthetic transaction fixtures. It has not been validated on real data, connected to a government system, or deployed to production."
 
 ---
+
+## Why blockchain?
+
+The evidence ledger is not used to make a prediction. It provides a tamper-evident handoff after a prediction or review action: the payload is hashed, linked to the previous block, and mined with the prototype proof-of-work flow. Investigators can inspect the chain and validate linkage from **Evidence → Blockchain Evidence Ledger**. This makes the audit claim visible without implying that a prototype in-process ledger is a production government blockchain.
+
+## Model comparison and explainability
+
+ATLAS reports the metrics that matter for the imbalanced synthetic benchmark: precision, recall, F1, PR-AUC, and the majority-class accuracy baseline. The majority baseline is deliberately shown because the 97.7% accuracy figure is otherwise misleading. The production UI also exposes the model's feature contributions in the SHAP panel; these are decision-support explanations, not causal claims. A historical-density-only benchmark is not yet validated in this repository and should be added before claiming uplift over that specific baseline.
 
 ## Security Architecture
 
@@ -70,10 +101,13 @@ scikit-learn 1.5 (RandomForest) · XGBoost 2.1 · SHAP 0.46 · NetworkX 3.3 (Lou
 cd backend
 pip install -r requirements.txt
 cp ../.env.example .env    # configure secrets
-# Demo only: creates the local demo schema and seeds synthetic data
+# Default: connects to the configured PostgreSQL/Supabase database and applies migrations
+python start.py
+
+# Explicit local demo only: uses SQLite and synthetic data
 DEMO_MODE=true python start.py
 
-# Production/staging: apply migrations before starting the API
+# Production/staging (same default behavior): apply migrations before starting the API
 alembic upgrade head
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```

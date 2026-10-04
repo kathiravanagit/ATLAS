@@ -2,6 +2,7 @@ import { PredictionLocation } from '../types';
 import React, { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet.heat';
 import {
   MapPin, Filter, ChevronDown, ChevronUp, AlertTriangle,
   Clock, Shield, Crosshair, RotateCcw, X, Info
@@ -70,6 +71,40 @@ function MapUpdater({ center }: { center: [number, number] }) {
       map.flyTo(center, 15, { duration: 1.2 });
     }
   }, [center, map]);
+  return null;
+}
+
+function RiskHeatLayer({ locations, enabled }: { locations: PredictionLocation[]; enabled: boolean }) {
+  const map = useMap();
+
+  React.useEffect(() => {
+    if (!enabled || locations.length === 0) return;
+
+    const points: L.HeatLatLngTuple[] = locations.map((loc) => [
+      loc.latitude,
+      loc.longitude,
+      Math.max(0.15, loc.risk_score / 100),
+    ]);
+    const layer = L.heatLayer(points, {
+      radius: 42,
+      blur: 30,
+      maxZoom: 17,
+      max: 1,
+      minOpacity: 0.35,
+      gradient: {
+        0.15: '#3b82f6',
+        0.45: '#22c55e',
+        0.7: '#f59e0b',
+        0.88: '#f97316',
+        1: '#ef4444',
+      },
+    });
+    layer.addTo(map);
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [enabled, locations, map]);
+
   return null;
 }
 
@@ -160,29 +195,16 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
         <MapUpdater center={center} />
         <MapEvents onClick={() => onSelectLocation(null as any)} />
 
-        {showHeatmap && filtered.map((loc) => {
-          const r = loc.risk_score > 70 ? 200 : loc.risk_score > 45 ? 150 : 100;
-          const c = riskColor(loc.risk_score);
-          return (
-            <React.Fragment key={`heat-${loc.atm_id}`}>
-              <Circle
-                center={[loc.latitude, loc.longitude]}
-                radius={r}
-                pathOptions={{ color: c, fillColor: c, fillOpacity: 0.04, weight: 0 }}
-              />
-              <Circle
-                center={[loc.latitude, loc.longitude]}
-                radius={r * 0.55}
-                pathOptions={{ color: c, fillColor: c, fillOpacity: 0.08, weight: 0 }}
-              />
-              <Circle
-                center={[loc.latitude, loc.longitude]}
-                radius={r * 0.25}
-                pathOptions={{ color: c, fillColor: c, fillOpacity: 0.15, weight: 0 }}
-              />
-            </React.Fragment>
-          );
-        })}
+        <RiskHeatLayer locations={filtered} enabled={showHeatmap} />
+
+        {filtered.filter(loc => loc.risk_score > 70).map((loc) => (
+          <Circle
+            key={`critical-zone-${loc.atm_id}`}
+            center={[loc.latitude, loc.longitude]}
+            radius={220}
+            pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.08, weight: 2, opacity: 0.75 }}
+          />
+        ))}
 
         {filtered.map((loc) => (
           <Marker
@@ -317,10 +339,10 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 </div>
               </div>
 
-              {/* Zone Radius */}
+              {/* Heatmap explanation */}
               <div className="pt-2 border-t border-[#D1D5DB]">
-                <div className="text-[10px] text-[#6B7280]">Heatmap Zones</div>
-                <div className="text-[10px] text-[#6B7280] mt-0.5">200m / 150m / 100m radius</div>
+                <div className="text-[10px] text-[#6B7280]">Heatmap intensity</div>
+                <div className="text-[10px] text-[#6B7280] mt-0.5">Blue = lower risk · red = concentrated high risk</div>
               </div>
             </div>
           )}

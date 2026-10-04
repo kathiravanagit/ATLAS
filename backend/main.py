@@ -284,6 +284,22 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
     if records:
         return records
 
+    # Transaction records are children of cases. City-generated and direct
+    # prediction requests can use synthetic IDs that are not seeded yet.
+    if not db.query(Case).filter(Case.case_id == case_id).first():
+        db.add(Case(
+            case_id=case_id,
+            crime_type="Synthetic prediction fixture",
+            amount=0,
+            linked_accounts=0,
+            current_risk="Medium",
+            status="active",
+            victim_name="SYNTHETIC-VICTIM",
+            contact="SYNTHETIC-ONLY",
+            description=f"Persisted synthetic prediction fixture for {city_id}",
+        ))
+        db.flush()
+
     seed = stable_int(f"{case_id}:{city_id}")
     base_time = datetime(2026, 9, 1, 17, tzinfo=timezone.utc)
     for index in range(12):

@@ -9,13 +9,29 @@ import { DashboardStats, Case, Prediction, Alert, PredictionLocation, EvidenceIt
 
 const API_BASE = '/api';
 
-async function fetchApi<T>(url: string): Promise<T> {
-  const res = await authFetch(`${API_BASE}${url}`);
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`${url} returned ${res.status}${detail ? `: ${detail.slice(0, 160)}` : ''}`);
+async function fetchApi<T>(url: string, attempts = 3): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const res = await authFetch(`${API_BASE}${url}`);
+      if (res.ok) return await res.json() as T;
+
+      const detail = await res.text().catch(() => '');
+      lastError = new Error(`${url} returned ${res.status}${detail ? `: ${detail.slice(0, 160)}` : ''}`);
+
+      // A transient 5xx during backend startup should not blank the console.
+      // Authentication and client errors are actionable and should surface immediately.
+      if (res.status < 500 || attempt === attempts - 1) throw lastError;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(`Request failed for ${url}`);
+      if (attempt === attempts - 1) throw lastError;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
   }
-  return await res.json() as T;
+
+  throw lastError || new Error(`Request failed for ${url}`);
 }
 
 export function useDashboardData(selectedCity: string = 'puducherry', opts?: { forceFallback?: boolean }) {
