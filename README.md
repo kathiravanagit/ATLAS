@@ -41,6 +41,10 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 | --- |
 | ![ATLAS linked account analysis](assets/atlas-linked-account-analysis-detail.png) |
 
+### Demo Video
+
+[Watch the ATLAS demonstration video](<assets/Demo Video - Advanced Threat Location & Alert System.mp4>)
+
 ### What This Is
 
 ATLAS is a cybercrime cash-out prediction platform. It takes complaint data, runs it through an ML pipeline, and predicts **where** the next ATM cash-out is likely to happen — giving law enforcement a lead time window to deploy.
