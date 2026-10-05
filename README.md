@@ -31,15 +31,15 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 
 | Investigation dashboard | Predicted cash-out locations |
 | --- | --- |
-| ![ATLAS investigation dashboard](assets/website3.png) | ![ATLAS predicted cash-out locations map](assets/website5.PNG) |
+| ![ATLAS investigation dashboard](assets/atlas-homepage.png) | ![ATLAS predicted cash-out locations map](assets/atlas-riskmap.png) |
 
-| Investigation alerts and review queue | Linked account analysis |
+| Investigation alerts and review queue | System health and database status |
 | --- | --- |
-| ![ATLAS investigation alerts](assets/website2.png) | ![ATLAS linked account analysis](assets/website1.png) |
+| ![ATLAS investigation alerts and review queue](assets/atlas-alerts.png) | ![ATLAS system health and database status](assets/atlas-health.png) |
 
-| Risk intelligence detail |
+| Linked account analysis detail |
 | --- |
-| ![ATLAS cash-out risk intelligence detail](assets/website4.PNG) |
+| ![ATLAS linked account analysis](assets/atlas-linked-account-analysis-detail.png) |
 
 ### What This Is
 
