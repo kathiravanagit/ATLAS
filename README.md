@@ -41,12 +41,7 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 
 ### Demo Video
 
-<video controls width="100%">
-  <source src="https://raw.githubusercontent.com/kathiravanagit/ATLAS/main/assets/Demo%20Video%20-%20Advanced%20Threat%20Location%20%26%20Alert%20System.mp4" type="video/mp4">
-  Your browser does not support embedded video. [Watch the ATLAS demonstration video](https://raw.githubusercontent.com/kathiravanagit/ATLAS/main/assets/Demo%20Video%20-%20Advanced%20Threat%20Location%20%26%20Alert%20System.mp4).
-</video>
-
-[Open the ATLAS demonstration video](https://raw.githubusercontent.com/kathiravanagit/ATLAS/main/assets/Demo%20Video%20-%20Advanced%20Threat%20Location%20%26%20Alert%20System.mp4)
+[![Watch the ATLAS demonstration video](https://img.youtube.com/vi/yuoHutx33vc/maxresdefault.jpg)](https://youtu.be/yuoHutx33vc)
 
 ### What This Is
 
