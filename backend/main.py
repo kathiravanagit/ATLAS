@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import engine, get_db, Base, USE_SQLITE, SessionLocal
+from database import engine, get_db, Base, USE_SQLITE, SessionLocal, USE_POSTGIS
 from reliability import (
     idempotency_key_from, check_replay, store_replay,
     enqueue_notification, run_notification_worker,
@@ -48,6 +48,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 import json
+import time
 import threading
 import logging
 import hashlib
@@ -323,8 +324,8 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
             from_account=f"SYN-SRC-{(seed + index) % 97:03d}",
             to_account=f"SYN-MULE-{(seed + index * 3) % 97:03d}",
             amount=amount,
-            atm_id=atm["id"] if isinstance(atm, dict) else atm.atm_id,
-            location=atm["name"] if isinstance(atm, dict) else atm.name,
+            atm_id=atm.get("id") if hasattr(atm, "get") else getattr(atm, "atm_id", ""),
+            location=atm.get("name") if hasattr(atm, "get") else getattr(atm, "name", ""),
             occurred_at=base_time + timedelta(hours=(seed + index) % 18),
             source="synthetic-fixture",
         ))
@@ -1391,6 +1392,7 @@ def _validation_protocol_block(meta: dict) -> dict:
             "slices": _vr.get("slices"),
             "calibration": _vr.get("calibration_random_sample"),
             "threshold_sweep": _vr.get("threshold_sweep_random_sample"),
+            "baseline_comparison": _vr.get("baseline_comparison"),
         }
     except (OSError, ValueError):
         holdouts = None

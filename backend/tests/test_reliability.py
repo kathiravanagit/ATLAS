@@ -304,3 +304,27 @@ class TestAuditSearch:
         assert r.status_code == 200
         rows = r.json()
         assert all("case_id" in row and "date" in row for row in rows)
+
+
+class TestBaselineComparison:
+    def test_model_card_exposes_baseline_comparison(self, client, admin_token):
+        """Judge question: 'better than sending police to the highest historical crime ATM?'"""
+        data = client.get("/api/model/card", headers=auth_header(admin_token)).json()
+        bc = data["validation_protocol"]["holdout_revalidation"]["baseline_comparison"]
+        assert bc is not None
+        th = bc["time_holdout"]
+        assert th["alert_budget_k"] >= 1
+        for strategy in ("majority_class", "random_ranking", "nearest_atm",
+                         "historical_density", "atlas_ensemble"):
+            assert strategy in th, f"missing baseline strategy {strategy}"
+        # ATLAS must beat every naive baseline on ranking quality (unseen months)
+        assert th["atlas_ensemble"]["pr_auc"] > th["historical_density"]["pr_auc"]
+        assert th["atlas_ensemble"]["pr_auc"] > th["nearest_atm"]["pr_auc"]
+        # matched-budget precision comparison
+        assert th["atlas_ensemble"]["precision_at_k"] > th["random_ranking"]["precision_at_k"]
+        # same comparison must hold for unseen cities
+        lh = bc["location_holdout"]
+        assert lh["atlas_ensemble"]["pr_auc"] > lh["historical_density"]["pr_auc"]
+        # majority baseline flags nothing -> recall 0 but high accuracy (the trap)
+        assert th["majority_class"]["recall_at_k"] == 0.0
+        assert th["majority_class"]["accuracy_pct"] > 90

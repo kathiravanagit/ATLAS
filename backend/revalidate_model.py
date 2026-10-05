@@ -80,6 +80,51 @@ def calibration(proba, y, bins=10):
             "note": "scores are ranking scores, not calibrated probabilities"}
 
 
+def baseline_comparison(df, y, proba, seed=42):
+    """Answer: is ATLAS better than 'send police to the nearest ATM' / 'highest historical crime'?
+
+    All strategies are compared at the SAME alert budget k = number of alerts the
+    production ensemble raises at threshold 0.5, so precision/recall are apples-to-apples.
+    """
+    k = max(int((proba >= 0.5).sum()), 1)
+    rng = np.random.default_rng(seed)
+
+    strategies = {
+        "majority_class": np.zeros(len(y)),                       # always "no cash-out"
+        "random_ranking": rng.random(len(y)),                     # random dispatch
+        "nearest_atm": -df["distance_from_victim_km"].to_numpy(),  # closest ATM to victim
+        "historical_density": df["historical_crime_density"].to_numpy(),  # highest-crime ATM
+        "atlas_ensemble": proba,                                  # the model
+    }
+    out = {"alert_budget_k": k,
+           "note": "precision/recall measured at the same alert budget k as the "
+                   "production ensemble (threshold 0.5); PR-AUC is budget-free"}
+    prevalence = float(y.mean())
+    for name, score in strategies.items():
+        if name == "majority_class":
+            # degenerate scorer: flags nothing -> recall 0, accuracy = 1 - prevalence
+            out[name] = {
+                "pr_auc": round(prevalence, 4),
+                "precision_at_k": 0.0, "recall_at_k": 0.0, "f1_at_k": 0.0,
+                "accuracy_pct": round((1 - prevalence) * 100, 2),
+            }
+            continue
+        order = np.argsort(-score)[:k]
+        pred = np.zeros(len(y), dtype=int)
+        pred[order] = 1
+        tp = int(((pred == 1) & (y == 1)).sum())
+        precision = tp / k
+        recall = tp / int(y.sum()) if y.sum() else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+        out[name] = {
+            "pr_auc": round(float(average_precision_score(y, score)), 4),
+            "precision_at_k": round(float(precision), 4),
+            "recall_at_k": round(float(recall), 4),
+            "f1_at_k": round(float(f1), 4),
+        }
+    return out
+
+
 def threshold_sweep(y, proba):
     rows = []
     for t in THRESHOLDS:
@@ -129,6 +174,11 @@ def main():
         },
         "calibration_random_sample": calibration(proba_all[:20000], y_all[:20000]),
         "threshold_sweep_random_sample": threshold_sweep(y_all[:20000], proba_all[:20000]),
+        "baseline_comparison": {
+            "random_holdout": baseline_comparison(df.iloc[:20000], y_all[:20000], proba_all[:20000]),
+            "time_holdout": baseline_comparison(df[te], y_all[te], proba_all[te]),
+            "location_holdout": baseline_comparison(df[loc], y_all[loc], proba_all[loc]),
+        },
         "guidance": "pick the threshold from investigator capacity and false-positive "
                     "cost using the sweep above; never cite accuracy alone on 3.6% positives.",
     }

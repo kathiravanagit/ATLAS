@@ -166,5 +166,112 @@
       "flagged": 2956
     }
   ],
+  "baseline_comparison": {
+    "random_holdout": {
+      "alert_budget_k": 3003,
+      "note": "precision/recall measured at the same alert budget k as the production ensemble (threshold 0.5); PR-AUC is budget-free",
+      "majority_class": {
+        "pr_auc": 0.1648,
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "f1_at_k": 0.0,
+        "accuracy_pct": 83.53
+      },
+      "random_ranking": {
+        "pr_auc": 0.166,
+        "precision_at_k": 0.1672,
+        "recall_at_k": 0.1524,
+        "f1_at_k": 0.1594
+      },
+      "nearest_atm": {
+        "pr_auc": 0.089,
+        "precision_at_k": 0.0236,
+        "recall_at_k": 0.0215,
+        "f1_at_k": 0.0225
+      },
+      "historical_density": {
+        "pr_auc": 0.167,
+        "precision_at_k": 0.1735,
+        "recall_at_k": 0.1581,
+        "f1_at_k": 0.1654
+      },
+      "atlas_ensemble": {
+        "pr_auc": 0.9605,
+        "precision_at_k": 0.968,
+        "recall_at_k": 0.8822,
+        "f1_at_k": 0.9232
+      }
+    },
+    "time_holdout": {
+      "alert_budget_k": 525,
+      "note": "precision/recall measured at the same alert budget k as the production ensemble (threshold 0.5); PR-AUC is budget-free",
+      "majority_class": {
+        "pr_auc": 0.037,
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "f1_at_k": 0.0,
+        "accuracy_pct": 96.3
+      },
+      "random_ranking": {
+        "pr_auc": 0.0368,
+        "precision_at_k": 0.0267,
+        "recall_at_k": 0.0113,
+        "f1_at_k": 0.0159
+      },
+      "nearest_atm": {
+        "pr_auc": 0.0253,
+        "precision_at_k": 0.0133,
+        "recall_at_k": 0.0056,
+        "f1_at_k": 0.0079
+      },
+      "historical_density": {
+        "pr_auc": 0.0415,
+        "precision_at_k": 0.0419,
+        "recall_at_k": 0.0178,
+        "f1_at_k": 0.0249
+      },
+      "atlas_ensemble": {
+        "pr_auc": 0.6934,
+        "precision_at_k": 0.9638,
+        "recall_at_k": 0.4084,
+        "f1_at_k": 0.5737
+      }
+    },
+    "location_holdout": {
+      "alert_budget_k": 739,
+      "note": "precision/recall measured at the same alert budget k as the production ensemble (threshold 0.5); PR-AUC is budget-free",
+      "majority_class": {
+        "pr_auc": 0.036,
+        "precision_at_k": 0.0,
+        "recall_at_k": 0.0,
+        "f1_at_k": 0.0,
+        "accuracy_pct": 96.4
+      },
+      "random_ranking": {
+        "pr_auc": 0.0372,
+        "precision_at_k": 0.0392,
+        "recall_at_k": 0.016,
+        "f1_at_k": 0.0228
+      },
+      "nearest_atm": {
+        "pr_auc": 0.0254,
+        "precision_at_k": 0.0176,
+        "recall_at_k": 0.0072,
+        "f1_at_k": 0.0102
+      },
+      "historical_density": {
+        "pr_auc": 0.0384,
+        "precision_at_k": 0.0568,
+        "recall_at_k": 0.0232,
+        "f1_at_k": 0.033
+      },
+      "atlas_ensemble": {
+        "pr_auc": 0.6978,
+        "precision_at_k": 0.9716,
+        "recall_at_k": 0.3971,
+        "f1_at_k": 0.5638
+      }
+    }
+  },
   "guidance": "pick the threshold from investigator capacity and false-positive cost using the sweep above; never cite accuracy alone on 3.6% positives."
 }
