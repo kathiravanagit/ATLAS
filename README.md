@@ -41,7 +41,19 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 
 ### Demo Video
 
-[![Watch the ATLAS demonstration video](https://img.youtube.com/vi/yuoHutx33vc/maxresdefault.jpg)](https://youtu.be/yuoHutx33vc)
+Explore the ATLAS investigation workflow, from risk intelligence and map-based predictions to alert triage and linked-account analysis.
+
+<p align="center">
+  <a href="https://youtu.be/yuoHutx33vc">
+    <img src="https://img.youtube.com/vi/yuoHutx33vc/maxresdefault.jpg" alt="Watch the ATLAS demonstration video" width="860">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/yuoHutx33vc"><strong>▶ Watch the ATLAS Demo Video</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://youtu.be/yuoHutx33vc">YouTube</a>
+</p>
 
 ### What This Is
 
