@@ -241,7 +241,7 @@ def predict_cashout(features: dict, case_id: str = "") -> dict:
         results["random_forest"] = {
             "probability": round(float(rf_prob), 4),
             "risk_score": round(float(rf_prob * 100), 1),
-            "prediction": int(rf.predict(X)[0]),
+            "prediction": 1 if rf_prob > 0.5 else 0,
         }
         weights["random_forest"] = 0.5
 
@@ -251,7 +251,7 @@ def predict_cashout(features: dict, case_id: str = "") -> dict:
         results["xgboost"] = {
             "probability": round(float(xgb_prob), 4),
             "risk_score": round(float(xgb_prob * 100), 1),
-            "prediction": int(xgb.predict(X)[0]),
+            "prediction": 1 if xgb_prob > 0.5 else 0,
         }
         weights["xgboost"] = 0.5
 

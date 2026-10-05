@@ -22,7 +22,20 @@ from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
     AlertResponse, DashboardStatsResponse
 )
-from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values
+from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values, load_models
+
+# In-memory caches for high-frequency dashboard and city prediction reads
+_city_prediction_cache: dict = {}
+_CITY_CACHE_TTL = 45.0
+_dashboard_cache: dict = {"ts": 0.0, "data": None}
+_DASHBOARD_CACHE_TTL = 15.0
+
+# Pre-warm ML models in memory at startup to eliminate first-request delay
+try:
+    load_models()
+except Exception:
+    pass
+
 from city_data import CITIES
 from evidence_chain import get_evidence_chain
 from blockchain import get_blockchain, get_network, Blockchain
@@ -671,6 +684,11 @@ def get_city_atm_list(city_id: str, user: dict = Depends(require_permission("rea
 
 @app.get("/api/cities/{city_id}/predictions")
 def get_city_predictions(city_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
+    now = time.time()
+    cached = _city_prediction_cache.get(city_id)
+    if cached and (now - cached[0]) < _CITY_CACHE_TTL:
+        return cached[1]
+
     city = get_city(city_id)
     if not city:
         raise HTTPException(status_code=404, detail="City not found")
@@ -801,7 +819,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             }
         }
 
-    return {
+    res_payload = {
         "city": city["name"],
         "state": city["state"],
         "center": city["center"],
@@ -816,10 +834,16 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "disclaimer": "Synthetic operational simulation only. Risk scores are not real-world validation and require officer review.",
         "data_source": "synthetic-fixture transaction_records",
     }
+    _city_prediction_cache[city_id] = (time.time(), res_payload)
+    return res_payload
 
 
 @app.get("/api/dashboard")
 def get_dashboard(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
+    now = time.time()
+    if _dashboard_cache["data"] and (now - _dashboard_cache["ts"]) < _DASHBOARD_CACHE_TTL:
+        return _dashboard_cache["data"]
+
     active = db.query(Case).filter(Case.status == "active").count()
     unacknowledged = db.query(Alert).filter(Alert.acknowledged == False).count()
     total_cases = db.query(Case).count()
@@ -833,7 +857,7 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
     # Mule accounts flagged: count of distinct linked accounts from high-risk predictions
     from models_db import Prediction, RankedLocation
     high_risk_locs = db.query(RankedLocation).join(Prediction).filter(RankedLocation.risk_score >= 70).count()
-    return {
+    result = {
         "active_cases": active,
         "high_risk_locations": max(1, unacknowledged + 3),
         "alerts_today": unacknowledged,
@@ -841,6 +865,9 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
         "prevented_fraud": int(prevented) if prevented else 0,
         "mules_flagged": high_risk_locs,
     }
+    _dashboard_cache["ts"] = time.time()
+    _dashboard_cache["data"] = result
+    return result
 
 
 @app.get("/api/cases")
