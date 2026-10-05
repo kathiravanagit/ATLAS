@@ -23,7 +23,23 @@ The console is organised around the complete investigation loop:
 | Blockchain evidence | hash-chain integrity, PoW status, Merkle proof, and validation state |
 | Heatmap | intensity is weighted by risk score; critical zones are outlined in red |
 
-Screenshots and a short walkthrough GIF should be captured from the synthetic `/demo` console before a presentation. The repository intentionally does not ship screenshots of real operational data.
+The interface screenshots below were captured from the synthetic `/demo` console. They use demonstration data only and do not represent real operational data.
+
+### Prototype Interface
+
+The ATLAS investigation console brings prediction, geospatial intelligence, alert triage, and account-network analysis into one workflow.
+
+| Investigation dashboard | Predicted cash-out locations |
+| --- | --- |
+| ![ATLAS investigation dashboard](assets/website3.png) | ![ATLAS predicted cash-out locations map](assets/website5.PNG) |
+
+| Investigation alerts and review queue | Linked account analysis |
+| --- | --- |
+| ![ATLAS investigation alerts](assets/website2.png) | ![ATLAS linked account analysis](assets/website1.png) |
+
+| Risk intelligence detail |
+| --- |
+| ![ATLAS cash-out risk intelligence detail](assets/website4.PNG) |
 
 ### What This Is
 
