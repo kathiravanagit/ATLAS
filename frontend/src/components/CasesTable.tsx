@@ -170,6 +170,12 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                     </div>
                     <p className="text-[#4B5563] font-medium text-sm">No cases found</p>
                     <p className="text-[#9CA3AF] text-[11px] mt-1">Try adjusting your filters or search terms</p>
+                    <button
+                      onClick={() => { setSearch(""); setStatusFilter("all"); setCrimeFilter("All"); }}
+                      className="mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 transition-colors"
+                    >
+                      Reset Filters
+                    </button>
                   </div>
                 </td>
               </tr>

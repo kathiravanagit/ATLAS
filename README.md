@@ -227,6 +227,7 @@ python seed.py
 | GET | `/api/evidence/chain` | Full evidence chain |
 | GET | `/api/evidence/proof/{block_id}` | Merkle proof |
 | GET | `/api/evidence/verify/{block_id}` | Verify evidence integrity |
+| GET | `/api/evidence/export-pdf/{case_id}` | Case Diary PDF, Section 63 BSA certificate |
 | GET | `/api/blockchain/status` | Primary node + network status |
 | GET | `/api/blockchain/chain` | Blockchain blocks + validation |
 | GET | `/api/blockchain/validate` | Full chain PoW/linkage validation |

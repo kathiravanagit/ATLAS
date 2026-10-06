@@ -68,6 +68,7 @@ function MapUpdater({ center }: { center: [number, number] }) {
     const key = `${center[0].toFixed(5)},${center[1].toFixed(5)}`;
     if (key !== prevCenter.current) {
       prevCenter.current = key;
+      map.invalidateSize();
       map.flyTo(center, 15, { duration: 1.2 });
     }
   }, [center, map]);
@@ -467,6 +468,12 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             <Info size={20} className="text-[#6B7280] mx-auto mb-2" />
             <p className="text-base text-[#6B7280]">No locations match filters</p>
             <p className="text-[10px] text-[#6B7280] mt-1">Try adjusting risk or time filters</p>
+            <button
+              onClick={() => { setRiskFilter('all'); setTimeFilter('all'); }}
+              className="pointer-events-auto mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 transition-colors"
+            >
+              Reset Filters
+            </button>
           </div>
         </div>
       )}

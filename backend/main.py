@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from pydantic import BaseModel
@@ -1936,6 +1936,56 @@ def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(r
     if idem_key:
         store_replay(db, idem_key, "POST", "/api/evidence/anchor", 200, result)
     return result
+
+
+@app.get("/api/evidence/export-pdf/{case_id}")
+def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
+    """Printable Case Diary PDF (Section 63 BSA): Merkle root, block hashes, timestamps, officer."""
+    from fpdf import FPDF
+
+    def _latin(value) -> str:
+        return str(value if value is not None else "").encode("latin-1", "replace").decode("latin-1")
+
+    chain = get_evidence_chain()
+    blocks = chain.get_chain(case_id)
+    if not blocks:
+        raise HTTPException(status_code=404, detail="No evidence anchored for this case")
+
+    pdf = FPDF(format="A4")
+    pdf.set_compression(False)  # keep certificate text searchable/inspectable
+    pdf.set_auto_page_break(True, margin=20)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Case Diary - Section 63 BSA Certificate", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 7, _latin(f"Case ID: {case_id}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _latin(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')} by {user.get('email', '?')} ({user.get('role', '?')})"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _latin(f"Merkle root: {chain.merkle_root or 'n/a'}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 7, _latin(f"Blocks: {len(blocks)}"), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "Anchored blocks", new_x="LMARGIN", new_y="NEXT")
+    for b in blocks:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(0, 6, _latin(f"Block #{b.get('block_id')} - {b.get('evidence_type', 'evidence')} - {b.get('timestamp_human', '')}"), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(0, 5, _latin(f"block_hash: {b.get('block_hash', '')}\nprev_hash: {b.get('previous_hash', '')}\nofficer: {b.get('officer_id', '')}"))
+        pdf.ln(2)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.multi_cell(0, 5, "Verification: recompute SHA-256 over each block payload and compare with block_hash; "
+        "check each prev_hash links to the previous block_hash; rebuild the Merkle root from leaf hashes "
+        "and compare with the root above.")
+    data = bytes(pdf.output())
+    add_audit(
+        db, "Evidence Exported",
+        f"Case diary PDF exported for {case_id} ({len(blocks)} blocks) by {user.get('email', '?')}",
+        "evidence", case_id,
+    )
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="case-diary-{case_id}.pdf"'},
+    )
 
 
 @app.get("/api/notifications/jobs")

@@ -124,6 +124,25 @@ class TestEvidenceChain:
         blocks = resp.json()["blocks"]
         assert all(b["case_id"] == "CASE-001" for b in blocks)
 
+    def test_export_pdf_returns_valid_pdf(self, client, admin_token):
+        self._anchor(client, admin_token, case_id="CASE-001", content="pdf-evidence-1")
+        self._anchor(client, admin_token, case_id="CASE-001", content="pdf-evidence-2")
+        resp = client.get("/api/evidence/export-pdf/CASE-001",
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "application/pdf"
+        assert resp.content[:5] == b"%PDF-"
+        assert b"CASE-001" in resp.content
+        assert 'attachment; filename="case-diary-CASE-001.pdf"' == resp.headers["content-disposition"]
+
+    def test_export_pdf_404_without_evidence(self, client, admin_token):
+        resp = client.get("/api/evidence/export-pdf/CASE-NOPE",
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 404
+
+    def test_export_pdf_requires_auth(self, client):
+        assert client.get("/api/evidence/export-pdf/CASE-001").status_code in (401, 403)
+
     def test_multiple_anchors_chain_integrity(self, client, admin_token):
         contents = [f"chain-integrity-{i}-{os.urandom(4).hex()}" for i in range(5)]
         block_ids = []
