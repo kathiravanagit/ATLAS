@@ -15,12 +15,13 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
+    "@tailwindcss/vite": "^4.3.3",
     "clsx": "^2.1.1",
     "d3-dispatch": "^3.0.1",
     "d3-force": "^3.0.0",
     "d3-quadtree": "^3.0.1",
     "d3-timer": "^3.0.1",
-    "daisyui": "^4.12.14",
+    "daisyui": "^5.7.47",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.447.0",
@@ -46,17 +47,15 @@
     "@types/leaflet.heat": "^0.2.5",
     "@types/react": "^18.3.8",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "@vitest/coverage-v8": "^2.1.9",
-    "autoprefixer": "^10.4.20",
+    "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "jsdom": "^29.1.1",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.12",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.6.2",
     "typescript-eslint": "^8.70.1",
-    "vite": "^5.4.7",
-    "vitest": "^2.1.9"
+    "vite": "^8.3.3",
+    "vitest": "^4.1.11"
   }
 }

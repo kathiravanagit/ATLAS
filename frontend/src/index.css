@@ -1,8 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #1D355B;
+  --color-primary-content: #ffffff;
+  --color-secondary: #1D4ED8;
+  --color-secondary-content: #ffffff;
+  --color-accent: #D1D5DB;
+  --color-accent-content: #1F2937;
+  --color-neutral: #1F2937;
+  --color-neutral-content: #F8F9FA;
+  --color-base-100: #F8F9FA;
+  --color-base-200: #ffffff;
+  --color-base-300: #D1D5DB;
+  --color-base-content: #1F2937;
+  --color-info: #1D4ED8;
+  --color-success: #15803D;
+  --color-warning: #B45309;
+  --color-error: #B91C1C;
+}
+
+@theme {
+  --font-sans: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
 
 @layer base {
   * {
@@ -42,7 +65,9 @@
   }
 
   .card-hover {
-    @apply card;
+    background-color: #fff;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
     transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 

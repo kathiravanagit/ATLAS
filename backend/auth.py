@@ -4,8 +4,9 @@ Roles: inspector, analyst, bank_officer, admin
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import jwt
+from jwt import InvalidTokenError as JWTError
+import bcrypt
 from fastapi import Depends, HTTPException, status, Query, WebSocket, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -36,7 +37,20 @@ REGISTRATION_ENABLED = os.getenv(
     "REGISTRATION_ENABLED", "true" if DEMO_MODE else "false"
 ).lower() in ("true", "1", "yes")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+class _BcryptPasswordContext:
+    """passlib-free bcrypt wrapper. Verifies legacy $2b$ hashes from seed data."""
+
+    def hash(self, password: str) -> str:
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    def verify(self, password: str, hashed: str) -> bool:
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+        except Exception:
+            return False
+
+
+pwd_context = _BcryptPasswordContext()
 security = HTTPBearer()
 
 # ── Password Policy ───────────────────────────────────────────────────────────

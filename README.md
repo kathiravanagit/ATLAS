@@ -105,11 +105,11 @@ ATLAS reports the metrics that matter for the imbalanced synthetic benchmark: pr
 
 ### Frontend
 
-React 18 · TypeScript 5.6 (strict) · Vite 5.4 · Tailwind CSS · daisyUI · Recharts · Leaflet · d3-force · React Router 6
+React 18 · TypeScript 5.6 (strict) · Vite 8 · Tailwind CSS 4 · daisyUI 5 · Recharts · Leaflet · d3-force · React Router 6
 
 ### Backend setup
 
-Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 + optional PostGIS / SQLite test fallback · python-jose · passlib
+Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 + optional PostGIS / SQLite test fallback · PyJWT · bcrypt
 
 ### AI/ML
 
@@ -275,7 +275,6 @@ sih-prototype/
 │   │   └── lib/             # Auth, utilities
 │   └── e2e/                 # Playwright end-to-end tests
 ├── model/                   # Synthetic model artifacts and metadata
-├── docker-compose.yml
 └── .env.example
 ```
 

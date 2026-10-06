@@ -151,8 +151,8 @@ Investigators receive ranked locations, time windows, SHAP-based explainability,
 | Component | Technology | Rationale |
 | ----------- | ----------- | ----------- |
 | **Frontend** | React 18 + TypeScript 5.6 | Type safety, component reusability |
-| **Build Tool** | Vite 5.4 | Fast HMR, optimized builds |
-| **Styling** | Tailwind CSS 3.4 + daisyUI 4.x | Responsive console styling |
+| **Build Tool** | Vite 8 | Fast HMR, optimized builds |
+| **Styling** | Tailwind CSS 4 + daisyUI 5 | Responsive console styling |
 | **Maps** | React-Leaflet + Esri Satellite | Real satellite imagery |
 | **Graph** | d3-force + react-force-graph-2d | Mule network visualization |
 | **Backend** | FastAPI 0.115 (Python 3.13) | Async, auto-documentation |
@@ -161,7 +161,7 @@ Investigators receive ranked locations, time windows, SHAP-based explainability,
 | **Spatial** | Optional PostGIS auto-detection + haversine fallback | PostGIS integration is verified only when configured |
 | **ML** | scikit-learn 1.5 + XGBoost 2.1 | Ensemble accuracy |
 | **Explainability** | SHAP 0.46 (KernelExplainer) | Per-case feature contributions |
-| **Auth** | python-jose (JWT HS256) + passlib (bcrypt) | Production security |
+| **Auth** | PyJWT (JWT HS256) + bcrypt direct | Production security |
 | **Encryption** | cryptography (AES-256-GCM) | Authenticated encryption |
 | **Blockchain** | SHA-256 PoW (stdlib) | Evidence ledger, multi-node consensus |
 
@@ -187,7 +187,7 @@ These controls are implemented for prototype evaluation. They are not a producti
   - `inspector`: read, write, override
   - `analyst`: read, write
   - `bank_officer`: read, write (review queue access — bank officers flag false positives and override risk scores for their institution's cases)
-- **bcrypt** — passlib CryptContext with auto-deprecation
+- **bcrypt** — direct `bcrypt.checkpw`/`hashpw` wrapper (no passlib); verifies legacy `$2b$` hashes
 
 ### Network Security
 
