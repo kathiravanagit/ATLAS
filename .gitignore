@@ -30,6 +30,9 @@ test.db
 
 # Model files (large binaries)
 backend/model/*.pkl
+# ...except the two trained predictors CI and demos need (no synthetic fallback exists by design)
+!backend/model/cashout_predictor.pkl
+!backend/model/xgboost_predictor.pkl
 backend/model/evidence_chain.json
 backend/model/atlas_chain.json
 

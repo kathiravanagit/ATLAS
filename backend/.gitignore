@@ -8,5 +8,8 @@ __pycache__/
 *.db-shm
 .pytest_cache/
 model/*.pkl
+# ...except the two trained predictors CI and demos need (no synthetic fallback exists by design)
+!model/cashout_predictor.pkl
+!model/xgboost_predictor.pkl
 model/evidence_chain.json
 model/atlas_chain.json
