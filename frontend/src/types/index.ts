@@ -60,8 +60,10 @@ export interface DashboardStats {
   high_risk_locations: number;
   alerts_today: number;
   avg_lead_time: string;
-  prevented_fraud: number;
-  mules_flagged: number;
+  prevented_fraud: number | null;
+  mules_flagged: number | null;
+  resolved_case_amount?: number | null;
+  metrics_note?: string | null;
 }
 
 export interface AuditEntry {

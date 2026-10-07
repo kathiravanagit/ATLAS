@@ -10,18 +10,20 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
 TESTING = os.getenv("TESTING") == "1"
 
-# Try PostgreSQL, fallback to SQLite
-USE_SQLITE = False
-USE_POSTGIS = False
-if TESTING or DEMO_MODE or DATABASE_URL.startswith("sqlite"):
-    USE_SQLITE = True
-elif not DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL is required outside DEMO_MODE/TESTING. "
-        "Configure PostgreSQL or explicitly use a sqlite:// URL for a local development database."
-    )
+# An explicit URL always wins; demo/test defaults apply only when it is absent.
+if not DATABASE_URL:
+    if TESTING or DEMO_MODE:
+        DATABASE_URL = "sqlite:///./cybercrime_intel.db"
+    else:
+        raise RuntimeError(
+            "DATABASE_URL is required outside DEMO_MODE/TESTING. "
+            "Configure PostgreSQL or explicitly use a sqlite:// URL for a local development database."
+        )
 
-if not USE_SQLITE and not DATABASE_URL.startswith("sqlite"):
+USE_SQLITE = DATABASE_URL.startswith("sqlite")
+USE_POSTGIS = False
+
+if not USE_SQLITE:
     # Verify Postgres is actually reachable before committing to it.
     # (SQLite URLs take the file path directly — no probe needed.)
     try:
@@ -36,7 +38,6 @@ if not USE_SQLITE and not DATABASE_URL.startswith("sqlite"):
         ) from exc
 
 if USE_SQLITE:
-    DATABASE_URL = "sqlite:///./cybercrime_intel.db"
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):

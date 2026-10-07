@@ -8,6 +8,8 @@ import {
   isTokenExpired,
   authFetch,
   logout,
+  updateStoredUser,
+  refreshAccessToken,
 } from '@/lib/auth'
 
 beforeEach(() => {
@@ -118,6 +120,48 @@ describe('authFetch', () => {
     await expect(authFetch('/api/test')).rejects.toThrow('Session expired')
   })
 })
+
+describe('session safety regressions', () => {
+  it('profile updates preserve the exact expiry timestamp and access token', () => {
+    setTokens('token', '', 3600, { name: 'Before' });
+    const expiry = localStorage.getItem('atlas_token_expires');
+    updateStoredUser({ name: 'After' });
+    expect(localStorage.getItem('atlas_token_expires')).toBe(expiry);
+    expect(getAccessToken()).toBe('token');
+    expect(getUser()).toEqual({ name: 'After' });
+  });
+
+  it('refreshes once for concurrent expired requests', async () => {
+    setTokens('old', '', -1, {});
+    let finish!: (value: unknown) => void;
+    const mockFetch = vi.fn().mockImplementation((url: string) => url === '/api/auth/refresh'
+      ? new Promise(resolve => { finish = resolve; })
+      : Promise.resolve({ ok: true, status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+    const requests = [authFetch('/api/a'), authFetch('/api/b'), refreshAccessToken()];
+    expect(mockFetch.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1);
+    finish({ ok: true, json: async () => ({ access_token: 'new', expires_in: 3600, user: {} }) });
+    await Promise.all(requests);
+    expect(getAccessToken()).toBe('new');
+    expect(mockFetch.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1);
+  });
+
+  it('blocks demo reads and mutations before token refresh or CSRF network calls', async () => {
+    const location = window.location;
+    Object.defineProperty(window, 'location', { value: { pathname: '/demo/predictions' }, writable: true });
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+    try {
+      setTokens('expired', '', -1, {});
+      expect((await authFetch('/api/cases')).status).toBe(503);
+      expect((await authFetch('/api/transactions', { method: 'POST' })).status).toBe(503);
+      expect(await refreshAccessToken()).toBeNull();
+      expect(mockFetch).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'location', { value: location, writable: true });
+    }
+  });
+});
 
 describe('logout', () => {
   it('clears all tokens after logout', async () => {

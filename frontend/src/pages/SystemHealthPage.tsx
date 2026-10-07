@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Activity, Database, Cpu, Clock, TrendingUp, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Activity, Database, Cpu, Clock, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import DriftIndicator from '../components/DriftIndicator';
+import { percent } from '../lib/metrics';
 import { authFetch } from '../lib/auth';
 
 interface HealthData {
@@ -30,14 +32,6 @@ interface DbHealth {
   verdict: string;
 }
 
-interface DriftData {
-  overall_psi: number;
-  status: string;
-  features: Array<{ feature: string; psi: number; status: string }>;
-  total_features: number;
-  critical_count: number;
-  warning_count: number;
-}
 
 function StatusBadge({ status }: { status: string }) {
   const cls = status === 'healthy' || status === 'ok' || status === 'stable'
@@ -51,9 +45,9 @@ function StatusBadge({ status }: { status: string }) {
 function MetricBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] text-center">
-      <div className="text-[11px] text-[#6B7280] uppercase mb-1">{label}</div>
+      <div className="text-xs text-[#374151] uppercase mb-1">{label}</div>
       <div className="text-sm font-bold text-[#1F2937]">{value}</div>
-      {sub && <div className="text-[11px] text-[#6B7280] mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-[#374151] mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -62,25 +56,25 @@ export default function SystemHealthPage() {
   const navigate = useNavigate();
   const [health, setHealth] = useState<HealthData | null>(null);
   const [dbHealth, setDbHealth] = useState<DbHealth | null>(null);
-  const [drift, setDrift] = useState<DriftData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [h, d, dr] = await Promise.all([
+      const [h, d] = await Promise.all([
         authFetch('/api/health').then(r => r.ok ? r.json() : null),
         authFetch('/api/health/db-check').then(r => r.ok ? r.json() : null),
-        authFetch('/api/model/drift').then(r => r.ok ? r.json() : null),
       ]);
-      if (h) setHealth(h);
-      if (d) setDbHealth(d);
-      if (dr) setDrift(dr);
-      setLastRefresh(new Date());
+      setHealth(h);
+      setDbHealth(d);
+      if (!h || !d) setError('One or more health services are unavailable; no substitute metrics are shown.');
+      if (h && d) setLastRefresh(new Date());
     } catch (err) {
+      setHealth(null);
+      setDbHealth(null);
       setError(err instanceof Error ? err.message : 'Failed to load system health data');
     }
     setLoading(false);
@@ -132,7 +126,7 @@ export default function SystemHealthPage() {
             <MetricBox label="Version" value={health.version} />
             <MetricBox label="Model Loaded" value={health.model_loaded ? 'Yes' : 'No'} />
           </div>
-        ) : <div className="text-sm text-[#6B7280]">Loading...</div>}
+        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* DB Health */}
@@ -151,7 +145,7 @@ export default function SystemHealthPage() {
               <MetricBox label="Verdict" value={dbHealth.verdict} />
             </div>
           </div>
-        ) : <div className="text-sm text-[#6B7280]">Loading...</div>}
+        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* Model Service */}
@@ -162,12 +156,12 @@ export default function SystemHealthPage() {
         </div>
         {health ? (
           <div className="grid grid-cols-4 gap-3">
-            <MetricBox label="Accuracy" value={health.model_accuracy != null ? `${health.model_accuracy}%` : 'N/A'} />
-            <MetricBox label="Recall" value={health.model_recall != null ? `${health.model_recall}%` : 'N/A'} />
-            <MetricBox label="F1 Score" value={health.model_f1 != null ? `${health.model_f1}%` : 'N/A'} />
-            <MetricBox label="Precision" value={health.model_precision != null ? `${health.model_precision}%` : 'N/A'} />
+            <MetricBox label="Accuracy" value={percent(health.model_accuracy)} />
+            <MetricBox label="Recall" value={percent(health.model_recall)} />
+            <MetricBox label="F1 Score" value={percent(health.model_f1)} />
+            <MetricBox label="Precision" value={percent(health.model_precision)} />
           </div>
-        ) : <div className="text-sm text-[#6B7280]">Loading...</div>}
+        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* Last Sync */}
@@ -177,49 +171,12 @@ export default function SystemHealthPage() {
           <h3 className="text-base font-semibold text-[#1F2937]">Last Sync</h3>
         </div>
         <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-          <div className="text-sm text-[#1F2937]">Data last refreshed at {lastRefresh.toLocaleTimeString()}</div>
+          <div className="text-sm text-[#1F2937]">{lastRefresh ? `Last complete refresh at ${lastRefresh.toLocaleTimeString()}` : 'Last complete refresh: Unavailable'}</div>
           <div className="text-[11px] text-[#6B7280] mt-1">Auto-refreshes every 30 seconds on the dashboard</div>
         </div>
       </div>
 
-      {/* Prediction Drift */}
-      <div className="card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp size={16} className="text-[#1D355B]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Prediction Drift</h3>
-          {drift && <StatusBadge status={drift.status} />}
-        </div>
-        {drift ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <MetricBox label="Overall PSI" value={drift.overall_psi.toFixed(4)} />
-              <MetricBox label="Critical Features" value={drift.critical_count} sub={`of ${drift.total_features}`} />
-              <MetricBox label="Warning Features" value={drift.warning_count} sub={`of ${drift.total_features}`} />
-            </div>
-            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] overflow-hidden">
-              <div className="text-[11px] text-[#6B7280] uppercase mb-2">Top Drifted Features</div>
-              <div className="space-y-1.5">
-                {drift.features.slice(0, 6).map((f) => (
-                  <div key={f.feature} className="flex items-center gap-3">
-                    <div className="w-[160px] text-xs text-[#4B5563] text-right truncate">{f.feature.replace(/_/g, ' ')}</div>
-                    <div className="flex-1 h-3 bg-[#E5E7EB] rounded overflow-hidden">
-                      <div
-                        className="h-full rounded"
-                        style={{
-                          width: `${Math.min(f.psi * 100, 100)}%`,
-                          background: f.status === 'critical' ? '#B91C1C' : f.status === 'warning' ? '#B45309' : '#15803D'
-                        }}
-                      />
-                    </div>
-                    <div className="w-[60px] text-[11px] font-mono text-[#1F2937] text-right">PSI {f.psi.toFixed(3)}</div>
-                    <StatusBadge status={f.status} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : <div className="text-sm text-[#6B7280]">Loading...</div>}
-      </div>
+      <DriftIndicator />
     </motion.div>
   );
 }

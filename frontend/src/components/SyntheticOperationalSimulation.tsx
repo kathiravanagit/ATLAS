@@ -1,8 +1,8 @@
 const SIMULATION_METRICS = [
-  { label: 'Alert lead time', value: '42 min', detail: 'before synthetic cash-out window' },
-  { label: 'Officer review time', value: '8 min', detail: 'median simulated queue review' },
-  { label: 'Alert volume', value: '18 / day', detail: 'synthetic alerts requiring triage' },
-  { label: 'Top-K hit rate', value: '72%', detail: 'top-3 on the synthetic benchmark' },
+  { label: 'Alert lead time', value: 'Not measured', detail: 'Requires timestamped alerts and observed cash-out outcomes.' },
+  { label: 'Officer review time', value: 'Not measured', detail: 'Requires recorded review durations from a defined evaluation.' },
+  { label: 'Alert volume', value: 'Not measured', detail: 'Requires a defined observation period and recorded alert counts.' },
+  { label: 'Top-K hit rate', value: 'Unavailable', detail: 'Requires labelled cash-out locations and a reproducible ranking evaluation.' },
 ];
 
 export default function SyntheticOperationalSimulation() {
@@ -14,7 +14,7 @@ export default function SyntheticOperationalSimulation() {
             Synthetic operational simulation
           </h2>
           <p className="mt-1 text-xs text-[#64748B]">
-            Reproducible fixture run for workflow demonstration only; not real-data validation.
+            Synthetic workflow demonstration only. No operational benchmark has been measured or verified.
           </p>
         </div>
         <span className="rounded border border-[#CBD5E1] bg-[#F8FAFC] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#475569]">

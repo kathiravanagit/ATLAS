@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Case, Prediction, EvidenceItem } from '../types';
 import { User, Phone, FileText, MapPin, Clock, AlertTriangle, ChevronRight, ExternalLink, Shield, Activity, GitBranch, History, CheckCircle, Circle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import ResolutionModal from './ResolutionModal';
-import { authFetch, getUser } from '../lib/auth';
+import { authFetch, getUser, isDemoRoute } from '../lib/auth';
 import { can } from '../lib/roles';
 
 interface CaseDetailProps {
@@ -130,7 +130,7 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
                 {statusConfig.investigating.icon} Investigating
               </span>
             </div>
-            <p className="text-sm text-[#6B7280]">Filed on cybercrime.gov.in</p>
+            <p className="text-sm text-[#6B7280]">Synthetic complaint record — not filed on the government portal</p>
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -142,7 +142,8 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
               <ExternalLink size={10} /> Govt Portal
             </a>
             <button
-              onClick={() => setResolutionOpen(true)}
+              disabled={isDemoRoute()} title={isDemoRoute() ? 'Backend resolution recording disabled in local demo' : 'Record case resolution'}
+                            onClick={() => setResolutionOpen(true)}
               className="px-3 py-1.5 bg-[#8b5cf6]/10 text-sm text-[#8b5cf6] rounded-lg hover:bg-[#8b5cf6]/20 transition-colors flex items-center gap-1"
             >
               <CheckCircle size={10} /> Record Resolution
@@ -186,7 +187,8 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
             {!piiRevealed ? (
               can('pii.request') && (
               <button
-                onClick={() => setShowReauth(true)}
+                disabled={isDemoRoute()} title={isDemoRoute() ? 'Backend-audited victim detail requests disabled in local demo' : 'Request victim details'}
+                                onClick={() => setShowReauth(true)}
                 className="px-2 py-1 bg-[#f59e0b]/10 text-[11px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
               >
                 <KeyRound size={10} /> Request victim details

@@ -16,6 +16,8 @@ def upgrade() -> None:
     columns = {column["name"] for column in inspector.get_columns("predictions")}
     if "model_version" not in columns:
         op.add_column("predictions", sa.Column("model_version", sa.String(), nullable=True))
+    indexes = {index["name"] for index in inspector.get_indexes("predictions")}
+    if "ix_predictions_model_version" not in indexes:
         op.create_index("ix_predictions_model_version", "predictions", ["model_version"])
 
 

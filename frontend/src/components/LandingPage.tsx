@@ -183,8 +183,8 @@ const FEATURES = [
 
 const STATS = [
   { value: '200K+', label: 'Synthetic Transactions', icon: <BarChart3 size={18} /> },
-  { value: '97.7%', label: 'Model Accuracy', icon: <Brain size={18} /> },
-  { value: '4.2h', label: 'Avg Lead Time', icon: <Radio size={18} /> },
+  { value: 'Not verified', label: 'Model Accuracy', icon: <Brain size={18} /> },
+  { value: 'Not measured', label: 'Avg Lead Time', icon: <Radio size={18} /> },
   { value: '8', label: 'City Coverage', icon: <MapPin size={18} /> },
 ];
 
@@ -213,6 +213,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/demo')} className="px-4 py-2 text-sm font-semibold text-[#1D4ED8] border rounded-lg" title="Open local synthetic fixtures without a backend or account">Local Demo</button>
             <button onClick={() => navigate('/login')} className="px-5 py-2 bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg hover:bg-[#1D355B] transition-all duration-200">
               Sign In
             </button>
@@ -399,7 +400,7 @@ export default function LandingPage() {
                 Ready to Investigate?
               </h2>
               <p className="text-white/70 mb-8 max-w-lg mx-auto">
-                Access the Investigator Console to view live predictions, risk maps, and case management tools.
+                Access the Investigator Console to view API-connected synthetic predictions, risk maps, and case management tools.
               </p>
               <button
                 onClick={() => navigate('/login')}

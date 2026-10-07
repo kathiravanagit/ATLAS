@@ -13,6 +13,7 @@ import json
 import time
 import os
 from typing import Optional, Callable
+from encryption import seal, unseal
 
 CHAIN_FILE = "model/evidence_chain.json"
 
@@ -163,7 +164,7 @@ class EvidenceChain:
                 "case_id": case_id,
                 "evidence_type": evidence_type,
                 "hash": evidence_hash,
-                "content_preview": content[:100] + "..." if len(content) > 100 else content,
+                "content_preview": seal(content[:100] + "..." if len(content) > 100 else content),
                 "officer_id": officer_id,
                 "timestamp": time.time(),
                 "timestamp_human": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
@@ -183,6 +184,9 @@ class EvidenceChain:
                 continue
             self._save()
             break
+
+        else:
+            raise RuntimeError("Evidence persistence conflicted after three retries")
 
         return {
             "status": "anchored",
@@ -235,11 +239,15 @@ class EvidenceChain:
             "block_id": block_id,
         }
 
-    def get_chain(self, case_id: Optional[str] = None) -> list:
-        """Get evidence chain, optionally filtered by case."""
-        if case_id:
-            return [b for b in self.evidence_blocks if b["case_id"] == case_id]
-        return self.evidence_blocks.copy()
+    def get_chain(self, case_id: Optional[str] = None, allowed_case_ids: Optional[set] = None) -> list:
+        """Filter before decryption; inaccessible previews must never be opened."""
+        blocks = [b for b in self.evidence_blocks
+                  if (not case_id or b["case_id"] == case_id)
+                  and (allowed_case_ids is None or b["case_id"] in allowed_case_ids)]
+        # Never decrypt the canonical block: its hash covers stored ciphertext.
+        # Keep that stored value available to clients recomputing block hashes.
+        return [dict(b, content_preview=unseal(b.get("content_preview", "")),
+                     stored_content_preview=b.get("content_preview", "")) for b in blocks]
 
     def get_merkle_proof(self, block_id: int) -> dict:
         """Get Merkle proof for a specific block."""

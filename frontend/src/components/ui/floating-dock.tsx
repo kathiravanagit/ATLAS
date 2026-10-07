@@ -49,9 +49,9 @@ const FloatingDockMobile = ({
                   title={item.title}
                   aria-label={item.title}
                   onClick={() => { item.onClick?.(); setOpen(false); }}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
+                  className="flex h-10 w-44 items-center gap-2 px-3 rounded-lg bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] transition-colors"
                 >
-                  <div className="h-4 w-4">{item.icon}</div>
+                  <div className="h-4 w-4">{item.icon}</div><span className="text-sm">{item.title}</span>
                 </button>
               </motion.div>
             ))}
@@ -156,6 +156,8 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+                onFocus={() => setHovered(true)}
+                onBlur={() => setHovered(false)}
         className="relative flex aspect-square items-center justify-center rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors will-change-transform"
       >
         <AnimatePresence>

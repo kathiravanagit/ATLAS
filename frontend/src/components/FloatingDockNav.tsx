@@ -14,7 +14,7 @@ import {
 } from '@tabler/icons-react';
 
 const NAV_ITEMS = [
-  { path: '/real', icon: IconHome, label: 'Home' },
+  { path: '/real', icon: IconHome, label: 'Overview' },
   { path: '/real/predictions', icon: IconBrain, label: 'Predictions' },
   { path: '/real/map', icon: IconMap, label: 'Risk Map' },
   { path: '/real/cases', icon: IconFolderOpen, label: 'Cases' },
@@ -30,9 +30,11 @@ export default function FloatingDockNav({ activeView }: { activeView: string }) 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const links = NAV_ITEMS.map(item => {
-    const isActive = item.path === '/real'
-      ? location.pathname === '/real'
+  const base = location.pathname.startsWith('/demo') ? '/demo' : '/real';
+    const links = NAV_ITEMS.map(original => {
+      const item = { ...original, path: original.path.replace('/real', base) };
+    const isActive = item.path === base
+      ? location.pathname === base
       : location.pathname.startsWith(item.path);
     return {
       title: item.label,
@@ -52,7 +54,7 @@ export default function FloatingDockNav({ activeView }: { activeView: string }) 
       <FloatingDock
         items={links}
         desktopClassName="bg-white border border-[#D1D5DB]"
-        mobileClassName="translate-y-20"
+        mobileClassName=""
       />
     </nav>
   );

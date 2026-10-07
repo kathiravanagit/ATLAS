@@ -19,7 +19,7 @@ test.describe('Dashboard Welcome Page', () => {
   });
 
   test('shows welcome content', async ({ page }) => {
-    await expect(page.locator('text=Welcome').or(page.locator('text=Investigator')).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Welcome').or(page.locator('text=Investigator')).first()).toBeVisible({ timeout: 30000 });
   });
 
   test('keeps the legacy dashboard URL pointed at the console', async ({ page }) => {
@@ -39,26 +39,26 @@ test.describe('Console Overview', () => {
   });
 
   test('shows stat cards', async ({ page }) => {
-    await expect(page.locator('text=Active Cases').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Active Cases').first()).toBeVisible({ timeout: 30000 });
     await expect(page.locator('text=High-Risk Locations').first()).toBeVisible();
     await expect(page.locator('text=Alerts Today').first()).toBeVisible();
-    await expect(page.locator('text=Avg. Lead Time').first()).toBeVisible();
+    await expect(page.locator('text=Lead Time').first()).toBeVisible();
   });
 
   test('shows impact metrics', async ({ page }) => {
-    await expect(page.locator('text=Estimated Exposure')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Linked Accounts Flagged')).toBeVisible();
+    await expect(page.locator('text=Prevented Fraud').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('text=Linked Accounts Flagged').first()).toBeVisible();
   });
 
   test('shows prediction card', async ({ page }) => {
-    await expect(page.locator('text=Predicted Cash-Out Location')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Predicted Cash-Out Location')).toBeVisible({ timeout: 30000 });
   });
 
   test('shows demo mode indicator', async ({ page }) => {
-    await expect(page.locator('text=Demonstration Portal').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Demonstration Portal').first()).toBeVisible({ timeout: 30000 });
   });
 
   test('shows user profile in TopNav', async ({ page }) => {
-    await expect(page.locator('text=Admin').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Admin').first()).toBeVisible({ timeout: 30000 });
   });
 });

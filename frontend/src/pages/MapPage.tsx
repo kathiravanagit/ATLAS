@@ -4,13 +4,13 @@ import MapView from '../components/MapView';
 import MuleNetworkGraph from '../components/MuleNetworkGraph';
 
 export default function MapPage() {
-  const { prediction, selectedLocation, setSelectedLocation, cityCenter } = useDashboard();
+  const { prediction, selectedLocation, setSelectedLocation, cityCenter, dataMode } = useDashboard();
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
       className="space-y-6">
       <MapView locations={prediction.ranked_locations} selectedLocation={selectedLocation} onSelectLocation={setSelectedLocation} cityCenter={cityCenter} />
-      <MuleNetworkGraph />
+      {dataMode === 'demo' ? <p className="card p-5 text-sm">Account network requires the backend and is disabled in local demo.</p> : <MuleNetworkGraph />}
     </motion.div>
   );
 }

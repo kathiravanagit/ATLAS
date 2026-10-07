@@ -2,22 +2,7 @@
 import os
 import pytest
 from tests.conftest import auth_header
-from blockchain import Blockchain, BlockchainNetwork, Block, merkle_root, get_blockchain, get_network, CHAIN_FILE
-
-
-@pytest.fixture(autouse=True)
-def reset_blockchain():
-    """Reset blockchain singletons + file state between tests."""
-    import blockchain
-    blockchain._primary = None
-    blockchain._network = None
-    if os.path.exists(CHAIN_FILE):
-        os.remove(CHAIN_FILE)
-    yield
-    blockchain._primary = None
-    blockchain._network = None
-    if os.path.exists(CHAIN_FILE):
-        os.remove(CHAIN_FILE)
+from blockchain import Blockchain, BlockchainNetwork, Block, merkle_root, get_blockchain, get_network
 
 
 def get_csrf_header(client, token):
@@ -230,19 +215,20 @@ class TestBlockchainAPI:
         assert resp.status_code == 200
         assert resp.json()["valid"] is True
 
-    def test_mine_endpoint_requires_write(self, client, analyst_token):
+    def test_mine_endpoint_rejects_non_admin(self, client, analyst_token):
         csrf = get_csrf_header(client, analyst_token)
         resp = client.post("/api/blockchain/mine", headers={**auth_header(analyst_token), **csrf})
-        # analyst has write → allowed (may be empty pending)
+        assert resp.status_code == 403
+
+    def test_mine_endpoint_requires_csrf(self, client, admin_token):
+        resp = client.post("/api/blockchain/mine", headers=auth_header(admin_token))
+        assert resp.status_code == 403
+
+    def test_admin_can_mine(self, client, admin_token):
+        csrf = get_csrf_header(client, admin_token)
+        resp = client.post("/api/blockchain/mine", headers={**auth_header(admin_token), **csrf})
         assert resp.status_code == 200
         assert resp.json()["status"] in ("mined", "empty")
-
-    def test_mine_endpoint_rejects_read_only(self, client, admin_token):
-        # No read-only fixture that lacks write with CSRF bypass — use bank_officer?
-        # All demo roles with write succeed; verify CSRF is enforced without token.
-        resp = client.post("/api/blockchain/mine", headers=auth_header(admin_token))
-        # Missing CSRF → 403 (or endpoint may accept if CSRF optional — assert not 500)
-        assert resp.status_code in (403, 200)
 
     def test_consensus_endpoint(self, client, admin_token):
         csrf = get_csrf_header(client, admin_token)

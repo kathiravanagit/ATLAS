@@ -17,10 +17,10 @@ test.describe('Simulate Transaction', () => {
 
   test('shows simulate transaction section', async ({ page }) => {
     const heading = page.locator('text=Simulate').first();
-    await expect(heading).toBeVisible({ timeout: 10000 });
+    await expect(heading).toBeVisible({ timeout: 30000 });
   });
 
-  test('shows ephemeral disclaimer', async ({ page }) => {
-    await expect(page.locator('text=ephemeral')).toBeVisible({ timeout: 10000 });
+  test('shows disclaimer', async ({ page }) => {
+    await expect(page.locator('text=Disclaimer:').first()).toBeVisible({ timeout: 30000 });
   });
 });

@@ -1,11 +1,12 @@
 """
 Synthetic Transaction Data Generator for ATLAS
-Generates 400 ATMs across 8 Indian cities with 200k+ realistic transaction rows.
-Calibrated to RBI/NPCI public fraud statistics.
-
-Fraud rate: ~1.5% (consistent with RBI annual report figures)
-Fraud patterns: odd-hour withdrawals, rapid multi-account, location anomalies,
-                card skimming, mule account linkages, SIM-swap indicators.
+Generates 400 ATMs across 8 Indian cities with 200k synthetic rows.
+The 1.5% injected fraud membership is a simulation parameter, not a validated
+population fraud rate. cash_out_occurred is a separate synthetic Bernoulli target:
+non-fraud rows may be positive and fraud rows may be negative. Neither is an
+observed future criminal outcome. Ring groups are retained for disjoint evaluation.
+Time-window features use the same observable 17..22 rule as the serving caller,
+never a latent fraud/crime-type-specific window.
 """
 import numpy as np
 import pandas as pd
@@ -147,8 +148,10 @@ def haversine(lat1, lng1, lat2, lng2):
 
 def generate_transactions(atms, n_transactions=200000):
     """
-    Generate realistic transaction data.
-    ~1.5% fraud rate based on RBI annual report on digital payment fraud.
+    Generate synthetic row-level cash-out targets, not next-ATM/time outcomes.
+    Fraud rings share geography, month, and group identity; ordinary rows are
+    independent groups. Row order starts with injected rings, so prefixes are
+    deliberately NOT random samples.
     """
     print(f"  Generating {n_transactions:,} transactions across {len(atms)} ATMs...")
 
@@ -178,6 +181,8 @@ def generate_transactions(atms, n_transactions=200000):
             "atm": ring_center_atm,
             "members": ring_members,
             "crime_type": np.random.choice(crime_names, p=crime_weights),
+            "group_id": f"RING-{len(fraud_rings):06d}",
+            "month": int(np.random.randint(1, 13)),
         })
 
     for txn_idx in range(n_transactions):
@@ -191,6 +196,9 @@ def generate_transactions(atms, n_transactions=200000):
             ring = fraud_rings[fraud_count // 3]
             member_idx = fraud_count % len(ring["members"])
             member = ring["members"][member_idx]
+            atm = ring["atm"]
+            month = ring["month"]
+            group_id = ring["group_id"]
             crime_type = ring["crime_type"]
             pattern = CRIME_TYPES[crime_type]
             amount = member["amount"] * np.random.uniform(0.8, 1.2)
@@ -201,6 +209,7 @@ def generate_transactions(atms, n_transactions=200000):
             fraud_count += 1
         else:
             is_fraud = False
+            group_id = f"INDEPENDENT-{txn_idx:07d}"
             crime_type = "none"
             pattern = {"amount_range": (500, 25000), "mule_range": (1, 1), "peak_hours": (8, 20)}
             amount = np.random.lognormal(9.5, 0.8)
@@ -218,7 +227,7 @@ def generate_transactions(atms, n_transactions=200000):
         proximity = np.clip(1 - dist_victim / 8, 0, 1)
         suspect_prox = np.clip(1 - dist_suspect / 10, 0, 1)
         density = atm["crime_density"] / 15
-        time_match = 1.0 if pattern["peak_hours"][0] <= hour <= pattern["peak_hours"][1] else 0.0
+        time_match = 1.0 if 17 <= hour <= 22 else 0.0
         type_map = {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}
         type_score = type_map.get(atm["type"], 0.5)
         velocity = min(num_mules / 6, 1.0)
@@ -266,6 +275,11 @@ def generate_transactions(atms, n_transactions=200000):
 
         rows.append({
             "transaction_id": f"TXN-{txn_idx+1:07d}",
+            "group_id": group_id,
+            "feature_protocol": "observable-evening-window-v1",
+            "is_injected_fraud": bool(is_fraud),
+            "victim_lat": victim_lat,
+            "victim_lng": victim_lng,
             "atm_id": atm["atm_id"],
             "city": atm["city"],
             "amount": round(amount, 2),
@@ -327,8 +341,10 @@ def save_outputs(atms, transactions, suspects, output_dir="data"):
     pd.DataFrame(suspects).to_csv(f"{output_dir}/suspects_200.csv", index=False)
 
     # Stats
-    fraud_df = transactions[transactions["cash_out_occurred"] == 1]
-    legit_df = transactions[transactions["cash_out_occurred"] == 0]
+    cashout_df = transactions[transactions["cash_out_occurred"] == 1]
+    no_cashout_df = transactions[transactions["cash_out_occurred"] == 0]
+    fraud_df = transactions[transactions["is_injected_fraud"]]
+    legit_df = transactions[~transactions["is_injected_fraud"]]
 
     feature_cols = [
         "distance_from_victim_km", "historical_crime_density", "time_window_match",
@@ -346,6 +362,11 @@ def save_outputs(atms, transactions, suspects, output_dir="data"):
         "fraud_transactions": int(fraud_df.shape[0]),
         "legit_transactions": int(legit_df.shape[0]),
         "fraud_rate": round(fraud_df.shape[0] / len(transactions) * 100, 2),
+        "cashout_transactions": int(len(cashout_df)),
+        "no_cashout_transactions": int(len(no_cashout_df)),
+        "cashout_rate_pct": round(len(cashout_df) / len(transactions) * 100, 2),
+        "target_semantics": "Synthetic cash-out outcome is distinct from injected fraud membership, not an observed future criminal outcome",
+        "feature_protocol": "observable-evening-window-v1",
         "total_suspects": len(suspects),
         "amount_stats": {
             "overall_mean": round(float(transactions["amount"].mean()), 2),
@@ -383,7 +404,7 @@ def save_outputs(atms, transactions, suspects, output_dir="data"):
 if __name__ == "__main__":
     print("=" * 60)
     print("ATLAS Synthetic Data Generator v2")
-    print("400 ATMs x 8 cities | 200k+ transactions | ~1.5% fraud")
+    print("400 ATMs x 8 cities | 200k synthetic rows | 1.5% injected fraud membership")
     print("=" * 60)
 
     print("\n[1/4] Generating 400 ATMs across 8 cities...")
@@ -392,8 +413,8 @@ if __name__ == "__main__":
 
     print("\n[2/4] Generating 200k transactions with fraud injection...")
     transactions = generate_transactions(atms, n_transactions=200000)
-    fraud_count = transactions["cash_out_occurred"].sum()
-    print(f"  Total: {len(transactions):,} | Fraud: {fraud_count:,} ({fraud_count/len(transactions)*100:.2f}%)")
+    cashout_count = transactions["cash_out_occurred"].sum()
+    print(f"  Total: {len(transactions):,} | Synthetic cash-out: {cashout_count:,} ({cashout_count/len(transactions)*100:.2f}%)")
 
     print("\n[3/4] Generating 200 suspect profiles...")
     suspects = generate_suspects(atms, n_suspects=200)

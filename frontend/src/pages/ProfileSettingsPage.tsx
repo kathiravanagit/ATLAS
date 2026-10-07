@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { User, Shield, Lock, Save, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, Building2, Hash } from 'lucide-react';
-import { getUser, setTokens, getAccessToken, fetchProfile, updateProfile, changePassword } from '@/lib/auth';
+import { getUser, updateStoredUser, fetchProfile, updateProfile, changePassword } from '@/lib/auth';
 
 export default function ProfileSettingsPage() {
   const navigate = useNavigate();
@@ -52,8 +52,7 @@ export default function ProfileSettingsPage() {
         setLastLogin(profile.last_login as string || '');
         // Update stored user
         const current = getUser() || {};
-        const expires = parseInt(localStorage.getItem('atlas_token_expires') || '0') - Date.now();
-        setTokens(getAccessToken() || '', '', expires, { ...current, ...profile });
+        updateStoredUser({ ...current, ...profile });
       }
     });
   }, []);

@@ -108,6 +108,8 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                 <tr
                   key={loc.atm_id}
                   onClick={() => onSelect(loc)}
+                  tabIndex={0} aria-label={`Select ${loc.atm_id} for explanation`}
+                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(loc); } }}
                   className="border-b border-[#D1D5DB] last:border-0 hover:bg-[#EFF6FF] transition-colors duration-150 cursor-pointer"
                 >
                   <td className="px-4 py-3 text-base text-[#6B7280] font-mono">#{loc.rank}</td>

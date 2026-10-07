@@ -3,19 +3,6 @@ import { AlertTriangle, CheckCircle, Eye, Clock, Shield, RefreshCw, User, Search
 import { useState, useEffect } from 'react';
 import { authFetch } from '@/lib/auth';
 
-const FALLBACK_AUDIT: AuditEntry[] = [
-  { time: "14:32:15", action: "Alert Generated", details: "ALT-001 created for case CC-2026-0147", action_type: "alert" },
-  { time: "14:30:08", action: "Prediction Updated", details: "ATM-027 risk score increased to 92%", action_type: "prediction" },
-  { time: "14:28:42", action: "Case Viewed", details: "Inspector viewed prediction for CC-2026-0147", action_type: "case" },
-  { time: "14:25:11", action: "Login", details: "Inspector authenticated via RBAC", action_type: "system" },
-  { time: "14:20:33", action: "Data Refresh", details: "Synthetic dataset reloaded for prediction engine", action_type: "system" },
-  { time: "14:17:22", action: "Alert Generated", details: "ALT-002 created for case CC-2026-0139", action_type: "alert" },
-  { time: "14:12:45", action: "Alert Acknowledged", details: "ALT-003 acknowledged by Inspector", action_type: "alert" },
-  { time: "14:02:11", action: "Alert Acknowledged", details: "ALT-004 acknowledged by Inspector", action_type: "alert" },
-  { time: "13:57:08", action: "Alert Generated", details: "ALT-003 created for case CC-2026-0142", action_type: "alert" },
-  { time: "13:45:30", action: "Prediction Updated", details: "ATM-027 risk score increased from 85% to 92%", action_type: "prediction" },
-  { time: "13:30:00", action: "Case Created", details: "Case CC-2026-0147 registered via cybercrime.gov.in", action_type: "case" },
-];
 
 const ACTION_CONFIG: Record<string, { icon: React.ReactNode; label: string; iconBg: string; iconColor: string }> = {
   alert: {
@@ -57,14 +44,18 @@ const ACTION_CONFIG: Record<string, { icon: React.ReactNode; label: string; icon
 };
 
 export default function AuditLog() {
-  const [logs, setLogs] = useState<AuditEntry[]>(FALLBACK_AUDIT);
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
+    const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [query, setQuery] = useState('');
   const [actor, setActor] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    const params = new URLSearchParams();
+    let active = true;
+        setLogs([]);
+        setError(null);
+        const params = new URLSearchParams();
     if (query.trim()) params.set('q', query.trim());
     if (actor.trim()) params.set('actor', actor.trim());
     if (filter !== 'all') params.set('action_type', filter);
@@ -72,9 +63,12 @@ export default function AuditLog() {
     authFetch(`/api/audit${qs ? `?${qs}` : ''}`)
       .then(async r => {
         // API reachable → trust it, including an empty search result set.
-        if (r.ok) setLogs(await r.json() as AuditEntry[]);
+        if (!r.ok) throw new Error(`Audit request failed (${r.status})`);
+                const rows = await r.json() as AuditEntry[];
+                if (active) setLogs(rows);
       })
-      .catch(() => {});
+      .catch(() => { if (active) setError('Audit service unavailable. No fixture audit entries are shown.'); });
+    return () => { active = false; };
   }, [query, actor, filter, refreshKey]);
 
   const types = ['all', ...new Set(logs.map(l => l.action_type))];
@@ -82,6 +76,7 @@ export default function AuditLog() {
 
   return (
     <div className="space-y-4">
+      {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">

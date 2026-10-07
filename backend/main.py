@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, Response
@@ -23,18 +25,24 @@ from models import (
     AlertResponse, DashboardStatsResponse
 )
 from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values, load_models
+import ml_engine
 
-# In-memory caches for high-frequency dashboard and city prediction reads
+# The legacy wrapper remains supported while the ML agent exposes structured
+# ensemble explanations (actual base value, method, units and availability).
+explain_cashout = getattr(ml_engine, "explain_cashout", None)
+_model_fingerprint_cache: dict = {}
+
+# In-memory cache for synthetic city prediction reads
 _city_prediction_cache: dict = {}
 _CITY_CACHE_TTL = 45.0
-_dashboard_cache: dict = {"ts": 0.0, "data": None}
-_DASHBOARD_CACHE_TTL = 15.0
 
-# Pre-warm ML models in memory at startup to eliminate first-request delay
-try:
-    load_models()
-except Exception:
-    pass
+# Pre-warm production models. Tests configure isolated, serial inference before
+# the first prediction and do not need import-time estimator allocations.
+if os.getenv("TESTING") != "1":
+    try:
+        load_models()
+    except Exception:
+        pass
 
 from city_data import CITIES
 from evidence_chain import get_evidence_chain
@@ -44,7 +52,6 @@ from city_data import get_city, get_all_cities, get_city_atms, get_city_stats, C
 from spatial import find_nearby_atms, get_spatial_info, enable_postgis, add_geometry_column
 from typing import List, Optional
 import random
-import os
 import uuid
 from datetime import datetime, timedelta, timezone
 import json
@@ -54,7 +61,11 @@ import logging
 import hashlib
 from twilio_client import send_sms_alert
 from email_client import send_email_alert
-from encryption import is_encrypted, encrypt as aes_encrypt, decrypt as aes_decrypt
+from encryption import seal, unseal, install_runtime_encryption
+from security_config import SECURITY_CONFIG
+from access_control import require_case, visible_cases, visible_case_ids, visibility_filter, check_action
+
+install_runtime_encryption()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -84,44 +95,7 @@ if DEMO_MODE:
     import warnings
     warnings.warn("DEMO MODE enabled — rate limiting disabled. Do NOT use in production!", stacklevel=2)
 
-# ─── Production Security Checks ───────────────────────────────────────────────
-_jwt_secret_key = os.getenv("JWT_SECRET_KEY", "") or os.getenv("SECRET_KEY", "")
-_encryption_key = os.getenv("ENCRYPTION_KEY", "")
-
-if DEMO_MODE:
-    logger.info("Demo mode active — production security checks skipped")
-elif os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING"):
-    logger.info("Test environment detected — production security checks skipped")
-else:
-    _DEFAULT_JWT_SECRET = "atlas-jwt-secret-key-change-in-production-2026"
-    if not _jwt_secret_key or _jwt_secret_key == _DEFAULT_JWT_SECRET:
-        logger.critical(
-            "FATAL: JWT_SECRET_KEY is not set or is using the default placeholder. "
-            "Set a secure JWT_SECRET_KEY environment variable before starting in production."
-        )
-        raise SystemExit("JWT_SECRET_KEY must be a unique, secure value in production")
-
-    if not _encryption_key:
-        logger.critical(
-            "FATAL: ENCRYPTION_KEY environment variable is not set. "
-            "Set a 64-character hex string (32-byte key) before starting in production."
-        )
-        raise SystemExit("ENCRYPTION_KEY must be set in production")
-
-    try:
-        _key_bytes = bytes.fromhex(_encryption_key)
-    except ValueError:
-        logger.critical(
-            "FATAL: ENCRYPTION_KEY is not a valid hex string. "
-            "Must be exactly 64 hex characters (32 bytes)."
-        )
-        raise SystemExit("ENCRYPTION_KEY must be a valid 64-hex-character string")
-
-    if len(_key_bytes) != 32:
-        logger.critical(
-            f"FATAL: ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars), got {len(_key_bytes)} bytes."
-        )
-        raise SystemExit("ENCRYPTION_KEY must be exactly 32 bytes")
+# Signing and encryption keys are validated by security_config before startup.
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -162,12 +136,15 @@ def _token_cleanup_loop():
         _time.sleep(600)
         _cleanup_expired_tokens()
 
-_cleanup_thread = threading.Thread(target=_token_cleanup_loop, daemon=True)
-_cleanup_thread.start()
-atexit.register(_cleanup_expired_tokens)
+# Tests own short-lived databases and must not leave maintenance threads or
+# exit callbacks trying to reopen a disposed fixture database.
+if os.getenv("TESTING") != "1":
+    _cleanup_thread = threading.Thread(target=_token_cleanup_loop, daemon=True)
+    _cleanup_thread.start()
+    atexit.register(_cleanup_expired_tokens)
 
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
+ENCRYPTION_KEY = SECURITY_CONFIG.encryption_key
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -333,9 +310,102 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
     return db.query(TransactionRecord).filter(TransactionRecord.case_id == case_id).all()
 
 
+def _predict_or_503(features: dict, case_id: str = "") -> dict:
+    try:
+        result = predict_cashout(features, case_id=case_id)
+        if not isinstance(result, dict) or result.get("error") or "risk_score" not in result or "confidence" not in result:
+            raise ValueError("Model returned no usable prediction")
+        import math
+        if not all(math.isfinite(float(result[key])) for key in ("risk_score", "confidence")):
+            raise ValueError("Model returned non-finite scores")
+        result = dict(result)
+        result["drift"] = {
+            **(result.get("drift") or {}),
+            "metric_method": "per-feature z-score heuristic; not PSI",
+            "data_source": "synthetic training reference; not verified live drift",
+            "verified": False,
+        }
+        return result
+    except Exception as exc:
+        logger.error("Prediction model unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Prediction model unavailable; no risk estimate was produced") from exc
+
+
+def _persist_prediction(db, result):
+    try:
+        pred = db.query(Prediction).filter(Prediction.case_id == result["case_id"]).first()
+        if pred is None:
+            pred = Prediction(case_id=result["case_id"])
+            db.add(pred)
+            db.flush()
+        pred.status = result["status"]
+        pred.risk_trend = json.dumps(result["risk_trend"])
+        pred.model_version = result.get("model_info", {}).get("model_version", "unversioned")
+        db.query(RankedLocation).filter(RankedLocation.prediction_id == pred.id).delete()
+        for location in result["ranked_locations"]:
+            # Existing encrypted Text field avoids a schema change. Responses
+            # keep the human-readable reason separate from this exact snapshot.
+            snapshot = json.dumps({
+                "snapshot_version": 1, "reason": location["reason"],
+                "prediction_features": location["prediction_features"],
+                "model_output": location["model_output"],
+                "model_info": location["model_info"],
+            })
+            db.add(RankedLocation(
+                prediction_id=pred.id, reason=snapshot,
+                **{key: location[key] for key in (
+                    "rank", "atm_id", "location_name", "risk_score", "expected_window",
+                    "distance", "status", "latitude", "longitude",
+                )},
+            ))
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error("Could not persist exact prediction snapshot: %s", exc)
+        raise HTTPException(status_code=503, detail="Prediction snapshot could not be persisted") from exc
+
+
+def _current_model_fingerprint():
+    import joblib
+    try:
+        rf, xgb = load_models()
+        if rf is None and xgb is None:
+            raise ValueError("No models loaded")
+        background = (get_metadata() or {}).get("shap_background")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Prediction model unavailable") from exc
+    key = (id(rf), id(xgb), joblib.hash(background))
+    cached = _model_fingerprint_cache.get(key)
+    if cached and cached[0] is rf and cached[1] is xgb:
+        return cached[2]
+    fingerprint = joblib.hash((rf, xgb, background))
+    if len(_model_fingerprint_cache) >= 4:
+        _model_fingerprint_cache.clear()
+    _model_fingerprint_cache[key] = (rf, xgb, fingerprint)
+    return fingerprint
+
+
+def _location_model_info(output):
+    return {
+        "model_version": output.get("model_version", "unversioned"),
+        "model_fingerprint": _current_model_fingerprint(),
+        "model_weights": output.get("model_weights", {}),
+        "data_source": "synthetic operational simulation; not verified historical evidence",
+    }
+
+
+def _label_simulated_evidence(evidence):
+    for item in evidence.values():
+        item["data_source"] = "simulated, not verified"
+        item["description"] = "Simulated (not verified): " + item["description"]
+        item["details"] = "Simulated (not verified): " + item["details"]
+    return evidence
+
+
 # ─── Risk Scoring Engine (ML-powered) ─────────────────────────────────────────
 
 def get_predictions_for_case(case_id: str, db: Session) -> dict:
+    _current_model_fingerprint()  # fail before creating synthetic fixtures
     case = db.query(Case).filter(Case.case_id == case_id).first()
 
     case_hash = stable_int(case_id) % 10000
@@ -343,7 +413,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
 
     atm_locations = db.query(AtmLocation).all()
     if not atm_locations:
-        return {"error": "No ATM locations found"}
+        raise HTTPException(status_code=503, detail="Prediction service unavailable: no ATM reference data")
 
     # Determine city from case alerts/description, default to puducherry
     city_id = "puducherry"
@@ -368,7 +438,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     record_accounts = len({record.to_account for record in synthetic_records})
 
     model_meta = get_metadata()
-    model_accuracy = model_meta.get("accuracy", 72.7) if model_meta else 72.7
+    model_accuracy = model_meta.get("accuracy") if model_meta else None
 
     # Deterministic victim/suspect positions derived from case_id hash
     victim_offset_x = ((case_hash * 7 + 3) % 200 - 100) / 10000.0
@@ -442,7 +512,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "amount_factor": round(min(amount / 150000, 1.0), 3),
         }
 
-        ml_result = predict_cashout(features)
+        ml_result = _predict_or_503(features, case_id=case_id)
         score = ml_result["risk_score"]
         confidence = ml_result["confidence"]
 
@@ -461,6 +531,9 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "atm_id": atm.atm_id,
             "location_name": atm.name,
             "risk_score": score,
+            "prediction_features": dict(features),
+            "model_output": ml_result,
+            "model_info": _location_model_info(ml_result),
             "expected_window": _expected_window(hour),
             "distance": f"{round(dist_victim, 1)} km",
             "reason": reasons_map[level][atm_hash % len(reasons_map[level])],
@@ -498,13 +571,13 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "category": "Temporal Pattern",
             "description": "Historical withdrawals concentrated during evening hours",
             "strength": "Strong" if 17 <= hour <= 21 else "Moderate",
-            "details": f"{_ev_pct}% of past withdrawals occurred between 17:00-21:00."
+            "details": f"{_ev_pct}% of simulated withdrawals occurred between 17:00-21:00."
         },
         "geographic_signal": {
             "category": "Geographic Signal",
             "description": f"Geographic clustering within {_ev_geo_radius}km radius of primary location",
             "strength": "Strong",
-            "details": f"{_ev_geo_count} of {_ev_geo_total} past withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
+            "details": f"{_ev_geo_count} of {_ev_geo_total} simulated withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
         },
         "account_network": {
             "category": "Account Network",
@@ -514,9 +587,9 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         },
         "historical_similarity": {
             "category": "Historical Similarity",
-            "description": f"Pattern matches {_ev_sim_pct}% of past verified cash-out cases",
+            "description": f"Pattern matches {_ev_sim_pct}% in an illustrative synthetic similarity score (no verified cases)",
             "strength": "Strong",
-            "details": f"Similar fraud typology observed in {_ev_sim_count} prior cases."
+            "details": f"Similar fraud typology observed in {_ev_sim_count} illustrative synthetic cases (not observed historical cases)."
         }
     }
 
@@ -526,14 +599,15 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         "primary_location": primary,
         "ranked_locations": ranked,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]],
-        "evidence": evidence,
+        "evidence": _label_simulated_evidence(evidence),
         "model_info": {
-            "model_version": model_meta.get("model_version", "unversioned") if model_meta else "unversioned",
+            "model_version": primary["model_info"]["model_version"],
             "accuracy": model_accuracy,
-            "model_type": "Ensemble (RF + XGBoost)",
+            "model_type": "Weighted ensemble of available estimators",
+            "models": list(primary["model_output"].get("ensemble", {})),
+            "validation_scope": "Synthetic binary-classification benchmark; not location-ranking accuracy",
             "features_used": 15,
-            "ensemble_weights": {"random_forest": 0.5, "xgboost": 0.5},
-            "top_k_accuracy": model_meta.get("top_k_accuracy") if model_meta else None,
+            "ensemble_weights": primary["model_output"].get("model_weights", {}),
             "precision": model_meta.get("precision") if model_meta else None,
             "recall": model_meta.get("recall") if model_meta else None,
             "f1_score": model_meta.get("f1_score") if model_meta else None,
@@ -542,38 +616,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         "disclaimer": "Risk scores are model-derived estimates on synthetic data. They indicate relative likelihood, not certainty. Officer judgment is required for all enforcement decisions.",
     }
 
-    # Persist prediction to DB so it appears in queries
-    try:
-        existing = db.query(Prediction).filter(Prediction.case_id == case_id).first()
-        if existing:
-            existing.status = result["status"]
-            existing.risk_trend = json.dumps(result["risk_trend"])
-            existing.model_version = result["model_info"]["model_version"]
-            pred_id = existing.id
-            db.query(RankedLocation).filter(RankedLocation.prediction_id == pred_id).delete()
-        else:
-            pred = Prediction(
-                case_id=case_id,
-                status=result["status"],
-                risk_trend=json.dumps(result["risk_trend"]),
-                model_version=result["model_info"]["model_version"],
-            )
-            db.add(pred)
-            db.flush()
-            pred_id = pred.id
-
-        for r in ranked:
-            db.add(RankedLocation(
-                prediction_id=pred_id, rank=r["rank"], atm_id=r["atm_id"],
-                location_name=r["location_name"], risk_score=r["risk_score"],
-                expected_window=r["expected_window"], distance=r["distance"],
-                reason=r["reason"], status=r["status"],
-                latitude=r["latitude"], longitude=r["longitude"],
-            ))
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error(f"[PredictionDB] Failed to persist prediction for {case_id}: {e}")
+    _persist_prediction(db, result)
 
     return result
 
@@ -627,7 +670,6 @@ def health_check(user: dict = Depends(require_permission("read")), db: Session =
         "predictions_stored": pred_count,
         "ranked_locations_stored": ranked_count,
         "total_cases": case_count,
-        "top_k_accuracy": model_meta.get("top_k_accuracy") if model_meta else None,
     }
 
 
@@ -685,9 +727,18 @@ def get_city_atm_list(city_id: str, user: dict = Depends(require_permission("rea
 
 @app.get("/api/cities/{city_id}/predictions")
 def get_city_predictions(city_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
+    synthetic_case_id = f"SYN-CITY-{city_id.upper()}"
+    existing_case = db.query(Case).filter(Case.case_id == synthetic_case_id).first()
+    if existing_case:
+        require_case(db, user, synthetic_case_id)
     now = time.time()
     cached = _city_prediction_cache.get(city_id)
-    if cached and (now - cached[0]) < _CITY_CACHE_TTL:
+    fingerprint = _current_model_fingerprint()
+    if (existing_case and cached and (now - cached[0]) < _CITY_CACHE_TTL
+            and cached[1].get("model_info", {}).get("model_fingerprint") == fingerprint):
+        # A case prediction may have replaced these rows since the city cache
+        # was populated. Restore the exact snapshot returned by this response.
+        _persist_prediction(db, cached[1])
         return cached[1]
 
     city = get_city(city_id)
@@ -711,6 +762,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         ))
         db.commit()
     synthetic_records = ensure_synthetic_transactions(db, synthetic_case_id, city_id, atms)
+    prediction_time = datetime.now()
 
     ranked = []
     for i, atm in enumerate(atms):
@@ -728,14 +780,14 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         features = {
             "distance_from_victim_km": _dist,
             "historical_crime_density": _crime,
-            "time_window_match": 1.0 if 17 <= datetime.now().hour <= 22 else 0.0,
+            "time_window_match": 1.0 if 17 <= prediction_time.hour <= 22 else 0.0,
             "atm_type_score": {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}.get(atm["type"], 0.5),
             "suspect_distance_km": _sus_dist,
             "recent_withdrawal_freq": _r_freq,
             "amount": _amt,
             "num_mule_accounts": _mules,
-            "hour": datetime.now().hour,
-            "day_of_week": datetime.now().weekday(),
+            "hour": prediction_time.hour,
+            "day_of_week": prediction_time.weekday(),
             "transaction_velocity": _t_vel,
             "proximity_score": round(atm["risk"], 3),
             "density_score": round(_crime / 15, 3),
@@ -743,10 +795,10 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "amount_factor": _amt_factor,
         }
 
-        ml_result = predict_cashout(features)
+        ml_result = _predict_or_503(features, case_id=synthetic_case_id)
         score = ml_result["risk_score"]
 
-        _win_hour = datetime.now().hour
+        _win_hour = prediction_time.hour
         if _win_hour < 18:
             _win = "17:00-19:00"
         elif _win_hour < 20:
@@ -759,12 +811,16 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "atm_id": atm["id"],
             "location_name": atm["name"],
             "risk_score": score,
+            "prediction_features": dict(features),
+            "model_output": ml_result,
+            "model_info": _location_model_info(ml_result),
             "expected_window": _win,
             "distance": f"{_dist} km",
             "reason": "Historical pattern match" if score > 60 else "Low activity area",
             "status": "High" if score > 70 else ("Medium" if score > 45 else "Watch"),
             "latitude": atm["lat"],
             "longitude": atm["lng"],
+            "confidence": ml_result["confidence"],
         })
 
     ranked.sort(key=lambda x: x["risk_score"], reverse=True)
@@ -798,13 +854,13 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
                 "category": "Temporal Pattern",
                 "description": f"Matches peak cash-out window ({primary.get('expected_window', '18:00-20:00')})",
                 "strength": "Strong",
-                "details": f"{_ev_pct}% of past withdrawals occurred between 17:00-21:00."
+                "details": f"{_ev_pct}% of simulated withdrawals occurred between 17:00-21:00."
             },
             "geographic_signal": {
                 "category": "Geographic Signal",
                 "description": f"Geographic clustering within {_ev_geo_radius}km radius of primary location",
                 "strength": "Strong",
-                "details": f"{_ev_geo_count} of {_ev_geo_total} past withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
+                "details": f"{_ev_geo_count} of {_ev_geo_total} simulated withdrawals within {_ev_geo_km}km of {primary['atm_id']}."
             },
             "account_network": {
                 "category": "Account Network",
@@ -814,9 +870,9 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             },
             "historical_similarity": {
                 "category": "Historical Similarity",
-                "description": f"Pattern matches {_ev_sim_pct}% of past verified cash-out cases",
+                "description": f"Pattern matches {_ev_sim_pct}% in an illustrative synthetic similarity score (no verified cases)",
                 "strength": "Strong",
-                "details": f"Similar fraud typology observed in {_ev_sim_count} prior cases."
+                "details": f"Similar fraud typology observed in {_ev_sim_count} illustrative synthetic cases (not observed historical cases)."
             }
         }
 
@@ -826,68 +882,45 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "center": city["center"],
         "ranked_locations": ranked,
         "total_atms": len(atms),
-        "model_accuracy": get_metadata().get("accuracy") if get_metadata() else 72.7,
-        "case_id": f"CC-2026-{(city_hash % 900) + 100:04d}",
+        "model_accuracy": get_metadata().get("accuracy") if get_metadata() else None,
+        "case_id": synthetic_case_id,
+        "model_info": primary["model_info"] if primary else {},
         "status": "HIGH PRIORITY" if primary and primary["risk_score"] > 70 else "MEDIUM PRIORITY",
         "primary_location": primary,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]] if primary else [],
-        "evidence": evidence,
+        "evidence": _label_simulated_evidence(evidence),
         "disclaimer": "Synthetic operational simulation only. Risk scores are not real-world validation and require officer review.",
         "data_source": "synthetic-fixture transaction_records",
     }
+    _persist_prediction(db, res_payload)
     _city_prediction_cache[city_id] = (time.time(), res_payload)
     return res_payload
 
 
 @app.get("/api/dashboard")
 def get_dashboard(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    now = time.time()
-    if _dashboard_cache["data"] and (now - _dashboard_cache["ts"]) < _DASHBOARD_CACHE_TTL:
-        return _dashboard_cache["data"]
-
-    active = db.query(Case).filter(Case.status == "active").count()
-    unacknowledged = db.query(Alert).filter(Alert.acknowledged == False).count()
-    total_cases = db.query(Case).count()
-    resolved = db.query(Case).filter(Case.status == "resolved").count()
-    # Dynamic lead time based on resolution rate: higher resolution = lower lead time
-    base_lead = 55 if total_cases == 0 else max(15, round(55 - (resolved / max(total_cases, 1)) * 40))
-    # NOTE: In this prototype, "prevented fraud" = sum of all resolved case amounts.
-    # In production, this would filter by specific outcome types (e.g., funds frozen before cash-out).
     from sqlalchemy import func
-    prevented = db.query(func.coalesce(func.sum(Case.amount), 0)).filter(Case.status == "resolved").scalar()
-    # Mule accounts flagged: count of distinct linked accounts from high-risk predictions
-    from models_db import Prediction, RankedLocation
-    high_risk_locs = db.query(RankedLocation).join(Prediction).filter(RankedLocation.risk_score >= 70).count()
-    result = {
-        "active_cases": active,
-        "high_risk_locations": max(1, unacknowledged + 3),
-        "alerts_today": unacknowledged,
-        "avg_lead_time": f"{base_lead} min",
-        "prevented_fraud": int(prevented) if prevented else 0,
-        "mules_flagged": high_risk_locs,
+    cases = visible_cases(db, user)
+    active = cases.filter(Case.status == "active").count()
+    unacknowledged = db.query(Alert).join(Case).filter(visibility_filter(user), Alert.acknowledged == False).count()
+    resolved_amount = db.query(func.coalesce(func.sum(Case.amount), 0)).filter(visibility_filter(user), Case.status == "resolved").scalar()
+    high_risk_locs = db.query(RankedLocation).join(Prediction).join(Case).filter(visibility_filter(user), RankedLocation.risk_score >= 70).count()
+    return {
+        "active_cases": active, "high_risk_locations": high_risk_locs,
+        "alerts_today": unacknowledged, "avg_lead_time": "Not measured",
+        "prevented_fraud": None, "resolved_case_amount": int(resolved_amount or 0),
+        "mules_flagged": None,
+        "metrics_note": "Resolved amounts are not verified prevented fraud; mule counts and lead time are not measured",
     }
-    _dashboard_cache["ts"] = time.time()
-    _dashboard_cache["data"] = result
-    return result
+
 
 
 @app.get("/api/cases")
 def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)):
-    q = db.query(Case).order_by(Case.case_id)
-    # Ownership scoping: admins see all; others see their department's cases,
-    # cases assigned to them, plus the shared (unassigned) pool.
-    if user.get("role") != "admin":
-        dept = user.get("department", "") or ""
-        uid = user.get("id", "") or ""
-        q = q.filter(or_(
-            Case.department == "", Case.department.is_(None), Case.department == dept,
-            Case.assigned_to == uid,
-        ))
+    q = visible_cases(db, user).order_by(Case.case_id)
     cases = q.offset(offset).limit(limit).all()
 
     def _dec(val):
-        if val and ENCRYPTION_KEY and is_encrypted(val):
-            return aes_decrypt(val, ENCRYPTION_KEY)
         return val or ""
 
     # PII visible only to admin and inspector roles; bank_officer/analyst see redacted fields
@@ -914,9 +947,7 @@ def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200
 
 @app.post("/api/cases/{case_id}/resolve")
 def resolve_case(case_id: str, user: dict = Depends(require_permission("override")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = require_case(db, user, case_id, 'close')
 
     case.status = "resolved"
     case.current_risk = "Resolved"
@@ -930,45 +961,30 @@ def resolve_case(case_id: str, user: dict = Depends(require_permission("override
 
 @app.get("/api/predictions")
 def get_all_predictions(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    cases = db.query(Case).filter(Case.status == "active").limit(5).all()
+    cases = visible_cases(db, user).filter(Case.status == "active").limit(5).all()
     return [get_predictions_for_case(c.case_id, db) for c in cases]
 
 
 @app.get("/api/predictions/{case_id}")
 @limiter.limit("30/minute")
 def get_prediction(request: Request, case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if case:
-        return get_predictions_for_case(case_id, db)
-    # Case not in DB — generate prediction from synthetic data (handles city-generated case IDs)
+    require_case(db, user, case_id)
     return get_predictions_for_case(case_id, db)
 
 
 @app.post("/api/transactions")
 def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    case = require_case(db, user, tx.case_id, 'write')
     idem_key = idempotency_key_from(request)
+    if idem_key:
+        idem_key = hashlib.sha256((user["id"] + "|" + tx.case_id + "|" + idem_key).encode()).hexdigest()
     if idem_key:
         replay = check_replay(db, idem_key, "POST", "/api/transactions")
         if replay is not None:
             return replay
-    case = db.query(Case).filter(Case.case_id == tx.case_id).first()
-    if not case:
-        # Auto-create case from synthetic ID (allows simulation for city-generated case IDs)
-        case = Case(
-            case_id=tx.case_id,
-            crime_type="UPI Fraud",
-            amount=0,
-            linked_accounts=2,
-            current_risk="Medium",
-            status="active",
-            victim_name="VICTIM-SYN-DEMO",
-            contact="+91-SYN-00000",
-            description=f"Auto-created case for transaction simulation (case_id={tx.case_id})",
-        )
-        db.add(case)
-        db.commit()
-        db.refresh(case)
-
+    if db.query(AtmLocation.atm_id).first() is None:
+        raise HTTPException(status_code=503, detail="Prediction service unavailable: no ATM reference data")
+    _current_model_fingerprint()  # do not record a transaction when models cannot load
     add_audit(
         db,
         action="Transaction Simulated",
@@ -995,8 +1011,8 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
 
     updated_prediction = get_predictions_for_case(tx.case_id, db)
 
-    # Guard: prediction engine returns {"error": ...} when ATM reference data is absent.
-    # Return a controlled 503 instead of raising KeyError -> HTTP 500.
+    # Defensive validation of the prediction response; missing ATM reference
+    # data is rejected above before any audit or transaction mutation.
     primary = (updated_prediction or {}).get("primary_location") if isinstance(updated_prediction, dict) else None
     if not isinstance(primary, dict) or "risk_score" not in primary:
         raise HTTPException(
@@ -1025,11 +1041,14 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
             db, "email",
             {"subject": f"High-Risk Cash-Out Alert ({tx.case_id})", "message": alert_msg},
         )
-        threading.Thread(
-            target=run_notification_worker,
-            args=(SessionLocal, send_sms_alert, send_email_alert),
-            daemon=True,
-        ).start()
+        # Test fixtures process queued jobs explicitly with fake senders; never
+        # dispatch real SMS/email or race fixture teardown in TESTING mode.
+        if os.getenv("TESTING") != "1":
+            threading.Thread(
+                target=run_notification_worker,
+                args=(SessionLocal, send_sms_alert, send_email_alert),
+                daemon=True,
+            ).start()
 
         # Broadcast alert via WebSocket to all connected clients
         import asyncio
@@ -1071,15 +1090,14 @@ def _finalize_transaction_response(db, idem_key, body: dict):
 
 @app.post("/api/alerts")
 def create_alert(request: Request, alert_data: AlertCreate, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    case = require_case(db, user, alert_data.case_id, 'write')
     idem_key = idempotency_key_from(request)
+    if idem_key:
+        idem_key = hashlib.sha256((user["id"] + "|" + alert_data.case_id + "|" + idem_key).encode()).hexdigest()
     if idem_key:
         replay = check_replay(db, idem_key, "POST", "/api/alerts")
         if replay is not None:
             return replay
-    case = db.query(Case).filter(Case.case_id == alert_data.case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
     alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
     alert = Alert(
         alert_id=alert_id,
@@ -1127,15 +1145,7 @@ def _finalize_alert_response(db, idem_key, body: dict):
 
 @app.get("/api/alerts")
 def get_alerts(user: dict = Depends(require_permission("read")), limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)):
-    q = db.query(Alert)
-    # Row-level isolation: alerts inherit their case's visibility.
-    if user.get("role") != "admin":
-        dept = user.get("department", "") or ""
-        uid = user.get("id", "") or ""
-        q = q.join(Case, Alert.case_id == Case.case_id).filter(or_(
-            Case.department == "", Case.department.is_(None), Case.department == dept,
-            Case.assigned_to == uid,
-        ))
+    q = db.query(Alert).join(Case).filter(visibility_filter(user))
     alerts = q.order_by(Alert.timestamp.desc()).offset(offset).limit(limit).all()
     return [
         {
@@ -1159,11 +1169,12 @@ def acknowledge_alert(alert_id: str, user: dict = Depends(require_permission("re
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
+    require_case(db, user, alert.case_id, "acknowledge")
     alert.acknowledged = True
     alert.acknowledged_at = datetime.now().strftime("%H:%M:%S")
     db.commit()
 
-    add_audit(db, "Alert Acknowledged", f"Alert {alert_id} acknowledged", "alert")
+    add_audit(db, "Alert Acknowledged", "Alert {} acknowledged by {}".format(alert_id, user["id"]), "alert", alert.case_id)
 
     return {"status": "acknowledged", "alert_id": alert_id}
 
@@ -1188,15 +1199,20 @@ def get_audit_log(
 ):
     """Auditor feed with server-side search/filter (text, action type, actor)."""
     qry = db.query(AuditLog)
+    if user.get("role") != "admin":
+        qry = qry.join(Case).filter(visibility_filter(user))
     if action_type:
         qry = qry.filter(AuditLog.action_type == action_type)
-    if q:
-        like = f"%{q}%"
-        qry = qry.filter(or_(AuditLog.action.ilike(like), AuditLog.details.ilike(like)))
-    if actor:
-        # Actor identity is recorded inside details (e.g. "by officer x@y.gov").
-        qry = qry.filter(AuditLog.details.ilike(f"%{actor}%"))
-    logs = qry.order_by(AuditLog.timestamp.desc()).limit(limit).all()
+    # Encrypted text is searched after decryption, never with ciphertext LIKE.
+    logs = []
+    for log in qry.order_by(AuditLog.timestamp.desc()).yield_per(100):
+        if q and q.casefold() not in (log.action + " " + log.details).casefold():
+            continue
+        if actor and actor.casefold() not in log.details.casefold():
+            continue
+        logs.append(log)
+        if len(logs) >= limit:
+            break
     return [
         {
             "time": l.timestamp.strftime("%H:%M:%S") if l.timestamp else "",
@@ -1212,9 +1228,7 @@ def get_audit_log(
 
 @app.get("/api/suspects/{case_id}")
 def get_suspects(case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = require_case(db, user, case_id, 'read')
 
     suspects = db.query(Suspect).filter(Suspect.case_id == case_id).all()
 
@@ -1258,23 +1272,39 @@ def get_suspects(case_id: str, user: dict = Depends(require_permission("read")),
 
 # ─── WebSocket + New Endpoints ─────────────────────────────────────────────────
 
+def _current_ws_user(db, ticket_user):
+    from models_db import User
+    user = db.query(User).filter(User.id == ticket_user.get("id"), User.is_active == True, User.is_approved == True).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Inactive WebSocket session")
+    return {"id": user.id, "role": user.role, "department": user.department}
+
+
 class ConnectionManager:
     def __init__(self):
         self.active: list[WebSocket] = []
+        self.users: dict = {}
 
-    async def connect(self, ws: WebSocket):
+    async def connect(self, ws: WebSocket, user: dict):
         await ws.accept()
         self.active.append(ws)
+        self.users[ws] = user
 
     def disconnect(self, ws: WebSocket):
         if ws in self.active:
             self.active.remove(ws)
+        self.users.pop(ws, None)
 
     async def broadcast(self, data: dict):
         dead = []
         for ws in self.active:
             try:
+                if data.get("case_id"):
+                    with SessionLocal() as db:
+                        require_case(db, _current_ws_user(db, self.users.get(ws, {})), data["case_id"])
                 await ws.send_json(data)
+            except HTTPException:
+                continue
             except Exception:
                 dead.append(ws)
         for ws in dead:
@@ -1287,7 +1317,7 @@ class EvidenceAnchor(BaseModel):
     case_id: str
     evidence_type: str
     content: str
-    officer_id: str
+    officer_id: str = ""  # compatibility only; authenticated identity is authoritative
 
 
 class AnomalyRequest(BaseModel):
@@ -1317,7 +1347,7 @@ async def websocket_alerts(ws: WebSocket, ticket: str = Query(default=None)):
         return
 
     ws_tracker.connect(session_id)
-    await manager.connect(ws)
+    await manager.connect(ws, user)
     try:
         await ws.send_json({
             "type": "connected",
@@ -1332,7 +1362,12 @@ async def websocket_alerts(ws: WebSocket, ticket: str = Query(default=None)):
                 await ws.send_json({"type": "pong"})
             elif data.startswith("subscribe:"):
                 case_id = data.split(":", 1)[1]
-                await ws.send_json({"type": "subscribed", "case_id": case_id})
+                try:
+                    with SessionLocal() as db:
+                        require_case(db, _current_ws_user(db, user), case_id)
+                    await ws.send_json({"type": "subscribed", "case_id": case_id})
+                except HTTPException:
+                    await ws.send_json({"type": "error", "message": "Case not found"})
     except WebSocketDisconnect:
         pass
     finally:
@@ -1348,7 +1383,6 @@ def model_card(user: dict = Depends(require_permission("read"))):
     return {
         "model_type": meta.get("model_type"),
         "model_version": meta.get("model_version", "unversioned"),
-        "top_k_accuracy": meta.get("top_k_accuracy"),
         "accuracy": meta.get("accuracy"),
         "precision": meta.get("precision"),
         "recall": meta.get("recall"),
@@ -1366,6 +1400,11 @@ def model_card(user: dict = Depends(require_permission("read"))):
         "feature_columns": meta.get("feature_columns"),
         "positive_ratio": meta.get("positive_ratio"),
         "confusion_matrix": meta.get("confusion_matrix"),
+        "evaluation_status": meta.get("evaluation_status"),
+        "split_provenance": meta.get("split_provenance"),
+        "target_semantics": meta.get("target_semantics"),
+        "data_limitations": meta.get("data_limitations"),
+        "future_outcome_metrics": meta.get("future_outcome_metrics"),
         "n_drifted_features": meta.get("n_drifted_features"),
         "dataset": meta.get("dataset"),
         "cities": meta.get("cities"),
@@ -1381,27 +1420,35 @@ def _validation_protocol_block(meta: dict) -> dict:
     fn = cm.get("fn", 0); tn = cm.get("tn", 0)
     total = tp + fp + fn + tn
     # Majority-class baseline: accuracy of always predicting the majority class.
-    baseline = f"{max(tn + fp, tp + fn) / total * 100:.2f}%" if total else None
+    provenance = meta.get("split_provenance")
+    baseline = f"{max(tn + fp, tp + fn) / total * 100:.2f}%" if total and provenance else None
     # Frozen-ensemble holdout revalidation (revalidate_model.py), if present.
     holdouts = None
     try:
-        with open("model/validation_report.json") as _vf:
+        with open(os.path.join(ml_engine.MODEL_DIR, "validation_report.json"), encoding="utf-8") as _vf:
             _vr = json.load(_vf)
         holdouts = {
             "protocol": _vr.get("protocol"),
+            "status": _vr.get("status"),
             "slices": _vr.get("slices"),
-            "calibration": _vr.get("calibration_random_sample"),
-            "threshold_sweep": _vr.get("threshold_sweep_random_sample"),
+            "calibration": _vr.get("calibration"),
+            "threshold_sweep": _vr.get("threshold_sweep"),
             "baseline_comparison": _vr.get("baseline_comparison"),
+            "previous_prefix_diagnostic": _vr.get("previous_prefix_diagnostic"),
+            "future_outcome_metrics": _vr.get("future_outcome_metrics"),
         }
     except (OSError, ValueError):
         holdouts = None
     return {
         "validation_protocol": {
             "data": "synthetic benchmark (see dataset/version in metadata)",
-            "split": "random holdout plus frozen temporal and location holdouts on a synthetic benchmark",
+            "split": (
+                "pre-fit group-disjoint train/group/location/time synthetic exclusions; see saved split provenance"
+                if provenance else
+                "unavailable: frozen artifacts lack verified pre-fit split provenance; explicit retraining required"
+            ),
             "baseline_majority_accuracy": baseline,
-            "calibration_status": "uncalibrated — risk scores are ranking scores, NOT probabilities",
+            "calibration_status": "uncalibrated — use ranking scores, NOT calibrated future cash-out probabilities",
             "threshold_guidance": "threshold trades precision (alert fatigue) against recall (missed cash-outs); "
                                   "set it from investigator capacity and false-positive cost, not from accuracy",
             "intended_use": "decision support with mandatory human review",
@@ -1417,7 +1464,7 @@ def prediction_distribution(user: dict = Depends(require_permission("read"))):
     if not meta:
         raise HTTPException(status_code=404, detail="No model trained yet")
     try:
-        with open("model/dataset_stats.json") as f:
+        with open(ml_engine.STATS_PATH, encoding="utf-8") as f:
             stats = json.load(f)
     except FileNotFoundError:
         stats = {}
@@ -1443,7 +1490,7 @@ def detect_anomaly(req: AnomalyRequest, user: dict = Depends(require_permission(
         "suspect_proximity": 0.5,
         "amount_factor": min(req.amount / 150000, 1.0),
     }
-    result = predict_cashout(features)
+    result = _predict_or_503(features)
     is_anomaly = result["risk_score"] > 80 or req.amount > 100000 or req.num_mule_accounts >= 5
     return {
         "is_anomaly": is_anomaly,
@@ -1463,7 +1510,7 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
     except ImportError:
         raise HTTPException(status_code=500, detail="NetworkX not installed")
 
-    cases = db.query(Case).all() if not case_id else db.query(Case).filter(Case.case_id == case_id).all()
+    cases = visible_cases(db, user).all() if not case_id else [require_case(db, user, case_id)]
 
     G = nx.DiGraph()
     for c in cases:
@@ -1556,13 +1603,12 @@ def case_action(case_id: str, action: dict, user: dict = Depends(require_permiss
     if action_type not in valid_types:
         raise HTTPException(status_code=400, detail=f"Invalid action type. Must be one of: {valid_types}")
 
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = require_case(db, user, case_id, 'read')
 
+    check_action(user, action_type)
     reason = action.get("reason", "")
     assigned_to = action.get("assigned_to", "")
-    actor_name = user.get("name", user.get("id", "unknown"))
+    actor_name = "{} ({})".format(user.get("name", ""), user["id"])
 
     if action_type == "close" and not reason:
         raise HTTPException(status_code=400, detail="Reason is required to close a case")
@@ -1571,6 +1617,11 @@ def case_action(case_id: str, action: dict, user: dict = Depends(require_permiss
         case.status = "investigating"
         case.last_updated = "Just now"
     elif action_type == "assign":
+        from models_db import User
+        target = db.query(User).filter(User.id == assigned_to, User.is_active == True, User.is_approved == True).first()
+        if not target or (case.department and target.department != case.department):
+            raise HTTPException(status_code=400, detail="Assignee must be an active approved user in the case department")
+        case.assigned_to = target.id
         case.status = "investigating"
         case.last_updated = "Just now"
     elif action_type == "request_verification":
@@ -1616,112 +1667,93 @@ def case_action(case_id: str, action: dict, user: dict = Depends(require_permiss
 @app.get("/api/model/metrics")
 @limiter.limit("20/minute")
 def model_metrics(request: Request, user: dict = Depends(require_permission("read"))):
-    """Return precision, recall, F1, confusion matrix, ROC AUC from training metadata."""
     meta = get_metadata()
     if not meta:
         raise HTTPException(status_code=404, detail="No model trained")
-
-    # Use real metrics from metadata if available, else compute from accuracy
-    ensemble_acc = meta.get("accuracy", 86.3)
-    rf_acc = meta.get("rf_accuracy", 72.7)
-    xgb_acc = meta.get("xgb_accuracy", 88.2)
-
-    # Real metrics from trained model
-    precision = meta.get("precision", 95.8)
-    recall = meta.get("recall", 39.4)
-    f1 = meta.get("f1_score", 55.8)
-    cm = meta.get("confusion_matrix", {"tp": 574, "fp": 25, "fn": 884, "tn": 38517})
-
     return {
-        "ensemble": {
-            "accuracy": ensemble_acc,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1,
-            "confusion_matrix": cm,
-        },
-        "random_forest": {
-            "accuracy": rf_acc,
-            "precision": precision * 0.98,
-            "recall": recall * 0.95,
-            "f1_score": f1 * 0.97,
-        },
-        "xgboost": {
-            "accuracy": xgb_acc,
-            "precision": precision * 1.01,
-            "recall": recall * 1.02,
-            "f1_score": f1 * 1.01,
-        },
-        "roc_auc": meta.get("roc_auc", 0.72),
-        "pr_auc": meta.get("pr_auc", 0.45),
-        "cv_accuracy": meta.get("cv_accuracy", 96.9),
-        "cv_std": meta.get("cv_std", 0.7),
-        "training_date": meta.get("training_date"),
-        "n_samples": meta.get("n_samples"),
-        "n_features": meta.get("n_features"),
-        "cities": meta.get("cities", 8),
-        "atms": meta.get("atms", 400),
+        "data_source": "synthetic benchmark, not verified operational accuracy",
+        "ensemble": {key: meta.get(key) for key in ("accuracy", "precision", "recall", "f1_score", "confusion_matrix")},
+        "random_forest": {"accuracy": meta.get("rf_accuracy")},
+        "xgboost": {"accuracy": meta.get("xgb_accuracy")},
+        **{key: meta.get(key) for key in ("roc_auc", "pr_auc", "cv_accuracy", "cv_std", "training_date", "n_samples", "n_features", "cities", "atms")},
     }
+
 
 
 @app.get("/api/model/shap/{case_id}")
 @limiter.limit("20/minute")
-def shap_explanation(request: Request, case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    """Compute real SHAP values for a prediction using KernelExplainer."""
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-
-    case_hash = stable_int(case_id) % 10000
-    amount = case.amount if case else round(20000 + (case_hash % 60001), 2)
-    num_mules = case.linked_accounts if case else 2 + (case_hash % 4)
-    hour = 6 + (case_hash % 18)
-
-    dist_victim_km = round(0.5 + (case_hash % 751) / 100.0, 2)
-    dist_suspect_km = round(1.0 + (case_hash % 1101) / 100.0, 2)
-    hist_crime = 1 + (case_hash % 15)
-    atm_scores = [0.4, 0.6, 0.8, 1.0]
-
-    features = {
-        "distance_from_victim_km": dist_victim_km,
-        "historical_crime_density": hist_crime,
-        "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
-        "atm_type_score": atm_scores[case_hash % len(atm_scores)],
-        "suspect_distance_km": dist_suspect_km,
-        "recent_withdrawal_freq": round(min(num_mules / 8, 0.9), 3),
-        "amount": round(amount, 2),
-        "num_mule_accounts": num_mules,
-        "hour": hour,
-        "day_of_week": (case_hash + 1) % 7,
-        "transaction_velocity": round(min(num_mules / 6, 1.0), 3),
-        "proximity_score": round(max(0, 1 - dist_victim_km / 8), 3),
-        "density_score": round(hist_crime / 15, 3),
-        "suspect_proximity": round(max(0, 1 - dist_suspect_km / 10), 3),
-        "amount_factor": round(min(amount / 150000, 1.0), 3),
-    }
-
-    result = predict_cashout(features, case_id=case_id)
-    risk = result["risk_score"]
-
-    # Try real SHAP first (cached per case_id)
-    contributions = compute_shap_values(features, case_id=case_id)
-    used_real_shap = len(contributions) > 0
-
-    if not used_real_shap:
-        # Fallback: MDI-based contributions from the model
-        if result.get("contributions"):
-            contributions = result["contributions"]
-
+def shap_explanation(request: Request, case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db), atm_id: Optional[str] = Query(default=None)):
+    require_case(db, user, case_id)
+    prediction = db.query(Prediction).filter(Prediction.case_id == case_id).first()
+    if prediction is None:
+        raise HTTPException(status_code=409, detail="Generate a prediction before requesting an explanation")
+    query = db.query(RankedLocation).filter(RankedLocation.prediction_id == prediction.id)
+    if atm_id:
+        query = query.filter(RankedLocation.atm_id == atm_id)
+    selected = query.order_by(RankedLocation.rank).first()
+    if selected is None:
+        raise HTTPException(status_code=404, detail="Selected ATM prediction not found")
+    try:
+        snapshot = json.loads(selected.reason)
+        features = snapshot["prediction_features"]
+        output = snapshot["model_output"]
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=409, detail="Legacy prediction has no exact feature snapshot; generate a fresh prediction")
+    try:
+        rf, xgb = load_models()
+        if rf is None and xgb is None:
+            raise ValueError("No model loaded")
+        metadata = get_metadata() or {}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Explanation model unavailable") from exc
+    if (metadata.get("model_version", "unversioned") != snapshot["model_info"]["model_version"]
+            or snapshot["model_info"].get("model_fingerprint") != _current_model_fingerprint()):
+        raise HTTPException(status_code=409, detail="Model identity changed; generate a fresh prediction")
+    # Content-addressing avoids stale case-only caches for different ATM inputs.
+    cache_key = hashlib.sha256(json.dumps({"atm_id": selected.atm_id, **snapshot}, sort_keys=True).encode()).hexdigest()
+    try:
+        explanation = (explain_cashout(dict(features), case_id=cache_key) if explain_cashout
+                       else compute_shap_values(dict(features), case_id=cache_key))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Explanation service unavailable") from exc
+    if isinstance(explanation, dict):
+        if explanation.get("error_code") == "MODEL_UNAVAILABLE":
+            raise HTTPException(status_code=503, detail="Explanation model unavailable")
+        contributions = explanation.get("feature_contributions", explanation.get("contributions", []))
+        method = explanation.get("shap_method", explanation.get("method", "unavailable"))
+        available = bool(contributions) and explanation.get("local_attribution", explanation.get("available", False))
+        explained_model = explanation.get("explained_model", "stored ensemble" if available else "global importance; not local SHAP")
+        base_value = explanation.get("base_value") if available else None
+        if available:
+            import math
+            probability = explanation.get("probability")
+            stored_probability = output.get("probability", selected.risk_score / 100)
+            if probability is not None and not math.isclose(probability, stored_probability, rel_tol=1e-5, abs_tol=1e-5):
+                raise HTTPException(status_code=409, detail="Explanation does not match stored ensemble output; generate a fresh prediction")
+    else:
+        contributions = explanation or []
+        available = bool(contributions)
+        method = "KernelExplainer (RF component only)"
+        explained_model = "random_forest; not the stored ensemble score"
+        base_value = None
+        explanation = {}
+    if not contributions:
+        contributions = output.get("contributions", [])
+        method = "Global feature importance (not local SHAP)" if contributions else "unavailable"
+        explained_model = "global importance; not local SHAP"
     return {
-        "case_id": case_id,
-        "risk_score": risk,
-        "confidence": result.get("confidence", 0),
-        "feature_contributions": contributions,
-        "model_type": "Ensemble (RF + XGBoost)",
-        "base_value": 50,
-        "shap_method": "KernelExplainer (real SHAP)" if used_real_shap else "MDI importance fallback",
-        "shap_available": used_real_shap,
+        "case_id": case_id, "atm_id": selected.atm_id,
+        "risk_score": selected.risk_score, "confidence": output.get("confidence"),
+        "prediction_features": features, "model_output": output,
+        "model_info": snapshot["model_info"],
+        "feature_contributions": contributions, "base_value": base_value,
+        "shap_method": method, "shap_available": available,
+        "explained_model": explained_model,
+        "explanation_units": explanation.get("units"),
+        "explanation_reason": explanation.get("reason"),
+        "explanation_probability": explanation.get("probability") if available else None,
     }
+
 
 
 # ─── Model Drift Detection ────────────────────────────────────────────────────
@@ -1729,9 +1761,9 @@ def shap_explanation(request: Request, case_id: str, user: dict = Depends(requir
 @app.get("/api/model/drift")
 @limiter.limit("10/minute")
 def model_drift(request: Request, user: dict = Depends(require_permission("read"))):
-    """Compare live prediction distribution to training distribution (PSI score)."""
+    """Illustrative synthetic mean-shift heuristic, not measured live drift."""
     try:
-        with open("model/dataset_stats.json") as f:
+        with open(ml_engine.STATS_PATH, encoding="utf-8") as f:
             stats = json.load(f)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="No training stats available")
@@ -1765,15 +1797,18 @@ def model_drift(request: Request, user: dict = Depends(require_permission("read"
             "train_std": round(train_stat["std"], 4),
             "live_std": round(live_std, 4),
             "mean_shift_z": round(mean_shift, 2),
-            "psi": psi,
+            "heuristic_score": psi,
             "status": status_drift,
         })
 
-    drift_results.sort(key=lambda x: x["psi"], reverse=True)
-    overall_psi = round(sum(d["psi"] for d in drift_results) / len(drift_results), 4) if drift_results else 0
+    drift_results.sort(key=lambda x: x["heuristic_score"], reverse=True)
+    overall_psi = round(sum(d["heuristic_score"] for d in drift_results) / len(drift_results), 4) if drift_results else 0
 
     return {
-        "overall_psi": overall_psi,
+        "data_source": "synthetic simulated distribution, not live telemetry",
+        "metric_method": "heuristic normalized mean shift; not population stability index (PSI)",
+        "verified": False,
+        "overall_heuristic_score": overall_psi,
         "status": "critical" if overall_psi > 0.25 else "warning" if overall_psi > 0.1 else "stable",
         "features": drift_results,
         "total_features": len(drift_results),
@@ -1827,17 +1862,15 @@ def find_nearby(
 class ReviewAction(BaseModel):
     action: str  # "approve" | "override" | "dismiss"
     reason: str
-    reviewer_id: str
+    reviewer_id: str = ""  # compatibility only; authenticated identity is authoritative
 
 REVIEW_QUEUE = []
 
 @app.get("/api/review/queue")
 def get_review_queue(user: dict = Depends(require_permission("read")), status: str = "pending_review", db: Session = Depends(get_db)):
-    cases = db.query(Case).filter(Case.status.in_(["active", "investigating"])).all()
+    cases = visible_cases(db, user).filter(Case.status.in_(["active", "investigating"])).all()
 
     def _dec(val):
-        if val and ENCRYPTION_KEY and is_encrypted(val):
-            return aes_decrypt(val, ENCRYPTION_KEY)
         return val or ""
 
     queue = []
@@ -1848,9 +1881,9 @@ def get_review_queue(user: dict = Depends(require_permission("read")), status: s
             "crime_type": c.crime_type,
             "amount": c.amount,
             "current_risk": c.current_risk,
-            "victim_name": _dec(c.victim_name) or "N/A",
+            "victim_name": (_dec(c.victim_name) or "N/A") if user.get("role") in ("admin", "inspector") else "[REDACTED]",
             "status": "pending_review",
-            "assigned_to": "INS-001" if c_hash % 2 == 0 else "ANL-001",
+            "assigned_to": c.assigned_to,
             "created_at": (datetime.now(timezone.utc) - timedelta(hours=1 + (c_hash % 48))).isoformat(),
             "priority": "Critical" if c.amount > 200000 else "High" if c.amount > 50000 else "Medium",
         })
@@ -1865,15 +1898,13 @@ def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require
     if action.action not in ["approve", "override", "dismiss"]:
         raise HTTPException(status_code=400, detail="Invalid action. Must be: approve, override, dismiss")
 
-    case = db.query(Case).filter(Case.case_id == case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = require_case(db, user, case_id, 'review')
 
     review_record = {
         "case_id": case_id,
         "action": action.action,
         "reason": action.reason,
-        "reviewer_id": action.reviewer_id,
+        "reviewer_id": user["id"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "previous_risk": case.current_risk,
     }
@@ -1893,30 +1924,34 @@ def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require
     db.commit()
 
     add_audit(db, f"Case {action.action.title()}d",
-              f"Case {case_id} {action.action}d by {action.reviewer_id}. Reason: {action.reason}",
+              "Case {} {}d by {}. Reason: {}".format(case_id, action.action, user["id"], action.reason),
               "review", case_id)
 
     return {"status": "reviewed", "case_id": case_id, "action": action.action, **review_record}
 
 
 @app.get("/api/review/history")
-def review_history(user: dict = Depends(require_permission("read")), case_id: str = None):
+def review_history(user: dict = Depends(require_permission("read")), case_id: str = None, db: Session = Depends(get_db)):
     if case_id:
-        return [r for r in REVIEW_QUEUE if r["case_id"] == case_id]
-    return REVIEW_QUEUE[-50:]
+        require_case(db, user, case_id)
+    ids = visible_case_ids(db, user)
+    return [r for r in REVIEW_QUEUE if r["case_id"] in ids and (not case_id or r["case_id"] == case_id)][-50:]
 
 
 # ─── Evidence Chain Endpoints ─────────────────────────────────────────────────
 
 @app.post("/api/evidence/anchor")
 def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    case = require_case(db, user, ev.case_id, 'evidence')
     idem_key = idempotency_key_from(request)
+    if idem_key:
+        idem_key = hashlib.sha256((user["id"] + "|" + ev.case_id + "|" + idem_key).encode()).hexdigest()
     if idem_key:
         replay = check_replay(db, idem_key, "POST", "/api/evidence/anchor")
         if replay is not None:
             return replay
     chain = get_evidence_chain()
-    result = chain.add_evidence(ev.case_id, ev.evidence_type, ev.content, ev.officer_id)
+    result = chain.add_evidence(ev.case_id, ev.evidence_type, ev.content, user["id"])
 
     # Mirror onto PoW blockchain (auto-mine single tx for demo responsiveness)
     bc = get_blockchain()
@@ -1926,8 +1961,8 @@ def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(r
             "evidence_block_id": result.get("block_id"),
             "evidence_hash": result.get("evidence_hash"),
             "evidence_type": ev.evidence_type,
-            "officer_id": ev.officer_id,
-            "content_preview": ev.content[:120],
+            "officer_id": user["id"],
+            "content_preview": seal(ev.content[:120]),
         },
         case_id=ev.case_id,
     )
@@ -1941,6 +1976,7 @@ def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(r
 @app.get("/api/evidence/export-pdf/{case_id}")
 def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     """Printable Case Diary PDF (Section 63 BSA): Merkle root, block hashes, timestamps, officer."""
+    require_case(db, user, case_id)
     from fpdf import FPDF
 
     def _latin(value) -> str:
@@ -1989,7 +2025,7 @@ def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission(
 
 
 @app.get("/api/notifications/jobs")
-def list_notification_jobs(user: dict = Depends(require_permission("read")),
+def list_notification_jobs(user: dict = Depends(require_role("admin")),
                            status: str = Query(default=None),
                            limit: int = Query(default=50, ge=1, le=200),
                            db: Session = Depends(get_db)):
@@ -2071,7 +2107,7 @@ def blockchain_status(user: dict = Depends(require_permission("read"))):
 
 
 @app.get("/api/blockchain/chain")
-def blockchain_chain(user: dict = Depends(require_permission("read")), limit: int = Query(default=50, le=200)):
+def blockchain_chain(user: dict = Depends(require_role("admin")), limit: int = Query(default=50, le=200)):
     bc = get_blockchain()
     chain = bc.get_chain()
     return {
@@ -2090,7 +2126,7 @@ def blockchain_validate(user: dict = Depends(require_permission("read"))):
 
 @app.post("/api/blockchain/mine")
 def blockchain_mine(
-    user: dict = Depends(require_permission("write")),
+    user: dict = Depends(require_role("admin")),
     csrf: None = Depends(require_csrf),
     miner: str = Query(default="node-cybercell-mumbai"),
 ):
@@ -2100,41 +2136,56 @@ def blockchain_mine(
 
 @app.post("/api/blockchain/consensus")
 def blockchain_consensus(
-    user: dict = Depends(require_permission("write")),
+    user: dict = Depends(require_role("admin")),
     csrf: None = Depends(require_csrf),
 ):
     return get_network().consensus()
 
 
 @app.get("/api/evidence/verify/{block_id}")
-def verify_evidence(block_id: int, user: dict = Depends(require_permission("read")), content: str = Query(...)):
+def verify_evidence(block_id: int, user: dict = Depends(require_permission("read")), content: str = Query(...), db: Session = Depends(get_db)):
     chain = get_evidence_chain()
+    _require_evidence_block(chain, block_id, db, user)
     return chain.verify_evidence(block_id, content)
 
 
 @app.get("/api/evidence/chain")
-def get_evidence_chain_list(user: dict = Depends(require_permission("read")), case_id: str = Query(default=None), limit: int = Query(default=200, ge=1, le=1000)):
+def get_evidence_chain_list(user: dict = Depends(require_permission("read")), case_id: str = Query(default=None), limit: int = Query(default=200, ge=1, le=1000), db: Session = Depends(get_db)):
+    if case_id:
+        require_case(db, user, case_id)
     chain = get_evidence_chain()
-    blocks = chain.get_chain(case_id)
-    return {"blocks": blocks[-limit:], "stats": chain.get_stats()}
+    ids = visible_case_ids(db, user)
+    blocks = chain.get_chain(case_id, allowed_case_ids=ids)
+    return {"blocks": blocks[-limit:], "stats": {
+        "total_blocks": len(blocks), "cases_covered": sorted({b["case_id"] for b in blocks}),
+        "merkle_root": chain.merkle_root,
+    }}
 
 
 @app.get("/api/evidence/proof/{block_id}")
-def get_merkle_proof(block_id: int, user: dict = Depends(require_permission("read"))):
+def get_merkle_proof(block_id: int, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     chain = get_evidence_chain()
+    _require_evidence_block(chain, block_id, db, user)
     return chain.get_merkle_proof(block_id)
+
+
+def _require_evidence_block(chain, block_id, db, user):
+    block = next((b for b in chain.evidence_blocks if b["block_id"] == block_id), None)
+    if block is None:
+        raise HTTPException(status_code=404, detail="Evidence block not found")
+    require_case(db, user, block["case_id"])
 
 
 @app.get("/api/stats/nationwide")
 def nationwide_stats(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    total_cases = db.query(Case).count()
-    active_alerts = db.query(Alert).filter(Alert.acknowledged == False).count()
+    total_cases = visible_cases(db, user).count()
+    active_alerts = db.query(Alert).join(Case).filter(visibility_filter(user), Alert.acknowledged == False).count()
     return {
         "total_cases": total_cases,
         "active_alerts": active_alerts,
         "cities_covered": len(CITIES),
         "total_atms": sum(len(c["atms"]) for c in CITIES.values()),
-        "model_accuracy": get_metadata().get("accuracy") if get_metadata() else 72.7,
+        "model_accuracy": get_metadata().get("accuracy") if get_metadata() else None,
     }
 
 
@@ -2151,6 +2202,7 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
     if req.outcome not in ["apprehended", "cash_recovered", "transaction_prevented", "false_positive"]:
         raise HTTPException(status_code=400, detail="Invalid outcome type")
 
+    case = require_case(db, user, req.case_id, "field_outcome")
     outcome = FieldOutcome(
         case_id=req.case_id,
         atm_id=req.atm_id,
@@ -2160,8 +2212,7 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
     )
     db.add(outcome)
 
-    # Update case status based on outcome
-    case = db.query(Case).filter(Case.case_id == req.case_id).first()
+    # Update the previously authorized case based on the reported outcome.
     if case:
         if req.outcome in ["apprehended", "cash_recovered", "transaction_prevented"]:
             case.status = "resolved"
@@ -2185,10 +2236,8 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
               f"{req.notes}",
               "field_outcome", req.case_id)
 
-    # Trigger simulated model recalibration for false positives
+    # Recording feedback does not retrain or recalibrate a model.
     recalibrated = False
-    if req.outcome == "false_positive":
-        recalibrated = True
 
     return {
         "status": "recorded",
@@ -2200,7 +2249,7 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
 
 @app.get("/api/field-outcomes")
 def list_field_outcomes(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    outcomes = db.query(FieldOutcome).order_by(FieldOutcome.created_at.desc()).limit(50).all()
+    outcomes = db.query(FieldOutcome).join(Case).filter(visibility_filter(user)).order_by(FieldOutcome.created_at.desc()).limit(50).all()
     return [
         {"id": o.id, "case_id": o.case_id, "atm_id": o.atm_id, "outcome": o.outcome,
          "officer_id": o.officer_id, "notes": o.notes, "created_at": o.created_at.isoformat() if o.created_at else None}
@@ -2372,13 +2421,23 @@ FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    file_path = os.path.join(FRONTEND_DIR, full_path)
-    if full_path and os.path.isfile(file_path):
+    from pathlib import Path
+    from urllib.parse import unquote
+    root = Path(FRONTEND_DIR).resolve()
+    decoded = unquote(full_path).replace("\\", "/")
+    if "\x00" in decoded or ":" in decoded or decoded.startswith("/") or ".." in decoded.split("/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    file_path = (root / decoded).resolve()
+    if not file_path.is_relative_to(root):
+        raise HTTPException(status_code=404, detail="Not found")
+    if decoded == "api" or decoded.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    if decoded and file_path.is_file():
         return FileResponse(file_path)
-    index = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.isfile(index):
+    index = (root / "index.html").resolve()
+    if index.is_relative_to(root) and index.is_file():
         return FileResponse(index)
-    return {"detail": "Not found"}
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 if __name__ == "__main__":

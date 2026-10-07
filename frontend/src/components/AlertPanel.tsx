@@ -1,7 +1,7 @@
 import { Alert } from '../types';
 import { AlertTriangle, CheckCircle, Clock, Plus, X, History, MessageSquare, Mail, Send, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { authFetch } from '@/lib/auth';
+import { authFetch, isDemoRoute } from '@/lib/auth';
 import { can } from '@/lib/roles';
 
 interface AlertPanelProps {
@@ -11,12 +11,6 @@ interface AlertPanelProps {
 
 const API_BASE = '/api';
 
-interface NotificationLog {
-  alertId: string;
-  channel: 'sms' | 'email' | 'api';
-  status: 'sent' | 'delivered' | 'failed';
-  timestamp: string;
-}
 
 /** Real dispatch rows from the durable notification_jobs table. */
 interface NotificationJob {
@@ -29,26 +23,6 @@ interface NotificationJob {
   created_at: string | null;
 }
 
-function generateNotificationLogs(alerts: Alert[]): NotificationLog[] {
-  const logs: NotificationLog[] = [];
-  alerts.forEach(a => {
-    if (!a.acknowledged) {
-      logs.push({
-        alertId: a.alert_id,
-        channel: 'sms',
-        status: a.risk_level === 'High' ? 'delivered' : 'sent',
-        timestamp: a.timestamp,
-      });
-      logs.push({
-        alertId: a.alert_id,
-        channel: 'email',
-        status: 'delivered',
-        timestamp: a.timestamp,
-      });
-    }
-  });
-  return logs;
-}
 
 export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
   const [showCreate, setShowCreate] = useState(false);
@@ -83,7 +57,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
     return true;
   });
 
-  const notifLogs = generateNotificationLogs(alerts);
+  // Only durable backend jobs establish dispatch status.
   const pendingCount = alerts.filter(a => !a.acknowledged).length;
 
   const handleCreate = async () => {
@@ -119,14 +93,15 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             {showNotifications ? "Notification Log" : showHistory ? "Alert History" : "Active Alerts"}
           </h3>
           <span className="text-sm text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
-            {showNotifications ? `${jobs.length || notifLogs.length} dispatched` : `${pendingCount} pending`}
+            {showNotifications ? `${jobs.length} dispatch jobs` : `${pendingCount} pending`}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => { setShowNotifications(!showNotifications); setShowHistory(false); }}
+            disabled={isDemoRoute()} aria-label="Notification log"
+                        onClick={() => { setShowNotifications(!showNotifications); setShowHistory(false); }}
             className={`p-1.5 rounded-lg transition-colors ${showNotifications ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
-            title="Notification Log"
+            title={isDemoRoute() ? 'Backend dispatch log disabled in local demo' : 'Notification Log'}
           >
             <Send size={12} />
           </button>
@@ -138,7 +113,8 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             <History size={12} />
           </button>
           <button
-            onClick={() => setShowCreate(!showCreate)}
+            disabled={isDemoRoute()}
+                        onClick={() => setShowCreate(!showCreate)}
             className={`p-1.5 rounded-lg transition-colors ${showCreate ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
             title="Create Alert"
             aria-label="Create alert"
@@ -181,8 +157,10 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
               </button>
             </div>
             <div className="text-[11px] text-[#6B7280] mb-3">
-              Durable dispatch log from <span className="font-mono">notification_jobs</span> — each alert enqueues
-              SMS/email work transactionally (retry + dead-letter). External delivery requires Twilio/SMTP credentials in .env.
+              Dispatch log from <span className="font-mono">notification_jobs</span>. High-risk transaction simulations enqueue
+              SMS/email jobs after the alert is committed; these are separate commits, not one atomic transaction.
+              Other alert creation paths do not automatically queue notifications. Job status records retries and dead-letter failures;
+              external delivery requires configured Twilio/SMTP credentials and is not guaranteed.
             </div>
             <div className="grid grid-cols-4 gap-2 mb-1">
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
@@ -219,7 +197,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
           {!jobsError && jobs.length === 0 && !jobsLoading && (
             <div className="card p-3 border border-[#D1D5DB]">
               <div className="text-[11px] text-[#6B7280] text-center">
-                No notification jobs yet — dispatch rows appear here once an alert is created.
+                No notification jobs recorded — alert creation alone does not establish that a job was queued.
               </div>
             </div>
           )}
@@ -260,7 +238,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
 
           <div className="card p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] text-center">
-              Notifications are logged locally. SMS (Twilio) and Email (SMTP) delivery requires credentials in .env — without them, alerts are stored but not dispatched externally.
+              Queued notification jobs, when present, are recorded in the backend. SMS (Twilio) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
             </div>
           </div>
         </div>
@@ -377,10 +355,10 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
               {!alert.acknowledged && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-[11px] flex items-center gap-0.5 text-[#15803D]">
-                    <MessageSquare size={8} /> SMS Delivered
+                    <MessageSquare size={8} /> SMS delivery unverified
                   </span>
                   <span className="text-[11px] flex items-center gap-0.5 text-[#1D4ED8]">
-                    <Mail size={8} /> Email Sent
+                    <Mail size={8} /> Email delivery unverified
                   </span>
                 </div>
               )}

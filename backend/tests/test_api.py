@@ -53,31 +53,22 @@ def test_login_nonexistent_user(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.skip(reason="Supabase auth.users table has extra columns not in User model - test needs separate DB setup")
-def test_register_and_login(client):
-    # Clean up any prior test user and create a new approved one directly
-    from database import SessionLocal
-    from models_db import User
-    from auth import pwd_context
-    db = SessionLocal()
-    existing = db.query(User).filter(User.email == "test@test.com").first()
-    if existing:
-        db.delete(existing)
-        db.commit()
-
-    # Create user directly with is_approved=True
-    new_user = User(
-        name="Test User", email="test@test.com",
-        hashed_password=pwd_context.hash("Test@123"),
-        role="analyst", is_active=True, is_approved=True,
-    )
-    db.add(new_user)
-    db.commit()
-    db.close()
-
-    resp2 = client.post("/api/auth/login", json={"email": "test@test.com", "password": "Test@123"})
-    assert resp2.status_code == 200
-    assert "access_token" in resp2.json()
+def test_register_requires_approval_before_login(client, admin_token):
+    response = client.post("/api/auth/register", json={
+        "name": "Test User", "email": "test@test.com", "password": "Test@123",
+        "role": "analyst", "department": "Intelligence Unit",
+    })
+    assert response.status_code == 200, response.text
+    registration = response.json()
+    assert registration["access_token"] == ""
+    assert registration["user"]["pending_approval"] is True
+    assert client.post("/api/auth/login", json={"email": "test@test.com", "password": "Test@123"}).status_code == 403
+    csrf = get_csrf_header(client, admin_token)
+    approved = client.post("/api/auth/approve/" + registration["user"]["id"],
+                           headers={**auth_header(admin_token), **csrf})
+    assert approved.status_code == 200
+    login = client.post("/api/auth/login", json={"email": "test@test.com", "password": "Test@123"})
+    assert login.status_code == 200 and login.json()["access_token"]
 
 
 def test_refresh_token(client):
@@ -144,7 +135,7 @@ def test_read_endpoints_reject_unauthenticated(client):
 
 # ─── RBAC: Write Endpoints ───────────────────────────────────────────────────
 
-def test_create_alert_requires_write(client, bank_officer_token):
+def test_create_alert_requires_csrf(client, bank_officer_token):
     resp = client.post("/api/alerts", json={
         "case_id": "CASE-001", "message": "test", "risk_level": "Low",
         "location": "test", "time_window": "10:00-12:00"
@@ -161,7 +152,7 @@ def test_create_alert_works_for_analyst(client, analyst_token):
     assert resp.status_code == 200
 
 
-def test_simulate_transaction_requires_write(client, bank_officer_token):
+def test_simulate_transaction_requires_csrf(client, bank_officer_token):
     resp = client.post("/api/transactions", json={
         "case_id": "CASE-001", "amount": 10000, "from_account": "A", "to_account": "B"
     }, headers=auth_header(bank_officer_token))
@@ -223,12 +214,12 @@ def test_transaction_returns_503_without_atm_data(client, admin_token):
         db.close()
 
 
-def test_review_case_works_for_analyst(client, analyst_token):
+def test_review_case_rejects_analyst(client, analyst_token):
     csrf = get_csrf_header(client, analyst_token)
     resp = client.post("/api/review/CASE-001", json={
         "action": "approve", "reason": "test", "reviewer_id": "ANL-001"
     }, headers={**auth_header(analyst_token), **csrf})
-    assert resp.status_code == 200
+    assert resp.status_code == 403
 
 
 def test_review_case_works_for_inspector(client, inspector_token):
@@ -276,10 +267,15 @@ def test_model_metrics(client, admin_token):
 def test_model_drift(client, admin_token):
     resp = client.get("/api/model/drift", headers=auth_header(admin_token))
     assert resp.status_code == 200
-    assert "overall_psi" in resp.json()
+    data = resp.json()
+    assert "overall_heuristic_score" in data
+    assert data["verified"] is False
+    assert "not population stability index" in data["metric_method"]
 
 
 def test_shap_explanation(client, admin_token):
+    prediction = client.get("/api/predictions/CASE-001", headers=auth_header(admin_token))
+    assert prediction.status_code == 200
     resp = client.get("/api/model/shap/CASE-001", headers=auth_header(admin_token))
     assert resp.status_code == 200
     data = resp.json()

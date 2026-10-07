@@ -84,9 +84,10 @@ function analyzeComplaint(text: string): TriageResult {
     keyword_match_score,
     priority,
     entities,
-    suggested_action: actions[Math.floor(Math.random() * actions.length)],
+    suggested_action: actions[0],
+        confidence_note: 'Local heuristic fallback — API classification unavailable; not a model prediction.',
     estimated_loss: amount,
-    timeline: `${Math.floor(Math.random() * 48) + 1}h ago`,
+    timeline: 'Not provided',
   };
 }
 
@@ -120,7 +121,7 @@ export default function NlpComplaintTriage() {
               ? 'This complaint does not appear to be related to cybercrime. Please provide details related to UPI fraud, phishing, card cloning, SIM swap, identity theft, or investment fraud.'
               : data.suggested_action,
             estimated_loss: data.estimated_loss,
-            timeline: `${Math.floor(Math.random() * 48) + 1}h ago`,
+            timeline: data.timeline ?? 'Not provided',
           });
         } else {
           setResult(analyzeComplaint(text));

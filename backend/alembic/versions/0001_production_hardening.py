@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision = "0001_production_hardening"
-down_revision = None
+down_revision = "0000_baseline"
 branch_labels = None
 depends_on = None
 
@@ -82,10 +82,8 @@ def upgrade() -> None:
         )
         op.create_index("ix_notification_jobs_status", "notification_jobs", ["status"])
 
-    # Ownership scoping on existing cases table (nullable/additive only).
-    # Guarded: on a fresh database the base tables are created by
-    # Base.metadata.create_all() at app startup (which already includes the
-    # new columns via models_db), so ALTER only runs where cases exists.
+    # Baseline supplies cases on fresh databases; legacy schemas may already
+    # include these additive ownership columns.
     if "cases" in existing_tables:
         existing = {c["name"] for c in inspector.get_columns("cases")}
         if "assigned_to" not in existing:

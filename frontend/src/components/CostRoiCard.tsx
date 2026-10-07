@@ -1,156 +1,35 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { DollarSign, TrendingUp, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { count, formatMetric, isMeasured, percent, type Metric } from '../lib/metrics';
 
-export default function CostRoiCard() {
+export interface ImpactMetrics {
+  cost_per_atm?: Metric; annual_savings?: Metric; roi?: Metric;
+  prevention_rate?: Metric; funds_recovered?: Metric; response_minutes?: Metric;
+  resolved_cases?: Metric; lead_time_hours?: Metric;
+  cost_breakdown?: { item: string; cost: Metric }[] | null;
+  scaling?: { scale: string; cost: Metric; savings: Metric; roi: Metric }[] | null;
+}
+const currency = (value: Metric) => isMeasured(value) ? `₹${count(value)}` : 'Not measured';
+
+export default function CostRoiCard({ metrics }: { metrics?: ImpactMetrics | null }) {
   const [expanded, setExpanded] = useState(false);
-
-  const metrics = {
-    avgLeadTimeSaved: '2.3 hrs',
-    falsePositiveRate: '4.2%',
-    costPerAtm: '₹35,000',
-    annualSavings: '₹3.8 Cr',
-    roi: '8.2x',
-    casesResolved: '8 of 17',
-    fundsRecovered: '₹2.8 L',
-    avgResponseTime: '38 min',
-    fraudPreventionRate: '95.8%',
-    avgFraudLossPerAtm: '₹4.2 L/yr',
-  };
-
-  return (
-    <div className="card p-5">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between"
-      >
-        <div className="flex items-center gap-2">
-          <DollarSign size={16} className="text-[#B45309]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Cost / ROI Estimation</h3>
-          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
-            Simulated targets
-          </span>
-          <span className="text-[11px] text-[#B45309] bg-[#B45309]/10 px-2 py-0.5 rounded font-mono">
-            {metrics.roi} ROI
-          </span>
-        </div>
-        {expanded ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
-      </button>
-
-      <div
-        className="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-        style={{ maxHeight: expanded ? '2000px' : '0px' }}
-      >
-        <div className="mt-4 space-y-4">
-          {/* Key Metrics */}
-          <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: 'Cost / ATM / yr', value: metrics.costPerAtm, color: '#15803D' },
-                { label: 'Annual Savings', value: metrics.annualSavings, color: '#1D4ED8' },
-                { label: 'ROI', value: metrics.roi, color: '#B45309' },
-                { label: 'Fraud Prevention', value: metrics.fraudPreventionRate, color: '#1D355B' },
-            ].map((m, i) => (
-              <motion.div
-                key={m.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] text-center"
-              >
-                <div className="text-sm font-bold" style={{ color: m.color }}>{m.value}</div>
-                <div className="text-[11px] text-[#6B7280] mt-1">{m.label}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Cost Breakdown */}
-          <div>
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Cost Breakdown (per ATM/year)</div>
-            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] space-y-2">
-              {[
-                { item: 'Cloud compute (inference)', cost: '₹12,000' },
-                { item: 'Data storage & DB', cost: '₹8,000' },
-                { item: 'API calls (NPCI/bank)', cost: '₹6,000' },
-                { item: 'Maintenance & updates', cost: '₹5,000' },
-                { item: 'Monitoring & alerting', cost: '₹4,000' },
-              ].map(row => (
-                <div key={row.item} className="flex items-center justify-between text-xs">
-                  <span className="text-[#6B7280]">{row.item}</span>
-                  <span className="text-[#1F2937] font-mono">{row.cost}</span>
-                </div>
-              ))}
-              <div className="border-t border-[#D1D5DB] pt-2 flex items-center justify-between text-xs font-bold">
-                <span className="text-[#1F2937]">Total</span>
-                <span className="text-[#15803D] font-mono">{metrics.costPerAtm}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Operational Impact */}
-          <div>
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Operational Impact</div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Cases Resolved', value: metrics.casesResolved, color: '#15803D' },
-                { label: 'Funds Recovered', value: metrics.fundsRecovered, color: '#1D4ED8' },
-                { label: 'Avg Response Time', value: metrics.avgResponseTime, color: '#1D355B' },
-                { label: 'Avg Fraud Loss / ATM', value: metrics.avgFraudLossPerAtm, color: '#B45309' },
-              ].map(m => (
-                <div key={m.label} className="flex items-center justify-between bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-                  <span className="text-[11px] text-[#6B7280]">{m.label}</span>
-                  <span className="text-sm font-mono font-bold" style={{ color: m.color }}>{m.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Scaling Projection */}
-          <div>
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Scaling Projection</div>
-            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="space-y-2">
-                {[
-                  { scale: '50 ATMs', cost: '₹17.5 L/yr', savings: '₹2.1 Cr', roi: '12x', bar: 25 },
-                  { scale: '200 ATMs', cost: '₹70 L/yr', savings: '₹8.4 Cr', roi: '12x', bar: 55 },
-                  { scale: '500 ATMs', cost: '₹1.75 Cr/yr', savings: '₹21 Cr', roi: '12x', bar: 100 },
-                ].map((row, i) => (
-                  <div key={row.scale} className="flex items-center gap-4">
-                    <div className="w-[80px] text-xs text-[#1F2937] font-mono">{row.scale}</div>
-                    <div className="flex-1 h-4 bg-[#E5E7EB] rounded overflow-hidden border border-[#D1D5DB]">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${row.bar}%` }}
-                        transition={{ duration: 0.8, delay: i * 0.15 }}
-                        className="h-full rounded bg-[#B45309]/20"
-                      />
-                    </div>
-                    <div className="w-[100px] text-right text-xs font-mono text-[#1F2937]">{row.savings}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sources */}
-          <div>
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2">Sources</div>
-            <div className="space-y-1.5 text-[11px] text-[#6B7280]">
-              <div className="flex items-center gap-1.5">
-                <ExternalLink size={10} className="text-[#1D4ED8]" />
-                <span>RBI Annual Report 2023-24: Avg fraud loss per ATM ~₹3.5-5 L/yr</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ExternalLink size={10} className="text-[#06b6d4]" />
-                <span>NPCI: 13.4B UPI transactions/month, 0.005% fraud rate</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ExternalLink size={10} className="text-[#06b6d4]" />
-                <span>I4C: Cybercrime losses ₹1.03 L Cr in FY 2023-24</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const rows = [
+    ['Cost / ATM / year', currency(metrics?.cost_per_atm)], ['Annual savings', currency(metrics?.annual_savings)],
+    ['ROI', isMeasured(metrics?.roi) ? formatMetric(metrics.roi, 1, 'x') : 'Not measured'],
+    ['Fraud prevention rate', isMeasured(metrics?.prevention_rate) ? percent(metrics.prevention_rate) : 'Not measured'],
+    ['Funds recovered', currency(metrics?.funds_recovered)], ['Cases resolved', isMeasured(metrics?.resolved_cases) ? count(metrics.resolved_cases) : 'Not measured'],
+    ['Response time', isMeasured(metrics?.response_minutes) ? formatMetric(metrics.response_minutes, 1, ' min') : 'Not measured'],
+    ['Lead time saved', isMeasured(metrics?.lead_time_hours) ? formatMetric(metrics.lead_time_hours, 1, ' hrs') : 'Not measured'],
+  ];
+  const scaling = metrics?.scaling ?? [];
+  const maxSavings = Math.max(...scaling.filter(row => isMeasured(row.savings)).map(row => row.savings as number), 1);
+  return <section className="card p-5">
+    <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="w-full flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-base font-semibold"><DollarSign size={18} />Cost / ROI Estimation</span>{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+    <p className="mt-3 text-sm text-gray-700">Operational impact is not measured by this prototype. Resolved complaint amounts do not establish prevented fraud or recovered funds. No assumed costs, recovery totals, or ROI are substituted.</p>
+    {expanded && <div className="mt-4 space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{rows.map(([label, value]) => <div key={label} className="rounded border border-gray-300 bg-gray-50 p-3"><div className="text-xs text-gray-700">{label}</div><div className="mt-1 text-sm font-semibold">{value}</div></div>)}</div>
+      <section><h4 className="text-sm font-medium mb-2">Cost Breakdown</h4>{metrics?.cost_breakdown?.length ? metrics.cost_breakdown.map(row => <div key={row.item} className="flex justify-between text-sm"><span>{row.item}</span><span>{currency(row.cost)}</span></div>) : <p className="text-sm text-gray-700">Unavailable — no cost measurements supplied.</p>}</section>
+      <section aria-label="Scaling projection"><h4 className="text-sm font-medium mb-2">Scaling Projection — supplied estimates, not realised impact</h4>{scaling.length ? scaling.map(row => <div key={row.scale} className="flex flex-wrap items-center gap-3 text-sm mb-3"><span>{row.scale}</span>{isMeasured(row.savings) && <div className="flex-1 min-w-16 h-3 rounded bg-gray-100"><div className="h-full rounded bg-blue-700" style={{ width: `${Math.max(0, row.savings) / maxSavings * 100}%` }} /></div>}<span>Cost {currency(row.cost)} · Savings {currency(row.savings)} · ROI {formatMetric(row.roi, 1, 'x')}</span></div>) : <p className="text-sm text-gray-700">Unavailable — no scaling estimates supplied.</p>}</section>
+    </div>}
+  </section>;
 }

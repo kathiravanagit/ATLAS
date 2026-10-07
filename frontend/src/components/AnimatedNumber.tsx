@@ -1,8 +1,9 @@
+import { isMeasured } from '../lib/metrics';
 import { useEffect, useRef } from 'react';
 import { useMotionValue, useSpring, motion } from 'motion/react';
 
 interface AnimatedNumberProps {
-  value: number;
+  value: number | null | undefined;
   className?: string;
   suffix?: string;
   duration?: number;
@@ -10,7 +11,7 @@ interface AnimatedNumberProps {
 
 export default function AnimatedNumber({ value, className = '', suffix = '', duration = 1.2 }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const motionValue = useMotionValue(0);
+  const motionValue = useMotionValue(isMeasured(value) ? value : 0);
   const springValue = useSpring(motionValue, {
     mass: 0.5,
     stiffness: 100,
@@ -19,7 +20,7 @@ export default function AnimatedNumber({ value, className = '', suffix = '', dur
   });
 
   useEffect(() => {
-    motionValue.set(value);
+    if (isMeasured(value)) motionValue.set(value);
   }, [value, motionValue]);
 
   useEffect(() => {
@@ -31,5 +32,6 @@ export default function AnimatedNumber({ value, className = '', suffix = '', dur
     return unsubscribe;
   }, [springValue, suffix]);
 
-  return <motion.span ref={ref} className={`font-mono ${className}`}>{`0${suffix}`}</motion.span>;
+  if (!isMeasured(value)) return <span className={className}>Unavailable</span>;
+    return <motion.span ref={ref} className={`font-mono ${className}`}>{`${Math.round(value)}${suffix}`}</motion.span>;
 }

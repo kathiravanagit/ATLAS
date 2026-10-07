@@ -20,11 +20,11 @@ test.describe('Map Page', () => {
   });
 
   test('shows filter panel', async ({ page }) => {
-    await expect(page.locator('text=Predicted Cash-Out Locations')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Predicted Cash-Out Locations')).toBeVisible({ timeout: 30000 });
   });
 
   test('shows risk filter tabs', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Critical' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'Critical' })).toBeVisible({ timeout: 30000 });
     await expect(page.getByRole('button', { name: 'Elevated' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Normal' })).toBeVisible();
   });

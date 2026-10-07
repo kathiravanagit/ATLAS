@@ -90,20 +90,20 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
 
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Risk Index</div>
+            <div className="text-xs text-[#4B5563] uppercase tracking-wider mb-1">Risk Index</div>
             <div className={`text-2xl font-bold ${
               p.risk_score > 70 ? "text-[#B91C1C]" : p.risk_score > 45 ? "text-[#B45309]" : "text-[#6B7280]"
             }`}>
               <AnimatedNumber value={p.risk_score} suffix="%" />
             </div>
-            <div className="text-[11px] text-[#6B7280] mt-0.5">
+            <div className="text-xs text-[#4B5563] mt-0.5">
               {p.risk_score > 70 ? "Critical" : p.risk_score > 45 ? "Elevated" : "Normal"} · Not a calibrated probability
             </div>
           </div>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>
             <div className="text-lg font-bold text-[#1F2937]">{p.expected_window}</div>
-            <div className="text-[11px] text-[#6B7280] mt-0.5">Expected</div>
+            <div className="text-xs text-[#4B5563] mt-0.5">Synthetic model window, not measured lead time</div>
           </div>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>
@@ -128,14 +128,15 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
           <div className="flex items-center gap-2">
             <Shield size={14} className="text-[#1F2937]" />
             <span className="text-base font-medium text-[#1F2937]">Why this location?</span>
-            <span className="text-[11px] text-[#6B7280] bg-[#E5E7EB] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'Loading...'}</span>
+            <span className="text-[11px] text-[#6B7280] bg-[#E5E7EB] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'No evidence supplied'}</span>
           </div>
           {showEvidence ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
         </button>
 
         {showEvidence && (
           <div className="mt-2 space-y-2">
-            {evidence.map(([key, item]) => (
+            {evidence.length === 0 && <p className="text-sm text-gray-700">Evidence unavailable for this prediction. No substitute signals are shown.</p>}
+                        {evidence.map(([key, item]) => (
               <div key={key} className="flex items-start gap-3 p-2.5 bg-[#F8F9FA] rounded-lg border border-[#D1D5DB]">
                 {evidenceIcons[key] || <Shield size={14} className="text-[#6B7280]" />}
                 <div className="flex-1">
@@ -149,7 +150,7 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
                       {item.strength}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#6B7280]">{item.description}</p>
+                  <p className="text-sm text-[#4B5563]">{item.description}</p>
                 </div>
               </div>
             ))}

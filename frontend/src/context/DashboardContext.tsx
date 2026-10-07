@@ -9,6 +9,10 @@ export interface DashboardData {
   selectedCaseId: string;
   setSelectedCaseId: (id: string) => void;
   isRefreshing: boolean;
+    isLoading: boolean;
+    hasData: boolean;
+    predictionScope: string;
+    showCityOverview: () => void;
   relativeTime: string;
   selectedLocation: PredictionLocation | null;
   setSelectedLocation: (loc: PredictionLocation | null) => void;
@@ -24,6 +28,7 @@ export interface DashboardData {
   dataMode: 'live' | 'demo' | 'unavailable';
   dataError: string | null;
   actionError: string | null;
+    selectionInfo: string | null;
   clearActionError: () => void;
   lastUpdated: Date;
   cityCenter?: [number, number];

@@ -16,6 +16,7 @@ interface TopNavProps {
   onCityChange: (cityId: string) => void;
   dataMode: 'live' | 'demo' | 'unavailable';
   lastUpdated: Date;
+  demoMode?: boolean;
 }
 
 const DEFAULT_CITIES: City[] = [
@@ -33,8 +34,9 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) + ' IST';
 }
 
-export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdated }: TopNavProps) {
+export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdated, demoMode = false }: TopNavProps) {
   const navigate = useNavigate();
+  const base = demoMode ? '/demo' : '/real';
   const [cities, setCities] = useState<City[]>(DEFAULT_CITIES);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -43,11 +45,14 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
   const user = getUser() as Record<string, string> | null;
 
   useEffect(() => {
+    if (demoMode) return;
+    let active = true;
     authFetch('/api/cities')
       .then(res => res.json())
-      .then(data => { if (data.length > 0) setCities(data); })
+      .then(data => { if (active && data.length > 0) setCities(data); })
       .catch(() => {});
-  }, []);
+    return () => { active = false; };
+  }, [demoMode]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -59,7 +64,7 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
   }, []);
 
   const handleLogout = async () => {
-    await logout();
+    if (!demoMode) await logout();
     navigate('/login');
   };
 
@@ -71,7 +76,7 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
     <header className="sticky top-0 z-[1100]">
       {/* ── Section 1: Demo Notice ─────────────────────────────────── */}
       <div className="bg-amber-50 border-b border-amber-200 px-4 md:px-6 py-1.5">
-        <p className="text-center text-[10px] md:text-[11px] text-amber-800">
+        <p className="text-center text-xs md:text-sm text-amber-800">
           <span className="font-semibold">Demonstration Portal — Hackathon demo, synthetic data</span>
           {' — '}
           <span className="hidden sm:inline">This system uses synthetic data generated for SIH 2026 evaluation. Not connected to any live crime, banking, or government databases.</span>
@@ -80,8 +85,8 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
       </div>
       {dataMode === 'unavailable' && (
         <div className="bg-[#B91C1C] px-4 md:px-6 py-1.5" role="alert">
-          <p className="text-center text-[10px] md:text-[11px] text-white font-semibold">
-            LIVE DATA UNAVAILABLE — no operational data is being shown. Do not take action until the service recovers.
+          <p className="text-center text-xs md:text-sm text-white font-semibold">
+            API DATA UNAVAILABLE — no substitute predictions are shown.
           </p>
         </div>
       )}
@@ -102,7 +107,7 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
               {dataMode === 'unavailable' ? <WifiOff size={11} className="text-[#B91C1C]" /> : <Wifi size={11} className="text-[#15803D]" />}
-              <span>{dataMode === 'unavailable' ? 'Unavailable' : dataMode === 'demo' ? 'Demo' : 'Connected'}</span>
+              <span>{dataMode === 'unavailable' ? 'Unavailable' : dataMode === 'demo' ? 'Local fixtures' : 'API-connected synthetic'}</span>
             </div>
             <div className="w-px h-3.5 bg-[#E5E7EB]" />
             <span className="text-[11px] text-[#6B7280]">Synthetic data</span>
@@ -113,8 +118,8 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
             </div>
             <div className="w-px h-3.5 bg-[#E5E7EB]" />
             <div className="flex items-center gap-2.5 text-[11px]">
-              <button className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex items-center gap-1"><HelpCircle size={11} /> Help</button>
-              <button onClick={() => navigate('/real/data-privacy')} className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex items-center gap-1"><ShieldCheck size={11} /> Privacy</button>
+              <button onClick={() => navigate(`${base}/data-privacy`)} title="Data sources, limitations and privacy" className="text-[#4B5563] hover:text-[#1F2937] transition-colors flex items-center gap-1"><HelpCircle size={11} /> Help</button>
+              <button onClick={() => navigate(`${base}/data-privacy`)} className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex items-center gap-1"><ShieldCheck size={11} /> Privacy</button>
               <button onClick={handleLogout} className="text-[#B91C1C] hover:text-[#991B1B] transition-colors flex items-center gap-1 font-medium"><LogOut size={11} /> Logout</button>
             </div>
           </div>
@@ -200,11 +205,11 @@ export default function TopNav({ selectedCity, onCityChange, dataMode, lastUpdat
                     <div className="text-[10px] text-[#6B7280]">{user?.email}</div>
                   </div>
                   <div className="p-1">
-                    <button onClick={() => { setShowProfile(false); navigate('/real/profile'); }}
+                    <button onClick={() => { setShowProfile(false); navigate(`${base}/profile`); }}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1F2937] transition-colors">
                       <User size={12} /> Profile Settings
                     </button>
-                    <button onClick={() => { setShowProfile(false); navigate('/real/audit'); }}
+                    <button onClick={() => { setShowProfile(false); navigate(`${base}/audit`); }}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1F2937] transition-colors">
                       <ShieldCheck size={12} /> Activity Log
                     </button>

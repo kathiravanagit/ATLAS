@@ -1,119 +1,27 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { TrendingDown, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { authFetch } from '@/lib/auth';
+import { useState } from 'react';
+import { TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { useApiData } from '../lib/useApiData';
+import { count, formatMetric, type Metric } from '../lib/metrics';
 
-interface DriftFeature {
-  feature: string;
-  train_mean: number;
-  live_mean: number;
-  train_std: number;
-  live_std: number;
-  mean_shift_z: number;
-  psi: number;
-  status: 'stable' | 'warning' | 'critical';
-}
-
-interface DriftData {
-  overall_psi: number;
-  status: string;
-  features: DriftFeature[];
-  total_features: number;
-  critical_count: number;
-  warning_count: number;
+export interface DriftData {
+  data_source?: string | null; metric_method?: string | null; verified?: boolean;
+  overall_heuristic_score?: Metric; status?: string | null;
+  features?: { feature: string; train_mean?: Metric; live_mean?: Metric; train_std?: Metric; live_std?: Metric; mean_shift_z?: Metric; heuristic_score?: Metric; status?: string | null }[] | null;
+  total_features?: Metric; critical_count?: Metric; warning_count?: Metric;
 }
 
 export default function DriftIndicator() {
-  const [data, setData] = useState<DriftData | null>(null);
   const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    authFetch('/api/model/drift')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .catch(() => {});
-  }, []);
-
-  if (!data) return null;
-
-  const statusColor = data.status === 'critical' ? '#ef4444' : data.status === 'warning' ? '#f59e0b' : '#22c55e';
-  const StatusIcon = data.status === 'critical' ? AlertTriangle : data.status === 'warning' ? TrendingDown : CheckCircle;
-
-  return (
-    <div className="card p-5">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between"
-      >
-        <div className="flex items-center gap-2">
-          <TrendingDown size={16} style={{ color: statusColor }} />
-          <h3 className="text-base font-semibold text-[#1F2937]">Model Drift Monitor</h3>
-          <span className="text-[11px] px-2 py-0.5 rounded font-mono" style={{
-            background: `${statusColor}15`, color: statusColor
-          }}>
-            PSI: {data.overall_psi}
-          </span>
-          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded">Synthetic baseline</span>
-        </div>
-        {expanded ? <ChevronUp size={14} className="text-[#d4d4d8]" /> : <ChevronDown size={14} className="text-[#d4d4d8]" />}
-      </button>
-
-      <div
-        className="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-        style={{ maxHeight: expanded ? '2000px' : '0px' }}
-      >
-        <div className="mt-4 space-y-3">
-          {/* Overall status */}
-          <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <StatusIcon size={16} style={{ color: statusColor }} />
-              <div>
-                <div className="text-sm text-[#1F2937] font-medium">Overall Drift Status</div>
-                <div className="text-[11px] text-[#6B7280]">{data.total_features} features monitored</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-[11px]">
-              {data.critical_count > 0 && (
-                <span className="text-[#B91C1C] bg-[#B91C1C]/10 px-2 py-0.5 rounded">{data.critical_count} critical</span>
-              )}
-              {data.warning_count > 0 && (
-                <span className="text-[#B45309] bg-[#B45309]/10 px-2 py-0.5 rounded">{data.warning_count} warning</span>
-              )}
-              <span className="text-[#15803D] bg-[#15803D]/10 px-2 py-0.5 rounded">
-                {data.total_features - data.critical_count - data.warning_count} stable
-              </span>
-            </div>
-          </div>
-
-          {/* Feature list */}
-          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-            {data.features.map((feat, i) => (
-              <motion.div
-                key={feat.feature}
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="bg-[#F8F9FA] rounded-lg p-2.5 border border-[#D1D5DB] flex items-center gap-3"
-              >
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                  feat.status === 'critical' ? 'bg-[#B91C1C]' :
-                  feat.status === 'warning' ? 'bg-[#B45309]' : 'bg-[#15803D]'
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] text-[#1F2937] truncate">{feat.feature.replace(/_/g, ' ')}</div>
-                  <div className="text-[11px] text-[#6B7280]">
-                    Train: {feat.train_mean.toFixed(3)} | Live: {feat.live_mean.toFixed(3)}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] font-mono text-[#1F2937]">PSI {feat.psi}</div>
-                  <div className="text-[11px] text-[#6B7280]">z={feat.mean_shift_z}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const { data, loading, error } = useApiData<DriftData>('/api/model/drift');
+  return <section className="card p-5">
+    <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="w-full flex flex-wrap items-center justify-between gap-2"><span className="flex flex-wrap items-center gap-2"><TrendingDown size={18} /><span className="text-base font-semibold">Model Drift Monitor</span><span className="text-sm text-gray-700">Heuristic: {formatMetric(data?.overall_heuristic_score, 4)}</span></span>{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
+    {loading ? <p className="mt-3 text-sm" role="status">Loading drift metadata…</p> : error ? <p className="mt-3 text-sm text-red-800" role="alert">Drift metadata unavailable: {error}</p> : <>
+      <p className="mt-3 text-sm text-gray-700">{data?.data_source ?? 'Distribution provenance unavailable.'} {data?.metric_method ?? 'Metric method unavailable.'} {data?.verified === true ? 'Service reports verified inputs.' : 'Not measured live drift; simulated heuristic only.'}</p>
+      {expanded && <div className="mt-4 space-y-3">
+        <p className="text-sm">Reported status: {data?.status ?? 'Unavailable'} · Features: {count(data?.total_features)} · Critical: {count(data?.critical_count)} · Warning: {count(data?.warning_count)}</p>
+        {!data?.features?.length && <p className="text-sm text-gray-700">Feature drift details: Unavailable</p>}
+        {data?.features?.map(feature => <div key={feature.feature} className="rounded border border-gray-300 bg-gray-50 p-3 text-sm flex flex-wrap justify-between gap-2"><span>{feature.feature.replace(/_/g, ' ')} · {feature.status ?? 'Unavailable'}<span className="block text-gray-700">Training mean: {formatMetric(feature.train_mean, 3)} · Simulated mean: {formatMetric(feature.live_mean, 3)}</span></span><span className="text-gray-700 font-mono">Heuristic {formatMetric(feature.heuristic_score, 4)} · z={formatMetric(feature.mean_shift_z, 2)}</span></div>)}
+      </div>}
+    </>}
+  </section>;
 }

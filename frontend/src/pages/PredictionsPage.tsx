@@ -1,18 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useDashboard } from '../context/DashboardContext';
 import PredictionCard from '../components/PredictionCard';
 import RiskTrendChart from '../components/RiskTrendChart';
 import RankedLocationsTable from '../components/RankedLocationsTable';
 import { authFetch } from '../lib/auth';
-import { FALLBACK_PREDICTIONS, CRIME_TYPE_DISTRIBUTION } from '../data/fallbackData';
+import { CRIME_TYPE_DISTRIBUTION } from '../data/fallbackData';
+import ExplainabilityPanel from '../components/ExplainabilityPanel';
 import { Zap, RefreshCw, Activity, Shield } from 'lucide-react';
 
 const API_BASE = '/api';
 
 export default function PredictionsPage() {
-  const { prediction, alerts, selectedCaseId, isRefreshing, relativeTime, setPrediction, setLastPredictionUpdate, evidenceModalOpen, setEvidenceModalOpen, setSelectedLocation } = useDashboard();
-  const [simulating, setSimulating] = useState(false);
+  const { prediction, alerts, selectedCaseId, isRefreshing, relativeTime, setPrediction, setLastPredictionUpdate, evidenceModalOpen, setEvidenceModalOpen, setSelectedLocation, selectedLocation, dataMode, loadData, lastUpdated } = useDashboard();
+  const active = useRef(true);
+    useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+    const [simulating, setSimulating] = useState(false);
   const [simAmount, setSimAmount] = useState(25000);
   const [simFrom, setSimFrom] = useState('MAHB0001234');
   const [simTo, setSimTo] = useState('MAHB0005678');
@@ -21,7 +24,8 @@ export default function PredictionsPage() {
   const [simError, setSimError] = useState('');
 
   const handleSimulate = useCallback(async () => {
-    setSimError('');
+    if (dataMode === 'demo') { setSimError('Transaction scoring is disabled in local demo; fixture risks are unchanged.'); return; }
+        setSimError('');
     if (simAmount < 100) {
       setSimError('Amount must be at least ₹100');
       return;
@@ -34,6 +38,7 @@ export default function PredictionsPage() {
     setSimStep('sending');
     setSimResult(null);
     await new Promise(r => setTimeout(r, 600));
+    if (!active.current) return;
     setSimStep('processing');
     try {
       const res = await authFetch(`${API_BASE}/transactions`, {
@@ -44,18 +49,26 @@ export default function PredictionsPage() {
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
       await new Promise(r => setTimeout(r, 800));
+      if (!active.current) return;
+            if (selectedCaseId !== prediction.case_id) throw new Error('Selection changed; transaction result discarded.');
+      if (data.updated_prediction?.case_id !== selectedCaseId || !data.updated_prediction?.primary_location || !data.updated_prediction?.ranked_locations?.length) {
+        throw new Error('Transaction response is missing the selected case prediction.');
+      }
       setSimResult(data);
       setSimStep('done');
       if (data.updated_prediction) {
         setPrediction(data.updated_prediction);
         setLastPredictionUpdate(new Date());
       }
-    } catch {
+      await loadData();
+    } catch (error) {
+      if (!active.current) return;
       setSimStep('done');
-      setSimResult({ error: 'Backend not reachable' });
+      setSimError(`${error instanceof Error ? error.message : 'Transaction failed.'} No substitute risk update was applied.`);
+            setSimResult(null);
     }
-    setTimeout(() => { setSimulating(false); setSimStep('idle'); }, 4000);
-  }, [selectedCaseId, simAmount, simFrom, simTo, setPrediction, setLastPredictionUpdate]);
+    setTimeout(() => { if (active.current) { setSimulating(false); setSimStep('idle'); } }, 4000);
+  }, [selectedCaseId, simAmount, simFrom, simTo, setPrediction, setLastPredictionUpdate, prediction.case_id, dataMode, loadData]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -77,27 +90,27 @@ export default function PredictionsPage() {
         </div>
         <div className="grid grid-cols-4 gap-3 mb-3">
           <div>
-            <label className="text-[10px] text-[#6B7280] uppercase block mb-1">Amount (₹)</label>
-            <input type="text" inputMode="numeric" value={simAmount === 0 ? '' : simAmount}
+            <label htmlFor="sim-amount" className="text-xs text-[#4B5563] uppercase block mb-1">Amount (₹)</label>
+            <input id="sim-amount" type="text" inputMode="numeric" value={simAmount === 0 ? '' : simAmount}
               onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setSimAmount(v === '' ? 0 : parseInt(v, 10)); }}
               className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#71717a]" />
           </div>
           <div>
-            <label className="text-[10px] text-[#6B7280] uppercase block mb-1">From Account</label>
-            <input value={simFrom} onChange={e => setSimFrom(e.target.value)}
+            <label htmlFor="sim-from" className="text-xs text-[#4B5563] uppercase block mb-1">From Account</label>
+            <input id="sim-from" value={simFrom} onChange={e => setSimFrom(e.target.value)}
               className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#71717a]" />
           </div>
           <div>
-            <label className="text-[10px] text-[#6B7280] uppercase block mb-1">To Account</label>
-            <input value={simTo} onChange={e => setSimTo(e.target.value)}
+            <label htmlFor="sim-to" className="text-xs text-[#4B5563] uppercase block mb-1">To Account</label>
+            <input id="sim-to" value={simTo} onChange={e => setSimTo(e.target.value)}
               className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#71717a]" />
           </div>
-          <button onClick={handleSimulate} disabled={simulating}
+          <button onClick={handleSimulate} disabled={simulating || dataMode === 'demo'} title={dataMode === 'demo' ? 'Disabled: scoring needs the backend; fixture signals are retained' : 'Submit a synthetic transaction to the API'}
             className="py-1.5 bg-[#3b82f6] text-white text-sm font-medium rounded hover:bg-[#2563eb] disabled:opacity-50 flex items-center justify-center gap-1">
             <Zap size={12} /> {simulating ? 'Processing...' : 'Simulate'}
           </button>
         </div>
-        <div className="text-[10px] text-[#9CA3AF] mt-1">Simulated transactions are ephemeral and not stored in the database.</div>
+        <div className="text-sm text-[#4B5563] mt-1">{dataMode === 'demo' ? 'Disabled in local demo. No API mutation or invented risk changes.' : 'Synthetic transaction submitted to the API; not a real banking transfer.'}</div>
         {simResult && !simResult.error && (
           <div className="text-[10px] text-[#22c55e]">✓ Risk updated: {simResult.updated_prediction.primary_location.atm_id} → {simResult.updated_prediction.primary_location.risk_score}%</div>
         )}
@@ -155,6 +168,7 @@ export default function PredictionsPage() {
       </div>
 
       <RankedLocationsTable locations={prediction.ranked_locations} onSelect={setSelectedLocation} />
+            <ExplainabilityPanel caseId={prediction.case_id} atmId={(selectedLocation ?? prediction.primary_location).atm_id} demoMode={dataMode === 'demo'} refreshKey={lastUpdated.toISOString()} />
     </motion.div>
   );
 }

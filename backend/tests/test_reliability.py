@@ -136,12 +136,34 @@ class TestApiHardening:
             db.close()
 
     def test_model_card_has_validation_protocol(self, client, admin_token):
-        data = client.get("/api/model/card", headers=auth_header(admin_token)).json()
-        proto = data.get("validation_protocol")
-        assert proto is not None
+        response = client.get("/api/model/card", headers=auth_header(admin_token))
+        assert response.status_code == 200
+        data = response.json()
+        proto = data["validation_protocol"]
         assert proto["calibration_status"].startswith("uncalibrated")
-        assert proto["baseline_majority_accuracy"] == "96.36%"
+        assert "ranking" in proto["calibration_status"].lower()
+        assert proto["baseline_majority_accuracy"] is None
+        assert "unavailable" in proto["split"].lower()
+        assert "provenance" in proto["split"].lower()
         assert "human review" in proto["intended_use"].lower()
+        assert "automated enforcement" in proto["prohibited_use"].lower()
+        for metric in ("accuracy", "precision", "recall", "f1_score", "pr_auc",
+                       "roc_auc", "rf_accuracy", "xgb_accuracy", "cv_accuracy", "cv_std"):
+            assert data[metric] is None, f"legacy metric {metric} must remain withdrawn"
+        holdouts = proto["holdout_revalidation"]
+        assert "provenance" in holdouts["protocol"].lower()
+        assert set(holdouts["slices"]) == {"group_holdout", "time_holdout", "location_holdout"}
+        for name, result in holdouts["slices"].items():
+            assert result["status"] == "unavailable", f"{name} is not a verified holdout"
+            assert "provenance" in result["reason"].lower()
+            assert "retrain" in result["reason"].lower()
+            assert not any(key in result for key in ("precision", "recall", "f1", "pr_auc"))
+        for name in ("calibration", "threshold_sweep"):
+            result = holdouts[name]
+            assert isinstance(result, dict), f"{name} must expose unavailable status and reason, not null"
+            assert result["status"] == "unavailable"
+            assert "provenance" in result["reason"].lower()
+            assert "retrain" in result["reason"].lower()
 
 
 # ─── DB chain backends ───────────────────────────────────────────────────────
@@ -308,23 +330,39 @@ class TestAuditSearch:
 
 class TestBaselineComparison:
     def test_model_card_exposes_baseline_comparison(self, client, admin_token):
-        """Judge question: 'better than sending police to the highest historical crime ATM?'"""
-        data = client.get("/api/model/card", headers=auth_header(admin_token)).json()
-        bc = data["validation_protocol"]["holdout_revalidation"]["baseline_comparison"]
-        assert bc is not None
-        th = bc["time_holdout"]
-        assert th["alert_budget_k"] >= 1
-        for strategy in ("majority_class", "random_ranking", "nearest_atm",
-                         "historical_density", "atlas_ensemble"):
-            assert strategy in th, f"missing baseline strategy {strategy}"
-        # ATLAS must beat every naive baseline on ranking quality (unseen months)
-        assert th["atlas_ensemble"]["pr_auc"] > th["historical_density"]["pr_auc"]
-        assert th["atlas_ensemble"]["pr_auc"] > th["nearest_atm"]["pr_auc"]
-        # matched-budget precision comparison
-        assert th["atlas_ensemble"]["precision_at_k"] > th["random_ranking"]["precision_at_k"]
-        # same comparison must hold for unseen cities
-        lh = bc["location_holdout"]
-        assert lh["atlas_ensemble"]["pr_auc"] > lh["historical_density"]["pr_auc"]
-        # majority baseline flags nothing -> recall 0 but high accuracy (the trap)
-        assert th["majority_class"]["recall_at_k"] == 0.0
-        assert th["majority_class"]["accuracy_pct"] > 90
+        """Legacy artifacts cannot establish superiority over dispatch baselines."""
+        response = client.get("/api/model/card", headers=auth_header(admin_token))
+        assert response.status_code == 200
+        data = response.json()
+        report = data["validation_protocol"]["holdout_revalidation"]
+        comparison = report["baseline_comparison"]
+        assert comparison["status"] == "unavailable"
+        assert "provenance" in comparison["reason"].lower()
+        assert "retrain" in comparison["reason"].lower()
+        assert set(comparison) == {"status", "reason"}, "Do not retain train-inclusive superiority numbers"
+        for name in ("group_holdout", "time_holdout", "location_holdout"):
+            result = report["slices"][name]
+            assert result["status"] == "unavailable"
+            assert "provenance" in result["reason"].lower()
+            assert not any(key in result for key in ("pr_auc", "average_precision", "precision", "recall"))
+
+    def test_ordered_prefix_and_future_outcomes_cannot_support_baseline_claims(self):
+        import json
+        from pathlib import Path
+
+        report_path = Path(__file__).resolve().parents[1] / "model" / "validation_report.json"
+        report = json.loads(report_path.read_text())
+        assert report["status"] == "unavailable"
+        prefix = report["previous_prefix_diagnostic"]
+        assert prefix["status"] == "withdrawn"
+        assert "first 20000" in prefix["selection"]
+        assert "NOT a random sample" in prefix["selection"]
+        assert "overlap" in prefix["reason"].lower()
+        assert "calibration_random_sample" not in report
+        assert "threshold_sweep_random_sample" not in report
+        future = report["future_outcome_metrics"]
+        assert future["status"] == "unavailable"
+        assert "case-grouped" in future["reason"].lower()
+        assert "observed future" in future["reason"].lower()
+        for metric in ("next_atm_top1", "next_atm_top3", "next_atm_top5", "next_cashout_time_mae"):
+            assert future[metric] is None

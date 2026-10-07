@@ -20,14 +20,11 @@ import uuid
 import os
 from collections import defaultdict
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-do-not-use-in-production")
-REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY", "dev-refresh-secret-do-not-use-in-production")
-if not os.getenv("SECRET_KEY"):
-    import warnings
-    warnings.warn("SECRET_KEY env var not set — using insecure dev default. Set SECRET_KEY in production!", stacklevel=2)
-if not os.getenv("REFRESH_SECRET_KEY"):
-    import warnings
-    warnings.warn("REFRESH_SECRET_KEY env var not set — using insecure dev default. Set REFRESH_SECRET_KEY in production!", stacklevel=2)
+from security_config import SECURITY_CONFIG
+from access_control import check_action
+
+SECRET_KEY = SECURITY_CONFIG.access_secret
+REFRESH_SECRET_KEY = SECURITY_CONFIG.refresh_secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -284,8 +281,8 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security), 
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user = get_user_by_email(db, email)
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="User not found or inactive")
+    if user is None or not user.is_active or not user.is_approved:
+        raise HTTPException(status_code=401, detail="User not found, inactive, or unapproved")
 
     return {
         "id": user.id,
@@ -308,9 +305,7 @@ def require_role(*roles):
 
 def require_permission(permission: str):
     def perm_checker(user: dict = Depends(verify_token)):
-        if permission not in user.get("permissions", []):
-            print(f"[PERM] Denied: user={user.get('email')} role={user.get('role')} permissions={user.get('permissions')} need={permission}")
-            raise HTTPException(status_code=403, detail=f"Missing permission: {permission}")
+        check_action(user, permission)
         return user
     return perm_checker
 
@@ -322,7 +317,7 @@ def verify_ws_token(token: str, db: Session) -> Optional[dict]:
         if email is None:
             return None
         user = get_user_by_email(db, email)
-        if user is None or not user.is_active:
+        if user is None or not user.is_active or not user.is_approved:
             return None
         return {
             "id": user.id, "name": user.name, "email": user.email,
@@ -492,8 +487,8 @@ def register_auth_routes(app):
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
         user = get_user_by_email(db, email)
-        if user is None or not user.is_active:
-            raise HTTPException(status_code=401, detail="User not found or inactive")
+        if user is None or not user.is_active or not user.is_approved:
+            raise HTTPException(status_code=401, detail="User not found, inactive, or unapproved")
 
         # Check if refresh token exists and is not revoked
         db_token = db.query(RefreshToken).filter(
@@ -567,12 +562,13 @@ def register_auth_routes(app):
         db_user = db.query(User).filter(User.email == user["email"]).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
+        if req.department is not None:
+            raise HTTPException(status_code=403, detail="Department changes require administrator provisioning")
         if req.name is not None:
             db_user.name = req.name
         if req.badge is not None:
             db_user.badge = req.badge
-        if req.department is not None:
-            db_user.department = req.department
+
         db.commit()
         return {"status": "updated", "user": {
             "id": db_user.id, "name": db_user.name, "email": db_user.email,

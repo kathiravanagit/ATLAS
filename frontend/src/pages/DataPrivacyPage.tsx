@@ -5,7 +5,7 @@ export default function DataPrivacyPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-bold text-[#1F2937]">Data & Privacy</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Transparency on synthetic data, compliance, and deployment approach</p>
+        <p className="text-sm text-[#6B7280] mt-1">Synthetic data, prototype controls, and requirements before deployment</p>
       </div>
 
       {/* Why Synthetic Data */}
@@ -16,13 +16,12 @@ export default function DataPrivacyPage() {
         </div>
         <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
           <p>
-            Due to banking data privacy regulations (<strong className="text-[#1F2937]">RBI Act 1949</strong>,{' '}
-            <strong className="text-[#1F2937]">NPCI Guidelines</strong>, and the{' '}
-            <strong className="text-[#1F2937]">DPDP Act 2023</strong>), real transaction data from banks and
-            payment networks cannot be used for research or hackathon prototyping without explicit regulatory sandbox approval.
+            This prototype uses synthetic fixtures and generated model inputs, not live banking or government records.
+            Any use of real personal or financial data would require an appropriate legal basis, permissions,
+            security review, and assessment of applicable privacy and banking requirements.
           </p>
           <p>
-            ATLAS uses <strong className="text-[#1F2937]">synthetic data calibrated to public fraud statistics</strong> from:
+            Calibration to public fraud statistics has not been verified. Public references that could inform a future documented evaluation include:
           </p>
           <ul className="list-disc list-inside space-y-1 ml-4">
             <li>RBI Annual Report on Bank Frauds (FY 2023-24)</li>
@@ -31,14 +30,13 @@ export default function DataPrivacyPage() {
             <li>Published academic research on ATM cash-out fraud patterns</li>
           </ul>
           <p>
-            Our synthetic generator produces <strong className="text-[#1F2937]">200,000+ training transactions</strong> across{' '}
-            <strong className="text-[#1F2937]">400 ATMs in 8 Indian cities</strong> with a ~1.5-3.5% fraud rate —
-            consistent with RBI-reported figures for digital payment fraud.
+            Dataset size, class balance, and geographic coverage depend on the generated artifacts.
+            Use supplied model metadata where available; this page does not establish representative fraud rates or operational accuracy.
           </p>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB] text-xs">
-            <strong className="text-[#1F2937]">Note:</strong> The 200k transactions are used to train the ML model offline.
-            The live database stores <strong className="text-[#1F2937]">aggregated risk scores, ranked predictions, and case metadata</strong> —
-            not raw transaction data.
+            <strong className="text-[#1F2937]">Note:</strong> Offline model artifacts and the API-connected prototype database serve different purposes.
+            The database can store synthetic transaction records, case metadata, prediction snapshots, alerts, and audit records.
+            Do not enter real sensitive data into this demonstration.
           </div>
         </div>
       </div>
@@ -47,14 +45,14 @@ export default function DataPrivacyPage() {
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Shield size={18} className="text-[#22c55e]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Compliance Framework</h3>
+          <h3 className="text-base font-semibold text-[#1F2937]">Prototype Controls — Not Legal Compliance</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {[
-            { title: 'DPDP Act 2023', desc: 'Full PII encryption, consent logging, data minimization. Victim names and contacts encrypted with AES-256-GCM.', icon: Lock },
-            { title: 'RBI Guidelines', desc: 'Audit trail with SHA-256 hash chain. All data access logged with officer badge, timestamp, and action type.', icon: FileText },
-            { title: 'NPCI Compliance', desc: 'Transaction patterns calibrated to published NPCI fraud statistics. No real UPI data used.', icon: Database },
-            { title: 'Evidence Integrity', desc: 'Merkle tree verification for tamper-evident audit logs. Blockchain-inspired chain of custody.', icon: Shield },
+            { title: 'Privacy Controls', desc: 'The backend includes encryption for selected case fields. This does not establish full PII protection, consent management, or DPDP compliance; these require a separate assessment.', icon: Lock },
+            { title: 'Audit Records', desc: 'Selected backend actions create audit records. Complete logging of every data access is not established; coverage and retention require review.', icon: FileText },
+            { title: 'Synthetic Data', desc: 'No live UPI feed is connected. Calibration to public statistics and NPCI compliance have not been verified.', icon: Database },
+            { title: 'Evidence Integrity', desc: 'Prototype evidence verification tools do not establish legal admissibility, a complete chain of custody, or regulatory certification.', icon: Shield },
           ].map(item => (
             <div key={item.title} className="bg-white rounded-lg p-4 border border-[#D1D5DB]">
               <div className="flex items-center gap-2 mb-2">
@@ -71,18 +69,18 @@ export default function DataPrivacyPage() {
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Eye size={18} className="text-[#8b5cf6]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Production Architecture</h3>
+          <h3 className="text-base font-semibold text-[#1F2937]">Deployment Requirements</h3>
         </div>
         <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
           <p>
-            ATLAS is designed to <strong className="text-[#1F2937]">plug into real bank APIs</strong> once regulatory
-            permissions are granted. The architecture is designed to support:
+            No real bank integration is implemented. Production deployment would require independently reviewed
+            integrations, access controls, privacy safeguards, and operational validation. Potential future research areas, not implemented capabilities, include:
           </p>
           <div className="grid grid-cols-3 gap-3 mt-3">
             {[
-              { label: 'Federated Learning', desc: 'Designed to train models across banks without sharing raw data' },
-              { label: 'Differential Privacy', desc: 'Designed to add mathematical privacy guarantees to model outputs' },
-              { label: 'Secure Multi-Party', desc: 'Designed to compute fraud scores across institutions jointly' },
+              { label: 'Federated Learning', desc: 'Not implemented; would require a cross-institution training protocol' },
+              { label: 'Differential Privacy', desc: 'Not implemented; no mathematical privacy guarantee is provided' },
+              { label: 'Secure Multi-Party', desc: 'Not implemented; would require a reviewed joint-computation protocol' },
             ].map(item => (
               <div key={item.label} className="bg-white rounded-lg p-3 border border-[#D1D5DB] text-center">
                 <div className="text-xs font-medium text-[#1F2937] mb-1">{item.label}</div>
@@ -91,10 +89,9 @@ export default function DataPrivacyPage() {
             ))}
           </div>
           <p className="mt-3">
-            Current prototype runs on <strong className="text-[#1F2937]">PostgreSQL with PostGIS auto-detection</strong> —
-            uses spatial index when available, falls back to haversine formula.{' '}
-            <strong className="text-[#1F2937]">FastAPI</strong> for the backend, and{' '}
+            The prototype uses <strong className="text-[#1F2937]">FastAPI</strong> for the backend and{' '}
             <strong className="text-[#1F2937]">React + Leaflet</strong> for the frontend.
+            Database capabilities depend on deployment configuration; this page does not verify production readiness.
           </p>
         </div>
       </div>
@@ -107,23 +104,13 @@ export default function DataPrivacyPage() {
         </div>
         <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
           <p>
-            Every prediction is accompanied by{' '}
-            <strong className="text-[#1F2937]">SHAP explainability values</strong> and an{' '}
-            <strong className="text-[#1F2937]">auto-generated investigative briefing</strong> that translates
-            mathematical feature contributions into plain English.
+            Exact-ATM explanations depend on a stored feature snapshot and an available compatible model.
+            Local SHAP, global importance fallback, and unavailable explanations are distinct states.
+            Global importance is not an additive explanation of an individual prediction; risk scores are not verified calibrated probabilities.
           </p>
-          <div className="bg-white rounded-lg p-4 border border-[#D1D5DB] font-mono text-xs">
-            <div className="text-[#22c55e] mb-2">// Example SHAP output for CC-2026-0147</div>
-            <div className="space-y-1">
-              <div><span className="text-[#3b82f6]">distance_from_victim_km</span>: <span className="text-[#ef4444]">+0.288</span> (highest contributor)</div>
-              <div><span className="text-[#3b82f6]">suspect_proximity</span>: <span className="text-[#ef4444]">+0.104</span></div>
-              <div><span className="text-[#3b82f6]">transaction_velocity</span>: <span className="text-[#ef4444]">+0.081</span></div>
-              <div><span className="text-[#3b82f6]">amount_factor</span>: <span className="text-[#f59e0b]">+0.050</span></div>
-            </div>
-            <div className="mt-3 text-[#6B7280]">
-              &gt; "Flagged High Risk (94%): Rs.48,500 moved across 6 linked hops within 4 hours.
-              ATM-027 selected based on proximity (2.6 km) and historical 82% cash-out frequency."
-            </div>
+          <div className="bg-white rounded-lg p-4 border border-[#D1D5DB] text-sm">
+            Explanation values are unavailable on this information page. Open a selected ATM's explanation to inspect
+            the actual backend response, base value, units, and method. Local demo fixtures do not provide SHAP attributions.
           </div>
         </div>
       </div>
@@ -132,9 +119,10 @@ export default function DataPrivacyPage() {
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
           <ExternalLink size={18} className="text-[#06b6d4]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Public Data Sources</h3>
+          <h3 className="text-base font-semibold text-[#1F2937]">Public References — Not Verified Dataset Provenance</h3>
         </div>
         <div className="space-y-2 text-sm text-[#6B7280]">
+          <p>These references are not evidence that the prototype dataset was sourced from, calibrated against, or endorsed by these organizations.</p>
           {[
             { name: 'RBI Annual Report 2023-24 — Bank Fraud Statistics', url: 'https://www.rbi.org.in' },
             { name: 'NPCI UPI Transaction Data — Monthly Statistics', url: 'https://www.npci.org.in' },

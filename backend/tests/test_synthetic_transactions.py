@@ -20,21 +20,24 @@ def test_stable_fixture_seed_is_process_independent():
 
 def test_prediction_fixture_records_are_persisted_and_reused(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'synthetic.db'}")
-    Base.metadata.create_all(bind=engine)
-    session = sessionmaker(bind=engine)()
-    session.add(Case(case_id="SYN-TEST-001", crime_type="Synthetic", amount=0))
-    atms = [AtmLocation(atm_id="PNY-001", name="Synthetic ATM", latitude=11.9, longitude=79.8, area="Synthetic")]
-    session.add_all(atms)
-    session.commit()
+    try:
+        Base.metadata.create_all(bind=engine)
+        with sessionmaker(bind=engine)() as session:
+            session.add(Case(case_id="SYN-TEST-001", crime_type="Synthetic", amount=0))
+            atms = [AtmLocation(atm_id="PNY-001", name="Synthetic ATM", latitude=11.9, longitude=79.8, area="Synthetic")]
+            session.add_all(atms)
+            session.commit()
 
-    first = ensure_synthetic_transactions(session, "SYN-TEST-001", "puducherry", atms)
-    second = ensure_synthetic_transactions(session, "SYN-TEST-001", "puducherry", atms)
+            first = ensure_synthetic_transactions(session, "SYN-TEST-001", "puducherry", atms)
+            second = ensure_synthetic_transactions(session, "SYN-TEST-001", "puducherry", atms)
 
-    assert len(first) == 12
-    assert len(second) == 12
-    assert session.query(TransactionRecord).count() == 12
-    assert all(record.source == "synthetic-fixture" for record in second)
-    assert all(isinstance(record.occurred_at, datetime) for record in second)
+            assert len(first) == 12
+            assert len(second) == 12
+            assert session.query(TransactionRecord).count() == 12
+            assert all(record.source == "synthetic-fixture" for record in second)
+            assert all(isinstance(record.occurred_at, datetime) for record in second)
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.skipif(
@@ -45,8 +48,11 @@ def test_postgresql_postgis_integration_fixture():
     from sqlalchemy import text
 
     engine = create_engine(os.environ["POSTGRES_TEST_DATABASE_URL"])
-    with engine.connect() as connection:
-        postgis = connection.execute(
-            text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')")
-        ).scalar()
-    assert postgis, "PostGIS extension is required for the integration fixture"
+    try:
+        with engine.connect() as connection:
+            postgis = connection.execute(
+                text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')")
+            ).scalar()
+        assert postgis, "PostGIS extension is required for the integration fixture"
+    finally:
+        engine.dispose()

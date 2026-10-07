@@ -53,7 +53,9 @@ _metadata = None
 _dataset_stats = None
 _shap_explainer = None
 _shap_background = None
-_shap_cache: dict[str, list] = {}  # case_id -> SHAP contributions (avoid recompute)
+_shap_cache: dict[str, dict] = {}  # model + background + ordered input, never case ID
+_shap_explainer_key = None
+_shap_error = None
 
 # Drift monitoring: rolling window of recent predictions
 _prediction_log = deque(maxlen=500)
@@ -76,85 +78,132 @@ def load_models():
     return _rf_model, _xgb_model
 
 
-def _init_shap_explainer():
-    """Lazy-init SHAP KernelExplainer with background dataset."""
-    global _shap_explainer, _shap_background
-    if _shap_explainer is not None:
-        return _shap_explainer
+def ensemble_probability(rf, xgb, X):
+    """The exact, unrounded serving probability, also used by SHAP."""
+    models = [model for model in (rf, xgb) if model is not None]
+    if not models:
+        raise ValueError("MODEL_UNAVAILABLE: no fitted estimators")
+    X = pd.DataFrame(X, columns=FEATURE_COLS)
+    return np.mean([model.predict_proba(X)[:, 1] for model in models], axis=0)
 
+
+def _explanation_model_key(rf, xgb):
+    return joblib.hash((rf, xgb, (_metadata or {}).get("shap_background")))
+
+
+def _init_shap_explainer():
+    """Kernel SHAP explains the full ensemble with actual training rows.
+
+    No independent normal/uniform feature synthesis: those rows violate feature
+    dependencies and categorical/range constraints. Legacy artifacts lacking
+    saved empirical background explicitly fall back to global importance.
+    """
+    global _shap_explainer, _shap_background, _shap_explainer_key, _shap_error
     try:
         import shap
-        rf, _ = load_models()
-        if rf is None:
-            return None
-
-        # Build background dataset from training stats (100 samples)
-        if _dataset_stats and "feature_stats" in _dataset_stats:
-            bg_data = []
-            for _ in range(100):
-                sample = []
-                for col in FEATURE_COLS:
-                    stats = _dataset_stats["feature_stats"].get(col, {"mean": 0.5, "std": 0.1})
-                    val = np.random.normal(stats["mean"], max(stats["std"], 0.01))
-                    sample.append(val)
-                bg_data.append(sample)
-            _shap_background = pd.DataFrame(bg_data, columns=FEATURE_COLS)
-        else:
-            _shap_background = pd.DataFrame(
-                np.random.uniform(0, 1, (100, len(FEATURE_COLS))),
-                columns=FEATURE_COLS
-            )
-
-        _shap_explainer = shap.KernelExplainer(rf.predict_proba, _shap_background)
+        rf, xgb = load_models()
+        if rf is None and xgb is None:
+            raise ValueError("MODEL_UNAVAILABLE: no fitted estimators")
+        key = _explanation_model_key(rf, xgb)
+        if _shap_explainer is not None and _shap_explainer_key == key:
+            return _shap_explainer
+        records = (_metadata or {}).get("shap_background")
+        if not records:
+            raise ValueError("No empirical training background saved; retraining required for local SHAP")
+        background = pd.DataFrame(records)[FEATURE_COLS]
+        if background.empty or not np.isfinite(background.to_numpy(dtype=float)).all():
+            raise ValueError("Invalid empirical background")
+        if not (background.time_window_match == background.hour.between(17, 22).astype(float)).all():
+            raise ValueError("Background uses incompatible time-window semantics")
+        _shap_background = background
+        _shap_explainer = shap.KernelExplainer(
+            lambda values: ensemble_probability(rf, xgb, values), background,
+        )
+        _shap_explainer_key = key
+        _shap_error = None
         return _shap_explainer
-    except Exception:
+    except Exception as exc:
+        _shap_error = str(exc)
         return None
 
 
-def compute_shap_values(features: dict, case_id: str = None) -> list:
-    """Compute real SHAP values for a single prediction. Cached per case_id."""
-    if case_id and case_id in _shap_cache:
-        return _shap_cache[case_id]
+def _positive_shap_values(raw):
+    """Support scalar output and old/new SHAP binary classifier layouts."""
+    if isinstance(raw, list):
+        raw = raw[1] if len(raw) == 2 else raw[0]
+    values = np.asarray(raw, dtype=float)
+    if values.ndim == 3 and values.shape == (1, len(FEATURE_COLS), 2):
+        values = values[0, :, 1]
+    elif values.ndim == 3 and values.shape == (1, len(FEATURE_COLS), 1):
+        values = values[0, :, 0]
+    elif values.ndim == 2 and values.shape == (1, len(FEATURE_COLS)):
+        values = values[0]
+    if values.shape != (len(FEATURE_COLS),) or not np.isfinite(values).all():
+        raise ValueError(f"Unexpected SHAP shape/values: {values.shape}")
+    return values
 
+
+def explain_cashout(features: dict, case_id: str = None) -> dict:
+    """Structured explanation; base and signed contributions use probability units.
+
+    Kernel SHAP is a sampled attribution of the exact ensemble function, not an
+    exact enumeration of all coalitions. Global MDI fallback is NOT local SHAP.
+    case_id is accepted for compatibility but never determines the cache key.
+    """
+    from copy import deepcopy
     try:
-        import shap
+        rf, xgb = load_models()
+    except Exception as exc:
+        return {"available": False, "local_attribution": False, "base_value": None,
+                "contributions": [], "method": "unavailable",
+                "error": f"Model loading failed: {exc}", "error_code": "MODEL_UNAVAILABLE"}
+    if rf is None and xgb is None:
+        return {"available": False, "local_attribution": False, "base_value": None,
+                "contributions": [], "method": "unavailable",
+                "error": "No models loaded", "error_code": "MODEL_UNAVAILABLE"}
+    X = pd.DataFrame([[features.get(col, 0) for col in FEATURE_COLS]], columns=FEATURE_COLS)
+    key = hashlib.sha256((_explanation_model_key(rf, xgb) + joblib.hash(X)).encode()).hexdigest()
+    if key in _shap_cache:
+        return deepcopy(_shap_cache[key])
+    try:
         explainer = _init_shap_explainer()
         if explainer is None:
-            return []
+            raise ValueError(_shap_error or "SHAP explainer unavailable")
+        values = _positive_shap_values(explainer.shap_values(X, nsamples=256))
+        expected = np.asarray(explainer.expected_value, dtype=float).reshape(-1)
+        base = float(expected[1] if len(expected) == 2 else expected[0])
+        probability = float(ensemble_probability(rf, xgb, X)[0])
+        if not np.isfinite(base) or not np.isclose(base + values.sum(), probability, atol=1e-5):
+            raise ValueError("SHAP additivity does not match serving ensemble probability")
+        contributions = [{
+            "feature": col, "label": FEATURE_NAMES_CN.get(col, col),
+            "value": float(X.iloc[0][col]), "shap_value": float(values[i]),
+            "contribution": float(values[i]), "abs_contribution": float(abs(values[i])),
+            "direction": "positive" if values[i] > 0 else "negative" if values[i] < 0 else "neutral",
+        } for i, col in enumerate(FEATURE_COLS)]
+        contributions.sort(key=lambda item: item["abs_contribution"], reverse=True)
+        result = {"available": True, "local_attribution": True,
+                  "base_value": base, "probability": probability,
+                  "contributions": contributions, "method": "kernel_shap_ensemble",
+                  "units": "probability", "background": "empirical_training_rows"}
+        _shap_cache[key] = result
+        if len(_shap_cache) > 200:
+            del _shap_cache[next(iter(_shap_cache))]
+        return deepcopy(result)
+    except Exception as exc:
+        contributions = _ensemble_global_importance(X, rf, xgb)
+        return {"available": False, "local_attribution": False, "base_value": None,
+                "contributions": contributions, "method": "global_feature_importance",
+                "reason": str(exc), "units": "global_importance_not_local_attribution"}
 
-        X = pd.DataFrame([[features.get(col, 0) for col in FEATURE_COLS]], columns=FEATURE_COLS)
-        shap_values = explainer.shap_values(X, nsamples=100)
 
-        # shap_values is [class_0, class_1] for binary; we want class_1 (cash-out)
-        if isinstance(shap_values, list) and len(shap_values) >= 2:
-            values = shap_values[1][0]  # class 1, first sample
-        else:
-            values = shap_values[0] if isinstance(shap_values, np.ndarray) else np.array(shap_values)
+def compute_shap_values(features: dict, case_id: str = None) -> list:
+    """Legacy wrapper: only returns genuine local SHAP, never global fallback.
 
-        contributions = []
-        for i, col in enumerate(FEATURE_COLS):
-            val = float(values[i]) if i < len(values) else 0.0
-            contributions.append({
-                "feature": col,
-                "label": FEATURE_NAMES_CN.get(col, col),
-                "value": round(float(X.iloc[0][col]), 4),
-                "shap_value": round(val, 4),
-                "contribution": round(val, 4),
-                "direction": "positive" if val > 0 else "negative",
-                "abs_contribution": round(abs(val), 4),
-            })
-
-        contributions.sort(key=lambda x: x["abs_contribution"], reverse=True)
-
-        if case_id and contributions:
-            _shap_cache[case_id] = contributions
-            if len(_shap_cache) > 200:
-                oldest = list(_shap_cache.keys())[0]
-                del _shap_cache[oldest]
-
-        return contributions
-    except Exception:
-        return []
+    New callers must use explain_cashout to obtain the true expected value/method.
+    """
+    result = explain_cashout(features, case_id)
+    return result["contributions"] if result.get("local_attribution") else []
 
 
 def get_metadata():
@@ -163,24 +212,36 @@ def get_metadata():
 
 
 def _compute_feature_contributions(X: pd.DataFrame, model) -> list:
-    """Per-prediction feature contribution using MDI importance * feature value."""
+    """Global MDI importance only; feature values do not create local attributions."""
     if not hasattr(model, 'feature_importances_'):
         return []
     importances = model.feature_importances_
     values = X.iloc[0].values
     contributions = []
     for i, col in enumerate(FEATURE_COLS):
-        contrib = float(importances[i] * values[i])
         contributions.append({
             "feature": col,
             "label": FEATURE_NAMES_CN.get(col, col),
             "value": round(float(values[i]), 4),
             "importance": round(float(importances[i]), 4),
-            "contribution": round(contrib, 4),
-            "direction": "positive" if contrib > 0 else "negative",
+            "contribution": None,
+            "direction": "not_local",
+            "method": "global_feature_importance",
         })
-    contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+    contributions.sort(key=lambda x: x["importance"], reverse=True)
     return contributions
+
+
+def _ensemble_global_importance(X, rf, xgb):
+    models = [m for m in (rf, xgb) if m is not None and hasattr(m, "feature_importances_")]
+    if not models:
+        return []
+    importances = np.mean([m.feature_importances_ for m in models], axis=0)
+    return sorted([{
+        "feature": col, "label": FEATURE_NAMES_CN.get(col, col),
+        "value": float(X.iloc[0][col]), "importance": float(importances[i]),
+        "contribution": None, "direction": "not_local", "method": "global_feature_importance",
+    } for i, col in enumerate(FEATURE_COLS)], key=lambda item: item["importance"], reverse=True)
 
 
 def _check_drift(X: pd.DataFrame) -> dict:
@@ -226,9 +287,14 @@ def _log_prediction(risk_score: float, X: pd.DataFrame, case_id: str = ""):
 
 
 def predict_cashout(features: dict, case_id: str = "") -> dict:
-    rf, xgb = load_models()
+    try:
+        rf, xgb = load_models()
+    except Exception as exc:
+        return {"error": f"Model loading failed: {exc}", "error_code": "MODEL_UNAVAILABLE",
+                "available": False, "risk_score": None, "confidence": None, "prediction": None}
     if rf is None and xgb is None:
-        return {"error": "No models loaded", "risk_score": 50, "confidence": 0}
+        return {"error": "No models loaded", "error_code": "MODEL_UNAVAILABLE",
+                "available": False, "risk_score": None, "confidence": None, "prediction": None}
 
     X = pd.DataFrame([[features.get(col, 0) for col in FEATURE_COLS]], columns=FEATURE_COLS)
 
@@ -241,7 +307,7 @@ def predict_cashout(features: dict, case_id: str = "") -> dict:
         results["random_forest"] = {
             "probability": round(float(rf_prob), 4),
             "risk_score": round(float(rf_prob * 100), 1),
-            "prediction": 1 if rf_prob > 0.5 else 0,
+            "prediction": 1 if rf_prob >= 0.5 else 0,
         }
         weights["random_forest"] = 0.5
 
@@ -251,32 +317,32 @@ def predict_cashout(features: dict, case_id: str = "") -> dict:
         results["xgboost"] = {
             "probability": round(float(xgb_prob), 4),
             "risk_score": round(float(xgb_prob * 100), 1),
-            "prediction": 1 if xgb_prob > 0.5 else 0,
+            "prediction": 1 if xgb_prob >= 0.5 else 0,
         }
         weights["xgboost"] = 0.5
 
     # Ensemble (weighted average)
     total_weight = sum(weights.values())
-    ensemble_prob = sum(
-        results[m]["probability"] * weights[m] for m in results
-    ) / total_weight
+    weights = {name: weight / total_weight for name, weight in weights.items()}
+    ensemble_prob = float(ensemble_probability(rf, xgb, X)[0])
 
-    # Feature contributions (from RF, which has feature_importances_)
-    contributions = []
-    if rf is not None and hasattr(rf, 'feature_importances_'):
-        contributions = _compute_feature_contributions(X, rf)
+    # Cheap global diagnostics only; local attribution is explicitly opt-in.
+    contributions = _ensemble_global_importance(X, rf, xgb)
 
     # Drift check
     drift = _check_drift(X)
 
-    # Log prediction — cap at 99% to avoid overfitting appearance
-    risk_score = round(min(float(ensemble_prob * 100), 99.0), 1)
+    # Ranking score is not a calibrated probability or operational confidence.
+    risk_score = round(float(ensemble_prob * 100), 1)
     _log_prediction(risk_score, X, case_id)
 
     return {
         "model_version": _metadata.get("model_version", "unversioned") if _metadata else "unversioned",
+        "available": True,
         "risk_score": risk_score,
-        "prediction": 1 if ensemble_prob > 0.5 else 0,
+        "probability": ensemble_prob,
+        "prediction": 1 if ensemble_prob >= 0.5 else 0,
+        "contributions_method": "global_feature_importance_not_local_attribution",
         "confidence": round(float(max(ensemble_prob, 1 - ensemble_prob) * 100), 1),
         "ensemble": results,
         "model_weights": weights,

@@ -36,7 +36,7 @@ function PageFallback() {
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const authed = Boolean(getAccessToken() && getUser());
+  const authed = Boolean(getAccessToken() && getAccessToken() !== 'offline-token' && getUser());
   if (!authed) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
@@ -53,10 +53,19 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/dashboard" element={<Navigate to="/real" replace />} />
           {/* Explicit demo console: fallback data only, visibly labelled. */}
-          <Route path="/demo" element={<RequireAuth><DashboardLayout demoMode /></RequireAuth>}>
+          <Route path="/demo" element={<DashboardLayout key="demo" demoMode />}>
             <Route index element={<OverviewPage />} />
+            <Route path="predictions" element={<Suspense fallback={<PageFallback />}><PredictionsPage /></Suspense>} />
+            <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
+            <Route path="cases" element={<CasesPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="data-privacy" element={<DataPrivacyPage />} />
+            <Route path="model-card" element={<Suspense fallback={<PageFallback />}><ModelCardPage /></Suspense>} />
+            {['evidence', 'audit', 'health', 'profile'].map(page => <Route key={page} path={page} element={
+              <section className="card p-6"><h1 className="text-xl font-semibold capitalize">{page}</h1><p className="mt-3 text-sm">Backend-backed {page} tools are disabled in local demo. No API requests or mutations are made. Local prediction evidence is available from the prediction card.</p></section>
+            } />)}
           </Route>
-          <Route path="/real" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
+          <Route path="/real" element={<RequireAuth><DashboardLayout key="api" /></RequireAuth>}>
             <Route index element={<OverviewPage />} />
             <Route path="predictions" element={<Suspense fallback={<PageFallback />}><PredictionsPage /></Suspense>} />
             <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />

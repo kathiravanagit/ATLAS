@@ -1,3 +1,4 @@
+import { percent } from '../lib/metrics';
 import { PredictionLocation } from '../types';
 import React, { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
@@ -170,7 +171,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
     critical: filtered.filter(l => l.risk_score > 70).length,
     elevated: filtered.filter(l => l.risk_score > 45 && l.risk_score <= 70).length,
     normal: filtered.filter(l => l.risk_score <= 45).length,
-    avgRisk: filtered.length > 0 ? Math.round(filtered.reduce((s, l) => s + l.risk_score, 0) / filtered.length) : 0,
+    avgRisk: filtered.length > 0 ? Math.round(filtered.reduce((s, l) => s + l.risk_score, 0) / filtered.length) : null,
   }), [filtered]);
 
   return (
@@ -253,7 +254,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 {showFilters ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
               </button>
             </div>
-            <p className="text-[10px] text-[#6B7280]">
+            <p className="text-sm text-[#4B5563]">
               {stats.total} locations | {stats.critical} critical
             </p>
           </div>
@@ -429,7 +430,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                   <Shield size={10} className="text-[#6B7280]" />
                   <span className="text-[11px] text-[#6B7280] uppercase">AI Reasoning</span>
                 </div>
-                <p className="text-[11px] text-[#374151] leading-relaxed">{selectedLocation.reason}</p>
+                <p className="text-sm text-[#374151] leading-relaxed">{selectedLocation.reason}</p>
               </div>
 
               {/* Rank */}
@@ -444,10 +445,10 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
       {/* Bottom Stats Bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]">
-        <div className="bg-white/90 backdrop-blur-xl rounded-full border border-[#D1D5DB] px-5 py-2 flex items-center gap-6">
+        <div className="bg-white/95 backdrop-blur-xl rounded-xl border border-[#D1D5DB] px-4 py-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 w-max max-w-[90vw]">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
-            <span className="text-[10px] text-[#374151]">LIVE</span>
+            <div className="w-2 h-2 rounded-full bg-[#1D4ED8]" />
+            <span className="text-xs font-medium text-[#374151]">Synthetic predictions</span>
           </div>
           <div className="text-[10px] text-[#6B7280]">
             <span className="text-[#1F2937] font-medium">{stats.total}</span> locations
@@ -456,7 +457,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             <span className="text-[#ef4444] font-medium">{stats.critical}</span> critical
           </div>
           <div className="text-[10px] text-[#6B7280]">
-            Avg risk <span className="text-[#1F2937] font-medium">{stats.avgRisk}%</span>
+            Avg risk <span className="text-[#1F2937] font-medium">{percent(stats.avgRisk)}</span>
           </div>
         </div>
       </div>
@@ -479,8 +480,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
       )}
 
       {/* Provenance label */}
-      <div className="absolute bottom-1 right-2 z-[999] text-[8px] text-[#52525b] bg-[#09090b]/60 px-1.5 py-0.5 rounded">
-        Synthetic | 8 cities | 64 ATMs | Updated: {new Date().toLocaleDateString('en-IN')}
+      <div className="absolute top-2 right-2 z-[999] text-xs text-[#374151] bg-white/95 border border-gray-300 px-2 py-1 rounded">
+        Synthetic prediction snapshot · not live operational data
       </div>
     </div>
   );

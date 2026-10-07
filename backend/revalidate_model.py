@@ -1,15 +1,9 @@
-"""
-ATLAS model revalidation protocol (synthetic benchmark).
+"""Revalidate only exclusions established before fitting and bound to artifacts.
 
-Evaluates the FROZEN production ensemble (0.5*RF + 0.5*XGB, threshold 0.5)
-on splits the original random-holdout never tested:
-  1. time holdout      — train-months vs latest months (temporal drift check)
-  2. location holdout  — 6 cities train, 2 cities held out (spatial generalization)
-  3. majority baseline — DummyClassifier(most_frequent) per slice
-  4. calibration       — 10-bin reliability + Brier score on the random holdout
-  5. threshold sweep    — precision/recall/F1 at 0.3..0.8 for capacity planning
-
-Writes backend/model/validation_report.json (tracked). No model weights change.
+Legacy frozen artifacts without provenance cannot establish unseen group/city/time
+performance. They are reported unavailable, never scored on train-inclusive slices.
+The old first-20,000 ordered prefix was not a random sample (rings came first).
+No training or model-weight changes are performed by this script.
 """
 import json
 import os
@@ -19,17 +13,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_score, recall_score, f1_score, average_precision_score
-from sklearn.dummy import DummyClassifier
+from sklearn.metrics import precision_score, recall_score, f1_score
+from train_model import (
+    establish_splits, validate_split_disjointness, file_hash,
+    future_outcome_metrics, precision_recall_metrics,
+)
 
-from ml_engine import load_models, FEATURE_COLS
+from ml_engine import load_models, FEATURE_COLS, RF_PATH, XGB_PATH, METADATA_PATH
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data", "transactions_200k.csv")
 REPORT_PATH = os.path.join(BASE_DIR, "model", "validation_report.json")
 
-TIME_CUTOFF_MONTH = 10  # months >= 10 are the "future" holdout
-LOCATION_HOLDOUT = ["kolkata", "ahmedabad"] if True else []
+
 THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 
 
@@ -42,13 +38,14 @@ def ensemble_proba(rf, xgb, X):
     if xgb is not None:
         p += xgb.predict_proba(X)[:, 1]
         w += 1.0
-    return p / w if w else p
+    if not w:
+        raise ValueError("MODEL_UNAVAILABLE: no fitted estimators")
+    return p / w
 
 
-def slice_metrics(name, y, proba):
+def slice_metrics(name, y, proba, majority_class=0):
     pred = (proba >= 0.5).astype(int)
-    dummy = DummyClassifier(strategy="most_frequent").fit(
-        np.zeros((len(y), 1)), y).predict(np.zeros((len(y), 1)))
+    dummy = np.full(len(y), majority_class)  # selected from training, never slice labels
     return {
         "slice": name,
         "n": int(len(y)),
@@ -57,7 +54,7 @@ def slice_metrics(name, y, proba):
         "precision": round(float(precision_score(y, pred, zero_division=0)), 4),
         "recall": round(float(recall_score(y, pred, zero_division=0)), 4),
         "f1": round(float(f1_score(y, pred, zero_division=0)), 4),
-        "pr_auc": round(float(average_precision_score(y, proba)), 4),
+        **precision_recall_metrics(y, proba),
         "baseline_majority_accuracy_pct": round(float((dummy == y).mean() * 100), 2),
     }
 
@@ -83,14 +80,15 @@ def calibration(proba, y, bins=10):
 def baseline_comparison(df, y, proba, seed=42):
     """Answer: is ATLAS better than 'send police to the nearest ATM' / 'highest historical crime'?
 
-    All strategies are compared at the SAME alert budget k = number of alerts the
-    production ensemble raises at threshold 0.5, so precision/recall are apples-to-apples.
+    Ranking strategies share the ensemble alert budget; the no-alert baseline
+    is explicitly not a matched-budget ranking. Trapezoidal PR-AUC and average
+    precision are distinct, budget-free summaries.
     """
-    k = max(int((proba >= 0.5).sum()), 1)
+    k = int((proba >= 0.5).sum())
     rng = np.random.default_rng(seed)
 
     strategies = {
-        "majority_class": np.zeros(len(y)),                       # always "no cash-out"
+        "no_alert": np.zeros(len(y)),                             # always "no cash-out"
         "random_ranking": rng.random(len(y)),                     # random dispatch
         "nearest_atm": -df["distance_from_victim_km"].to_numpy(),  # closest ATM to victim
         "historical_density": df["historical_crime_density"].to_numpy(),  # highest-crime ATM
@@ -98,26 +96,28 @@ def baseline_comparison(df, y, proba, seed=42):
     }
     out = {"alert_budget_k": k,
            "note": "precision/recall measured at the same alert budget k as the "
-                   "production ensemble (threshold 0.5); PR-AUC is budget-free"}
+                   "production ensemble (threshold 0.5); trapezoidal PR-AUC and "
+                   "non-interpolated average precision are distinct and budget-free"}
     prevalence = float(y.mean())
     for name, score in strategies.items():
-        if name == "majority_class":
+        if name == "no_alert":
             # degenerate scorer: flags nothing -> recall 0, accuracy = 1 - prevalence
             out[name] = {
-                "pr_auc": round(prevalence, 4),
-                "precision_at_k": 0.0, "recall_at_k": 0.0, "f1_at_k": 0.0,
+                **precision_recall_metrics(y, score),
+                "precision_at_k": None, "recall_at_k": None, "f1_at_k": None,
+                "note": "No-alert baseline; not a same-budget ranking strategy",
                 "accuracy_pct": round((1 - prevalence) * 100, 2),
             }
             continue
-        order = np.argsort(-score)[:k]
+        order = np.argsort(-score, kind="stable")[:k]
         pred = np.zeros(len(y), dtype=int)
         pred[order] = 1
         tp = int(((pred == 1) & (y == 1)).sum())
-        precision = tp / k
+        precision = tp / k if k else 0.0
         recall = tp / int(y.sum()) if y.sum() else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
         out[name] = {
-            "pr_auc": round(float(average_precision_score(y, score)), 4),
+            **precision_recall_metrics(y, score),
             "precision_at_k": round(float(precision), 4),
             "recall_at_k": round(float(recall), 4),
             "f1_at_k": round(float(f1), 4),
@@ -139,57 +139,93 @@ def threshold_sweep(y, proba):
     return rows
 
 
-def main():
-    print("ATLAS model revalidation (frozen ensemble, synthetic benchmark)")
-    rf, xgb = load_models()
-    if rf is None and xgb is None:
-        raise SystemExit("No model artifacts found.")
-    df = pd.read_csv(CSV_PATH, usecols=FEATURE_COLS + ["cash_out_occurred", "city", "month"])
-    print(f"  rows: {len(df):,} | cities: {sorted(df.city.unique())} | months: {sorted(df.month.unique())}")
-
-    X_all = df[FEATURE_COLS]
-    y_all = df["cash_out_occurred"].to_numpy()
-    proba_all = ensemble_proba(rf, xgb, X_all)
-
-    # Time holdout: latest months as the "future"
-    months = sorted(df["month"].unique())
-    cutoff = months[max(0, len(months) - 2)]
-    te = df["month"] >= cutoff
-    print(f"  time cutoff: month >= {cutoff} ({te.sum():,} rows)")
-
-    # Location holdout: cities never seen together (fall back if absent)
-    holdout_cities = [c for c in LOCATION_HOLDOUT if c in set(df["city"].unique())]
-    if len(holdout_cities) < 2:
-        holdout_cities = sorted(df["city"].unique())[-2:]
-    loc = df["city"].isin(holdout_cities)
-    print(f"  location holdout cities: {holdout_cities} ({loc.sum():,} rows)")
-
-    report = {
-        "protocol": "frozen-ensemble validation on synthetic benchmark",
-        "ensemble": "0.5*RF + 0.5*XGB, threshold 0.5",
-        "slices": {
-            "random_holdout_note": "original 80/20 stratified split — see metadata.json",
-            "time_holdout": slice_metrics(f"month>=cutoff", y_all[te], proba_all[te]),
-            "location_holdout": slice_metrics(f"cities={holdout_cities}", y_all[loc], proba_all[loc]),
+def unavailable_report(reason):
+    unavailable = {"status": "unavailable", "reason": reason}
+    return {
+        "protocol": "provenance-required frozen synthetic classification validation",
+        "status": "unavailable",
+        "slices": {name: dict(unavailable) for name in
+                   ("group_holdout", "time_holdout", "location_holdout")},
+        "baseline_comparison": dict(unavailable),
+        "calibration": dict(unavailable), "threshold_sweep": dict(unavailable),
+        "previous_prefix_diagnostic": {
+            "status": "withdrawn",
+            "selection": "first 20000 rows in file order, NOT a random sample",
+            "reason": "Training overlap unknown; ordered fraud-enriched prefix cannot support clean holdout superiority or calibration claims",
         },
-        "calibration_random_sample": calibration(proba_all[:20000], y_all[:20000]),
-        "threshold_sweep_random_sample": threshold_sweep(y_all[:20000], proba_all[:20000]),
-        "baseline_comparison": {
-            "random_holdout": baseline_comparison(df.iloc[:20000], y_all[:20000], proba_all[:20000]),
-            "time_holdout": baseline_comparison(df[te], y_all[te], proba_all[te]),
-            "location_holdout": baseline_comparison(df[loc], y_all[loc], proba_all[loc]),
-        },
-        "guidance": "pick the threshold from investigator capacity and false-positive "
-                    "cost using the sweep above; never cite accuracy alone on 3.6% positives.",
+        "future_outcome_metrics": future_outcome_metrics(),
+        "guidance": "Explicitly regenerate and retrain with saved pre-fit exclusions to obtain valid synthetic holdout metrics. No real-world next-ATM/time claims are supported.",
     }
-    with open(REPORT_PATH, "w") as f:
-        json.dump(report, f, indent=2)
-    print(f"  wrote {REPORT_PATH}")
-    for name, s in report["slices"].items():
-        if not isinstance(s, dict):
+
+
+def validate_provenance(df, metadata, artifact_paths=None):
+    provenance = metadata.get("split_provenance")
+    if not provenance:
+        raise ValueError("Frozen artifacts lack split provenance; unseen group/city/time and clean baseline superiority are unavailable")
+    splits, expected = establish_splits(
+        df, seed=provenance["seed"], holdout_cities=provenance["holdout_cities"],
+        time_cutoff=provenance["time_cutoff_month"],
+    )
+    validate_split_disjointness(
+        df, splits, provenance["holdout_cities"], provenance["time_cutoff_month"],
+    )
+    for key, value in expected.items():
+        if provenance.get(key) != value:
+            raise ValueError(f"Split provenance mismatch: {key}")
+    paths = artifact_paths if artifact_paths is not None else {
+        "random_forest": RF_PATH, "xgboost": XGB_PATH,
+    }
+    actual = {name: file_hash(path) for name, path in paths.items() if os.path.exists(path)}
+    if not actual or actual != provenance.get("artifact_sha256"):
+        raise ValueError("Model artifacts do not match pre-fit split provenance")
+    return splits
+
+
+def build_validation_report(df, metadata, rf, xgb, artifact_paths=None):
+    try:
+        splits = validate_provenance(df, metadata, artifact_paths)
+        expected_models = set(metadata["split_provenance"]["artifact_sha256"])
+        loaded_models = {name for name, model in (("random_forest", rf), ("xgboost", xgb)) if model is not None}
+        if expected_models != loaded_models:
+            raise ValueError("Loaded estimator set does not match provenance")
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        return unavailable_report(str(exc))
+    report = {
+        "protocol": metadata["split_provenance"]["protocol"],
+        "status": "available_synthetic_only",
+        "split_provenance": metadata["split_provenance"],
+        "ensemble": "mean of available fitted estimator probabilities; threshold >=0.5",
+        "slices": {}, "baseline_comparison": {}, "calibration": {}, "threshold_sweep": {},
+        "future_outcome_metrics": future_outcome_metrics(),
+        "limitations": "Synthetic row-level classification; month ordering is not observed future time. Threshold sweeps are descriptive, not an independent threshold-selection test.",
+    }
+    majority = int(df.iloc[splits["train"]].cash_out_occurred.mode().iloc[0])
+    for name in ("group_holdout", "time_holdout", "location_holdout"):
+        part = df.iloc[splits[name]]
+        if part.empty or part.cash_out_occurred.nunique() < 2:
+            report["slices"][name] = {"status": "unavailable", "reason": "Slice needs both target classes"}
             continue
-        print(f"  {name}: n={s['n']} recall={s['recall']} prec={s['precision']} "
-              f"f1={s['f1']} baseline={s['baseline_majority_accuracy_pct']}%")
+        y = part.cash_out_occurred.to_numpy()
+        proba = ensemble_proba(rf, xgb, part[FEATURE_COLS])
+        report["slices"][name] = {"status": "available_synthetic_only", **slice_metrics(name, y, proba, majority)}
+        report["baseline_comparison"][name] = baseline_comparison(part, y, proba)
+        report["calibration"][name] = calibration(proba, y)
+        report["threshold_sweep"][name] = threshold_sweep(y, proba)
+    return report
+
+
+def main():
+    with open(METADATA_PATH) as handle:
+        metadata = json.load(handle)
+    if not metadata.get("split_provenance"):
+        report = unavailable_report("Frozen artifacts lack split provenance; explicit retraining required for valid holdout evaluation")
+    else:
+        df = pd.read_csv(CSV_PATH)
+        rf, xgb = load_models()
+        report = build_validation_report(df, metadata, rf, xgb)
+    with open(REPORT_PATH, "w") as handle:
+        json.dump(report, handle, indent=2)
+    print(f"Validation status: {report['status']}; wrote {REPORT_PATH}")
 
 
 if __name__ == "__main__":

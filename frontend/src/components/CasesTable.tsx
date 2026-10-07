@@ -1,7 +1,7 @@
 import { Case } from '../types';
 import { Eye, CheckCircle, Circle, AlertTriangle, Search, ChevronDown, ChevronUp, UserPlus, ShieldAlert, FileSearch, X, FolderOpen } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { authFetch } from '../lib/auth';
+import { authFetch, isDemoRoute } from '../lib/auth';
 import { can } from '../lib/roles';
 
 interface CasesTableProps {
@@ -225,7 +225,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                         <>
                           {c.status === 'new' && can('case.acknowledge') && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'acknowledge'); }}
+                              disabled={isDemoRoute()}
+                                                            onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'acknowledge'); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Acknowledge"
                               aria-label={`Acknowledge case ${c.case_id}`}
@@ -236,7 +237,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                           {can('case.assign') && (
                           <div className="relative">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setAssignDropdown(assignDropdown === c.case_id ? null : c.case_id); }}
+                              disabled={isDemoRoute()}
+                                                            onClick={(e) => { e.stopPropagation(); setAssignDropdown(assignDropdown === c.case_id ? null : c.case_id); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Assign Officer"
                               aria-label={`Assign officer to case ${c.case_id}`}
@@ -261,7 +263,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                           )}
                           {c.current_risk !== "High" && c.current_risk !== "Resolved" && can('case.escalate') && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'escalate'); }}
+                              disabled={isDemoRoute()}
+                                                            onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'escalate'); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Escalate Risk"
                               aria-label={`Escalate risk for case ${c.case_id}`}
@@ -271,7 +274,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                           )}
                           {can('case.resolve') && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setCloseReasonModal(c.case_id); }}
+                              disabled={isDemoRoute()}
+                                                            onClick={(e) => { e.stopPropagation(); setCloseReasonModal(c.case_id); }}
                               className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
                               title="Close Case"
                               aria-label={`Close case ${c.case_id}`}

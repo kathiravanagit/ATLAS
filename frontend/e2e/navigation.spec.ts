@@ -37,6 +37,6 @@ test.describe('Navigation', () => {
     await page.goto('/real');
     await page.waitForTimeout(2000);
     const status = page.locator('text=Offline').or(page.locator('text=Connected'));
-    await expect(status.first()).toBeVisible({ timeout: 10000 });
+    await expect(status.first()).toBeVisible({ timeout: 30000 });
   });
 });

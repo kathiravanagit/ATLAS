@@ -56,15 +56,7 @@ export default function LoginPage() {
         setError(err.detail || 'Invalid credentials');
       }
     } catch {
-      if (isDemoBuild && email && password) {
-        const user = {
-          email, name: email.split('@')[0], role: 'inspector', id: 'INS-001', badge: 'OFFLINE'
-        };
-        setTokens('offline-token', '', 3600, user);
-        navigate('/real');
-      } else {
-        setError('Unable to authenticate — service unavailable');
-      }
+      setError('Unable to authenticate — service unavailable. Use /demo for the local synthetic console.');
     }
     setLoading(false);
   };

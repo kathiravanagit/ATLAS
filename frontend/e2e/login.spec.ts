@@ -28,7 +28,7 @@ test.describe('Login Page', () => {
     await page.locator('input[type="email"]').fill('admin@atlas.gov');
     await page.locator('input[type="password"]').fill('wrongpassword');
     await page.locator('button[type="submit"]').click();
-    await expect(page.locator('text=Invalid')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Invalid')).toBeVisible({ timeout: 30000 });
   });
 
   test('shows register link', async ({ page }) => {

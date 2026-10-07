@@ -30,6 +30,15 @@ export function setTokens(accessToken: string, _refreshToken: string, expiresIn:
   localStorage.setItem(EXPIRES_KEY, String(Date.now() + expiresIn * 1000));
 }
 
+export function updateStoredUser(user: Record<string, unknown>) {
+  // Profile changes must not reset or multiply the session's expiry timestamp.
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function isDemoRoute() {
+  return /^\/demo(?:\/|$)/.test(window.location.pathname ?? '');
+}
+
 export function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(USER_KEY);
@@ -39,14 +48,30 @@ export function clearTokens() {
 export function isTokenExpired(): boolean {
   const expires = localStorage.getItem(EXPIRES_KEY);
   if (!expires) return true;
-  return Date.now() > parseInt(expires, 10) - 30000; // 30s buffer
+  return !Number.isFinite(Number(expires)) || Date.now() > Number(expires) - 30000; // 30s buffer
 }
 
 /**
  * Refresh the access token using the refresh token.
  * Returns new tokens or null if refresh fails.
  */
-export async function refreshAccessToken(): Promise<{
+type RefreshResult = {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  user: Record<string, unknown>;
+};
+let refreshInFlight: Promise<RefreshResult | null> | null = null;
+
+export function refreshAccessToken(): Promise<RefreshResult | null> {
+  if (isDemoRoute()) return Promise.resolve(null);
+  if (!refreshInFlight) {
+    refreshInFlight = performRefresh().finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
+async function performRefresh(): Promise<{
   access_token: string;
   refresh_token: string;
   expires_in: number;
@@ -77,7 +102,14 @@ export async function refreshAccessToken(): Promise<{
  * Fetch with automatic token refresh on 401 and CSRF for state-changing methods.
  */
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  let token = getAccessToken();
+  // Safety net for every auxiliary panel, including CSRF and refresh requests.
+    // Demo reads have no backend source; mutations must never reach the API.
+    if (isDemoRoute()) {
+      return new Response(JSON.stringify({ detail: 'Backend actions are disabled in local demo mode.' }), {
+        status: 503, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    let token = getAccessToken();
 
   // Auto-refresh if expired
   if (token && isTokenExpired()) {
@@ -116,7 +148,9 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
 
   // If 401, try refresh once
   if (res.status === 401) {
-    const refreshed = await refreshAccessToken();
+    const refreshed = getAccessToken() !== token && getAccessToken()
+      ? { access_token: getAccessToken()! }
+      : await refreshAccessToken();
     if (refreshed) {
       const retryHeaders: Record<string, string> = {
         ...(options.headers as Record<string, string> || {}),
@@ -193,12 +227,7 @@ export async function updateProfile(data: { name?: string; badge?: string; depar
     const result = await res.json();
     if (result.user) {
       const current = getUser() || {};
-      setTokens(
-        getAccessToken() || '',
-        '',
-        parseInt(localStorage.getItem(EXPIRES_KEY || '') || '0') - Date.now(),
-        { ...current, ...result.user },
-      );
+      updateStoredUser({ ...current, ...result.user });
     }
     return true;
   } catch {

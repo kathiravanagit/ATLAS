@@ -1,4 +1,5 @@
 import { useDashboard } from '../context/DashboardContext';
+import { isMeasured, count } from '../lib/metrics';
 import StatCard from '../components/StatCard';
 import PredictionCard from '../components/PredictionCard';
 import RiskTrendChart from '../components/RiskTrendChart';
@@ -14,7 +15,7 @@ import SyntheticOperationalSimulation from '../components/SyntheticOperationalSi
 import { FolderOpen, MapPin, Bell, Clock, ExternalLink, RefreshCw, ShieldCheck, AlertOctagon } from 'lucide-react';
 
 export default function OverviewPage() {
-  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, setEvidenceModalOpen, setSelectedLocation, dataMode } = useDashboard();
+  const { stats, prediction, isRefreshing, relativeTime, liveAlertCount, setEvidenceModalOpen, setSelectedLocation, selectedLocation, dataMode, lastUpdated } = useDashboard();
 
   return (
     <div className="space-y-6">
@@ -35,15 +36,16 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard icon={FolderOpen} label="Active Cases" value={stats.active_cases} sub="Under investigation" color="default" className="animate-fade-in-up" style={{ animationDelay: '0ms' }} />
         <StatCard icon={MapPin} label="High-Risk Locations" value={stats.high_risk_locations} sub="Predicted" color="error" className="animate-fade-in-up" style={{ animationDelay: '60ms' }} />
         <StatCard icon={Bell} label="Alerts Today" value={stats.alerts_today + liveAlertCount} sub="Pending review" color="warning" className="animate-fade-in-up" style={{ animationDelay: '120ms' }} />
-        <StatCard icon={Clock} label="Avg. Lead Time" value={stats.avg_lead_time} sub="Before expected window" color="success" className="animate-fade-in-up" style={{ animationDelay: '180ms' }} />
-        <StatCard icon={ShieldCheck} label="Estimated Exposure" value={`₹${(stats.prevented_fraud / 100000).toFixed(1)}L`} sub="Resolved case value" color="success" className="animate-fade-in-up" style={{ animationDelay: '240ms' }} />
-        <StatCard icon={AlertOctagon} label="Linked Accounts Flagged" value={stats.mules_flagged} sub="High-risk accounts" color="error" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
+        <StatCard icon={Clock} label={dataMode === 'demo' ? 'Simulated Lead Time' : 'Lead Time'} value={stats.avg_lead_time || 'Not measured'} sub={dataMode === 'demo' ? 'Synthetic fixture window' : 'Not verified operational lead time'} color="success" className="animate-fade-in-up" style={{ animationDelay: '180ms' }} />
+        <StatCard icon={ShieldCheck} label={dataMode === 'demo' ? 'Simulated Exposure' : 'Prevented Fraud'} value={isMeasured(stats.prevented_fraud) ? `₹${count(stats.prevented_fraud)}` : 'Not measured'} sub={dataMode === 'demo' ? 'Synthetic fixture, not recovery' : 'Resolved amount is not prevention'} color="success" className="animate-fade-in-up" style={{ animationDelay: '240ms' }} />
+        <StatCard icon={AlertOctagon} label="Linked Accounts Flagged" value={isMeasured(stats.mules_flagged) ? stats.mules_flagged : 'Not measured'} sub="Not verified mule identities" color="error" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
       </div>
-      <div className="text-[11px] text-[#6B7280] text-right">Source: {dataMode === 'demo' ? 'Synthetic demonstration data' : 'Live API data'} · Model: RF+XGBoost ensemble · Last refreshed {relativeTime}</div>
+      {stats.metrics_note && <p role="note" className="text-sm text-[#4B5563]">{stats.metrics_note}</p>}
+            <div className="text-sm text-[#4B5563] text-right">Source: {dataMode === 'demo' ? 'Synthetic demonstration data' : 'API-connected synthetic records (not operational data)'} · Last refreshed {relativeTime}</div>
 
       <div className="grid grid-cols-2 gap-6">
         <PredictionCard prediction={prediction} onShowEvidence={() => setEvidenceModalOpen(true)} />
@@ -51,17 +53,15 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-6">
-        <ExplainabilityPanel caseId={prediction.case_id} />
-        <ModelCardPanel />
+        <ExplainabilityPanel caseId={prediction.case_id} atmId={(selectedLocation ?? prediction.primary_location).atm_id} demoMode={dataMode === 'demo'} refreshKey={lastUpdated.toISOString()} />
+        {dataMode === 'demo' ? <div className="card p-5 text-sm">Model metadata requires the backend and is disabled in local demo.</div> : <ModelCardPanel />}
       </div>
 
       <div className="grid grid-cols-2 gap-6">
-        <ModelHealthCard />
-        <DriftIndicator />
+        {dataMode !== 'demo' && <><ModelHealthCard /><DriftIndicator /></>}
       </div>
 
-      <ModelPerformanceCard />
-      <CostRoiCard />
+      {dataMode !== 'demo' && <><ModelPerformanceCard /><CostRoiCard /></>}
       <SyntheticOperationalSimulation />
 
       <RankedLocationsTable locations={prediction.ranked_locations} onSelect={setSelectedLocation} />

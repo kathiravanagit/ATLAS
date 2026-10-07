@@ -4,22 +4,6 @@ import pytest
 import hashlib
 from tests.conftest import auth_header
 
-# Reset evidence chain singleton between tests
-@pytest.fixture(autouse=True)
-def reset_evidence_chain():
-    from evidence_chain import _evidence_chain
-    _evidence_chain.evidence_blocks = []
-    _evidence_chain.merkle_root = None
-    chain_file = "model/evidence_chain.json"
-    if os.path.exists(chain_file):
-        os.remove(chain_file)
-    yield
-    _evidence_chain.evidence_blocks = []
-    _evidence_chain.merkle_root = None
-    if os.path.exists(chain_file):
-        os.remove(chain_file)
-
-
 def get_csrf_header(client, token):
     resp = client.get("/api/csrf-token", headers=auth_header(token))
     if resp.status_code == 200:
@@ -80,12 +64,12 @@ class TestEvidenceChain:
         assert resp2.status_code == 200
         assert resp2.json()["valid"] is False
 
-    def test_verify_nonexistent_block_returns_invalid(self, client, admin_token):
+    def test_verify_nonexistent_block_returns_404(self, client, admin_token):
         resp = client.get("/api/evidence/verify/999999",
                           params={"content": "whatever"},
                           headers=auth_header(admin_token))
-        assert resp.status_code == 200
-        assert resp.json()["valid"] is False
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Evidence block not found"
 
     def test_merkle_proof_returns_valid_structure(self, client, admin_token):
         content = f"merkle-test-{os.urandom(8).hex()}"
@@ -162,10 +146,10 @@ class TestEvidenceChain:
         resp = client.get("/api/evidence/chain", headers=auth_header(admin_token))
         assert len(resp.json()["blocks"]) >= 5
 
-    def test_anchor_requires_write_permission(self, client, bank_officer_token):
-        # bank_officer has write — should succeed
+    def test_bank_officer_cannot_anchor_evidence(self, client, bank_officer_token):
+        # Generic write permission does not authorize evidence custody.
         resp, _ = self._anchor(client, bank_officer_token)
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
     def test_evidence_different_types(self, client, admin_token):
         for ev_type in ["transaction_log", "call_recording", "screenshot", "bank_statement"]:

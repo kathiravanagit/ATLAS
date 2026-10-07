@@ -12,13 +12,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-from database import DATABASE_URL as _default_url  # noqa: E402
+from database import DATABASE_URL  # noqa: E402
 from models_db import Base  # noqa: E402
 
-# Use the raw env value: database.DATABASE_URL may already be rewritten to the
-# SQLite fallback by the time this module imports.
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or _default_url
-
+# Use the application's resolved URL, including its explicit demo/test default.
 config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 target_metadata = Base.metadata
 
@@ -40,10 +37,13 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-        with context.begin_transaction():
-            context.run_migrations()
+    try:
+        with connectable.connect() as connection:
+            context.configure(connection=connection, target_metadata=target_metadata)
+            with context.begin_transaction():
+                context.run_migrations()
+    finally:
+        connectable.dispose()
 
 
 if context.is_offline_mode():
