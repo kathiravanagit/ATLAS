@@ -98,6 +98,12 @@ def test_me_no_token(client):
     assert resp.status_code in (401, 403)
 
 
+def test_missing_credentials_are_401_not_403(client):
+    # Unauthenticated (no identity) vs forbidden (denied identity).
+    assert client.get("/api/auth/me").status_code == 401
+    assert client.get("/api/cases").status_code == 401
+
+
 # ─── RBAC: Read-Only Endpoints (all roles) ───────────────────────────────────
 
 READ_ENDPOINTS = [
@@ -110,7 +116,6 @@ READ_ENDPOINTS = [
     ("GET", "/api/predictions"),
     ("GET", "/api/alerts"),
     ("GET", "/api/locations"),
-    ("GET", "/api/audit"),
     ("GET", "/api/stats/nationwide"),
     ("GET", "/api/model/card"),
     ("GET", "/api/model/distribution"),
@@ -125,6 +130,13 @@ def test_read_endpoints_accept_all_roles(client, admin_token, inspector_token, a
         for token in [admin_token, inspector_token, analyst_token, bank_officer_token]:
             resp = client.request(method, path, headers=auth_header(token))
             assert resp.status_code == 200, f"{method} {path} failed with status {resp.status_code}"
+
+
+def test_audit_restricted_to_investigative_roles(client, admin_token, inspector_token, analyst_token, bank_officer_token):
+    # Bank officers see cases/alerts but not the audit trail (investigator IDs, reasons).
+    for token in [admin_token, inspector_token, analyst_token]:
+        assert client.get("/api/audit", headers=auth_header(token)).status_code == 200
+    assert client.get("/api/audit", headers=auth_header(bank_officer_token)).status_code == 403
 
 
 def test_read_endpoints_reject_unauthenticated(client):
@@ -157,6 +169,61 @@ def test_simulate_transaction_requires_csrf(client, bank_officer_token):
         "case_id": "CASE-001", "amount": 10000, "from_account": "A", "to_account": "B"
     }, headers=auth_header(bank_officer_token))
     assert resp.status_code == 403
+
+
+def test_simulate_transaction_rejects_invalid_amounts(client, inspector_token):
+    # Negative, zero, oversized and non-finite amounts must never reach the case.
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    for bad_amount in (-5, 0, 10_000_001, 1e30):
+        resp = client.post("/api/transactions", json={
+            "case_id": "CASE-001", "amount": bad_amount,
+            "from_account": "A", "to_account": "B"
+        }, headers=headers)
+        assert resp.status_code == 422, f"amount={bad_amount} accepted"
+
+
+def test_simulate_transaction_does_not_mutate_case_amount(client, inspector_token):
+    from tests.conftest import TestingSessionLocal
+    from models_db import Case
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    db = TestingSessionLocal()
+    try:
+        before = db.query(Case).filter(Case.case_id == "CASE-001").first().amount
+    finally:
+        db.close()
+    resp = client.post("/api/transactions", json={
+        "case_id": "CASE-001", "amount": 10000,
+        "from_account": "A", "to_account": "B"
+    }, headers=headers)
+    assert resp.status_code == 200
+    db = TestingSessionLocal()
+    try:
+        after = db.query(Case).filter(Case.case_id == "CASE-001").first().amount
+    finally:
+        db.close()
+    assert after == before
+
+
+def test_predictions_list_cached_and_invalidated_on_write(client, inspector_token):
+    import main as main_module
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    r1 = client.get("/api/predictions", headers=auth_header(inspector_token))
+    assert r1.status_code == 200
+    assert main_module._predictions_cache, "expected the list response to be cached"
+    r2 = client.get("/api/predictions", headers=auth_header(inspector_token))
+    assert r2.status_code == 200
+    assert r2.json() == r1.json()
+    w = client.post("/api/transactions", json={
+        "case_id": "CASE-001", "amount": 5000,
+        "from_account": "A", "to_account": "B"
+    }, headers=headers)
+    assert w.status_code == 200
+    assert not main_module._predictions_cache, "write must invalidate the cache"
+    r3 = client.get("/api/predictions", headers=auth_header(inspector_token))
+    assert r3.status_code == 200
 
 
 def test_anchor_evidence_requires_write(client, bank_officer_token):
@@ -217,7 +284,7 @@ def test_transaction_returns_503_without_atm_data(client, admin_token):
 def test_review_case_rejects_analyst(client, analyst_token):
     csrf = get_csrf_header(client, analyst_token)
     resp = client.post("/api/review/CASE-001", json={
-        "action": "approve", "reason": "test", "reviewer_id": "ANL-001"
+        "action": "approve", "reason": "analyst lacks review permission here", "reviewer_id": "ANL-001"
     }, headers={**auth_header(analyst_token), **csrf})
     assert resp.status_code == 403
 
@@ -225,9 +292,65 @@ def test_review_case_rejects_analyst(client, analyst_token):
 def test_review_case_works_for_inspector(client, inspector_token):
     csrf = get_csrf_header(client, inspector_token)
     resp = client.post("/api/review/CASE-001", json={
-        "action": "approve", "reason": "test", "reviewer_id": "INS-001"
+        "action": "approve", "reason": "field verification complete", "reviewer_id": "INS-001"
     }, headers={**auth_header(inspector_token), **csrf})
     assert resp.status_code == 200
+
+
+def test_review_case_rejects_short_reason(client, inspector_token):
+    csrf = get_csrf_header(client, inspector_token)
+    resp = client.post("/api/review/CASE-001", json={
+        "action": "approve", "reason": "ok", "reviewer_id": "INS-001"
+    }, headers={**auth_header(inspector_token), **csrf})
+    assert resp.status_code == 422
+
+
+def test_review_case_rejects_already_resolved(client, inspector_token):
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    resp = client.post("/api/review/CASE-002", json={
+        "action": "dismiss", "reason": "confirmed duplicate filing", "reviewer_id": "INS-001"
+    }, headers=headers)
+    assert resp.status_code == 200
+    resp2 = client.post("/api/review/CASE-002", json={
+        "action": "approve", "reason": "second look requested here", "reviewer_id": "INS-001"
+    }, headers=headers)
+    assert resp2.status_code == 409
+
+
+def test_review_history_persists_decisions(client, inspector_token):
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    client.post("/api/review/CASE-003", json={
+        "action": "override", "reason": "risk downgraded after visit", "reviewer_id": "INS-001"
+    }, headers=headers)
+    resp = client.get("/api/review/history", params={"case_id": "CASE-003"},
+                      headers=auth_header(inspector_token))
+    assert resp.status_code == 200
+    rows = [r for r in resp.json() if r["case_id"] == "CASE-003"]
+    assert rows and rows[0]["action"] == "override"
+    assert rows[0]["reviewer_id"] == "INS-001"
+
+
+def test_case_predictions_persist_shap_snapshots(client, admin_token):
+    # Seed-time guarantee: pipeline output must carry exact feature snapshots
+    # or /api/model/shap/{case} returns 409 for seeded cases.
+    import json
+    from tests.conftest import TestingSessionLocal
+    from models_db import RankedLocation
+    resp = client.get("/api/predictions/CASE-001", headers=auth_header(admin_token))
+    assert resp.status_code == 200
+    db = TestingSessionLocal()
+    try:
+        rows = db.query(RankedLocation).all()
+        assert rows
+        for r in rows:
+            snap = json.loads(r.reason)
+            assert snap.get("snapshot_version") == 1
+            assert isinstance(snap.get("prediction_features"), dict)
+            assert isinstance(snap.get("model_output"), dict)
+    finally:
+        db.close()
 
 
 # ─── Predictions ──────────────────────────────────────────────────────────────

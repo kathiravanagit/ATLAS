@@ -160,7 +160,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
               Dispatch log from <span className="font-mono">notification_jobs</span>. High-risk transaction simulations enqueue
               SMS/email jobs after the alert is committed; these are separate commits, not one atomic transaction.
               Other alert creation paths do not automatically queue notifications. Job status records retries and dead-letter failures;
-              external delivery requires configured Twilio/SMTP credentials and is not guaranteed.
+              external delivery requires configured Fast2SMS/SMTP credentials and is not guaranteed.
             </div>
             <div className="grid grid-cols-4 gap-2 mb-1">
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
@@ -238,7 +238,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
 
           <div className="card p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] text-center">
-              Queued notification jobs, when present, are recorded in the backend. SMS (Twilio) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
+              Queued notification jobs, when present, are recorded in the backend. SMS (Fast2SMS) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
             </div>
           </div>
         </div>

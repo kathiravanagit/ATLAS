@@ -10,10 +10,13 @@ When SQLite or PostGIS unavailable:
   - Falls back to haversine distance calculations
   - Bounding box pre-filter for performance
 """
+import logging
 import os
 import numpy as np
 from sqlalchemy import text, func, Column, Float
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 USE_POSTGIS = False
 _postgis_checked = False
@@ -30,8 +33,8 @@ def check_postgis(db: Session) -> bool:
         if result.fetchone():
             USE_POSTGIS = True
             return True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("PostGIS probe failed; using haversine fallback: %s", exc)
     USE_POSTGIS = False
     return False
 
@@ -52,20 +55,14 @@ def enable_postgis(db: Session) -> bool:
 
 def add_geometry_column(db: Session, table: str = "atm_locations"):
     """Add PostGIS geometry column and spatial index to ATM locations table."""
+    # Allowlist: table names cannot be bound parameters, so only fixed names
+    # may ever reach the DDL strings below.
+    if table not in ("atm_locations",):
+        raise ValueError(f"Refusing DDL on unexpected table: {table!r}")
     try:
-        db.execute(text(f"""
-            ALTER TABLE {table}
-            ADD COLUMN IF NOT EXISTS geometry GEOMETRY(Point, 4326)
-        """))
-        db.execute(text(f"""
-            UPDATE {table}
-            SET geometry = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
-            WHERE geometry IS NULL
-        """))
-        db.execute(text(f"""
-            CREATE INDEX IF NOT EXISTS idx_{table}_geometry
-            ON {table} USING GIST (geometry)
-        """))
+        db.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS geometry GEOMETRY(Point, 4326)"))  # nosec B608 (allowlisted table above)
+        db.execute(text(f"UPDATE {table} SET geometry = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) WHERE geometry IS NULL"))  # nosec B608 (allowlisted table above)
+        db.execute(text(f"CREATE INDEX IF NOT EXISTS idx_{table}_geometry ON {table} USING GIST (geometry)"))  # nosec B608 (allowlisted table above)
         db.commit()
         return True
     except Exception:

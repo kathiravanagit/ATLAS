@@ -2,7 +2,10 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -53,8 +56,8 @@ else:
             result = conn.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'postgis'"))
             if result.fetchone():
                 USE_POSTGIS = True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("PostGIS probe failed; continuing without PostGIS: %s", exc)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

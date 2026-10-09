@@ -129,8 +129,8 @@ def isolated_runtime(tmp_path, monkeypatch, request):
     monkeypatch.setattr(blockchain, "_network", None)
     app.dependency_overrides[get_db] = override_get_db
     main._city_prediction_cache.clear()
+    main._predictions_cache.clear()
     main._model_fingerprint_cache.clear()
-    main.REVIEW_QUEUE.clear()
     main.manager.active.clear()
     main.manager.users.clear()
     auth._csrf_tokens.clear()
@@ -156,8 +156,8 @@ def isolated_runtime(tmp_path, monkeypatch, request):
         TestingSessionLocal.configure(bind=_BOOTSTRAP_ENGINE)
         test_engine.dispose()
         main._city_prediction_cache.clear()
+        main._predictions_cache.clear()
         main._model_fingerprint_cache.clear()
-        main.REVIEW_QUEUE.clear()
         auth._csrf_tokens.clear()
         auth._ws_tickets.clear()
         # Delete only the database we created, never glob project artifacts.

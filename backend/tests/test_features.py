@@ -2,7 +2,8 @@
 import os
 import pytest
 import hashlib
-from tests.conftest import auth_header
+from tests.conftest import auth_header, TestingSessionLocal
+from models_db import Alert, NotificationJob
 
 def get_csrf_header(client, token):
     resp = client.get("/api/csrf-token", headers=auth_header(token))
@@ -126,6 +127,54 @@ class TestEvidenceChain:
 
     def test_export_pdf_requires_auth(self, client):
         assert client.get("/api/evidence/export-pdf/CASE-001").status_code in (401, 403)
+
+    def test_corrupt_payload_rows_skipped_with_counts(self, tmp_path):
+        import json
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from database import Base
+        from models_db import EvidenceBlockRow
+        from evidence_chain import EvidenceChain, DbEvidenceStore
+        eng = create_engine(f"sqlite:///{tmp_path}/chain.db")
+        Base.metadata.create_all(bind=eng)
+        mk = sessionmaker(bind=eng)
+        db = mk()
+        db.add(EvidenceBlockRow(block_id=1, case_id="C", block_hash="h",
+                               prev_hash="0", payload="not-json{{{"))
+        db.add(EvidenceBlockRow(block_id=2, case_id="C", block_hash="h2",
+                               prev_hash="h", payload=json.dumps({"block_id": 2, "hash": "abc"})))
+        db.commit()
+        db.close()
+        chain = EvidenceChain(store=DbEvidenceStore(session_factory=mk))
+        assert chain.corrupt_blocks == 1
+        assert chain.degraded is True
+        assert len(chain.evidence_blocks) == 1
+
+    def test_verify_tampered_case_binding_returns_tampered(self, client, admin_token):
+        import evidence_chain as ec
+        resp, content = self._anchor(client, admin_token, case_id="CASE-001",
+                                     content="tamper-binding-check")
+        assert resp.status_code == 200
+        bid = resp.json()["block_id"]
+        block = next(b for b in ec._evidence_chain.evidence_blocks if b["block_id"] == bid)
+        block["case_id"] = "CASE-NOPE-DOES-NOT-EXIST"
+        try:
+            r = client.get(f"/api/evidence/verify/{bid}", params={"content": content},
+                           headers=auth_header(admin_token))
+            assert r.status_code == 200
+            assert r.json()["valid"] is False
+            assert r.json()["integrity"] == "tampered"
+        finally:
+            block["case_id"] = "CASE-001"
+
+    def test_chain_stats_expose_integrity_counts(self, client, admin_token):
+        self._anchor(client, admin_token, case_id="CASE-001", content="stats-check")
+        resp = client.get("/api/evidence/chain", headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        stats = resp.json()["stats"]
+        assert "stored_blocks" in stats
+        assert "corrupt_blocks_skipped" in stats
+        assert "degraded" in stats
 
     def test_multiple_anchors_chain_integrity(self, client, admin_token):
         contents = [f"chain-integrity-{i}-{os.urandom(4).hex()}" for i in range(5)]
@@ -399,3 +448,130 @@ class TestNlpTriage:
             assert resp.status_code == 200, f"Failed for {expected_category}"
             assert resp.json()["category"] == expected_category, \
                 f"Expected '{expected_category}', got '{resp.json()['category']}'"
+
+    def test_amount_formats_rupee_symbol_and_plain_rs(self, client, admin_token):
+        for text, expected in [
+            ("I lost \u20b945,000 in a UPI scam using PhonePe.", "\u20b945,000"),
+            ("Rs 12,500 taken from my account via UPI.", "Rs 12,500"),
+            ("Transferred INR 80000 to a crypto investment app.", "INR 80000"),
+        ]:
+            resp = self._triage(client, admin_token, text)
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["estimated_loss"] == expected, f"{text} -> {data['estimated_loss']}"
+            assert any(e["type"] == "AMOUNT" for e in data["entities"])
+
+    def test_upi_id_entity_extracted(self, client, admin_token):
+        resp = self._triage(client, admin_token,
+            "Paid Rs.5000 to fraudster@ybl over a fake call asking for OTP.")
+        data = resp.json()
+        assert any(e["type"] == "UPI_ID" and e["value"] == "fraudster@ybl"
+                   for e in data["entities"])
+
+    def test_non_cybercrime_text_routed_out_of_scope(self, client, admin_token):
+        for text in ["Weather in Mumbai today", "My neighbour's dog keeps barking"]:
+            resp = self._triage(client, admin_token, text)
+            assert resp.status_code == 200
+            assert resp.json()["category"] == "Non-Cybercrime"
+
+    def test_triage_rejects_empty_and_oversize_text(self, client, admin_token):
+        from tests.conftest import auth_header as _ah
+        for bad in ["", "x" * 5001]:
+            resp = client.post("/api/nlp/triage", json={"text": bad},
+                               headers=_ah(admin_token))
+            assert resp.status_code == 422
+
+class TestPredictionAlerts:
+    """HIGH (>70) predictions raise toast + SMS every time; Alert rows dedupe."""
+
+    def test_high_city_prediction_creates_alert_and_sms_job(self, client, admin_token):
+        resp = client.get("/api/cities/puducherry/predictions",
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        primary = resp.json().get("primary_location") or {}
+        assert primary.get("risk_score", 0) > 70
+        db = TestingSessionLocal()
+        try:
+            alert = db.query(Alert).filter(
+                Alert.case_id == "SYN-CITY-PUDUCHERRY",
+                Alert.acknowledged == False).first()
+            assert alert is not None
+            assert alert.risk_level == "High"
+            job = db.query(NotificationJob).filter(
+                NotificationJob.kind == "sms").order_by(NotificationJob.id.desc()).first()
+            assert job is not None
+            assert "SYN-CITY-PUDUCHERRY" in (job.payload or "")
+        finally:
+            db.close()
+
+    def test_repeat_prediction_sms_every_time_but_single_open_alert(self, client, admin_token):
+        import main as main_module
+        main_module._city_prediction_cache.pop("puducherry", None)
+        db = TestingSessionLocal()
+        try:
+            jobs_before = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
+        finally:
+            db.close()
+        for _ in range(2):
+            main_module._city_prediction_cache.pop("puducherry", None)
+            resp = client.get("/api/cities/puducherry/predictions",
+                              headers=auth_header(admin_token))
+            assert resp.status_code == 200
+        db = TestingSessionLocal()
+        try:
+            alerts = db.query(Alert).filter(
+                Alert.case_id == "SYN-CITY-PUDUCHERRY",
+                Alert.acknowledged == False).all()
+            assert len(alerts) == 1
+            jobs_after = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
+            assert jobs_after >= jobs_before + 2
+        finally:
+            db.close()
+class TestSmsDispatcher:
+    """SMS provider swap: GSM sanitize, fast2sms gating, offline-safe."""
+
+    def test_sanitize_gsm_ascii(self):
+        import sms_client
+        out = sms_client.sanitize_gsm("Risk \u20b9""25000 \u2014 window 18:00")
+        assert out == "Risk Rs.25000 - window 18:00"
+        out.encode("ascii")
+
+    def test_fast2sms_missing_key_returns_false(self, monkeypatch):
+        import sms_client
+        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "")
+        assert sms_client._send_fast2sms("hello", "+919876543210") is False
+
+    def test_fast2sms_success_strips_plus(self, monkeypatch):
+        import sms_client
+        calls = {}
+        class FakeResp:
+            def json(self):
+                return {"return": True, "request_id": "req-1"}
+        def fake_post(url, headers=None, data=None, timeout=None):
+            calls.update(url=url, headers=headers, data=data)
+            return FakeResp()
+        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "test-key")
+        monkeypatch.setattr(sms_client.httpx, "post", fake_post)
+        assert sms_client._send_fast2sms("hello", "+919876543210") is True
+        assert calls["data"]["numbers"] == "919876543210"
+        assert calls["headers"]["authorization"] == "test-key"
+
+    def test_fast2sms_rejection_returns_false(self, monkeypatch):
+        import sms_client
+        class FakeResp:
+            def json(self):
+                return {"return": False, "message": "invalid key"}
+        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "bad-key")
+        monkeypatch.setattr(sms_client.httpx, "post", lambda *a, **k: FakeResp())
+        assert sms_client._send_fast2sms("hello", "919876543210") is False
+
+    def test_dispatcher_rejects_unknown_provider(self, monkeypatch):
+        import sms_client
+        monkeypatch.setattr(sms_client, "PROVIDER", "carrier-pigeon")
+        assert sms_client.send_sms_alert("hello", "919876543210") is False
+
+    def test_dispatcher_defaults_to_fast2sms(self, monkeypatch):
+        import sms_client
+        monkeypatch.setattr(sms_client, "PROVIDER", "fast2sms")
+        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "")
+        assert sms_client.send_sms_alert("hello", "919876543210") is False

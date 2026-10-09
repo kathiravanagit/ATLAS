@@ -232,7 +232,7 @@ python seed.py
 | GET | `/api/evidence/chain` | Full evidence chain |
 | GET | `/api/evidence/proof/{block_id}` | Merkle proof |
 | GET | `/api/evidence/verify/{block_id}` | Verify evidence integrity |
-| GET | `/api/evidence/export-pdf/{case_id}` | Case Diary PDF, Section 63 BSA certificate |
+| GET | `/api/evidence/export-pdf/{case_id}` | Case Diary PDF, integrity statement (Sec. 63 BSA format) |
 | GET | `/api/blockchain/status` | Primary node + network status |
 | GET | `/api/blockchain/chain` | Blockchain blocks + validation |
 | GET | `/api/blockchain/validate` | Full chain PoW/linkage validation |
@@ -252,7 +252,7 @@ python seed.py
 
 | Protocol | Endpoint | Description |
 |----------|----------|-------------|
-| WS | `/ws?ticket=<ticket>` | Live alert stream (ticket auth) |
+| WS | `/ws/alerts?ticket=<ticket>` | Live alert stream (ticket auth) |
 
 ---
 
@@ -326,10 +326,12 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 SSL_CERTFILE=
 SSL_KEYFILE=
 
-# Optional — SMS (Twilio)
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_PHONE_NUMBER=
+# Optional — SMS (Fast2SMS; trial key from fast2sms.com, production needs DLT registration)
+SMS_PROVIDER=fast2sms
+FAST2SMS_API_KEY=
+FAST2SMS_SENDER_ID=FSTSMS
+FAST2SMS_ROUTE=q
+INVESTIGATOR_PHONE_NUMBER=
 
 # Optional — Email (SMTP)
 SMTP_HOST=
@@ -342,7 +344,7 @@ SMTP_PASSWORD=
 
 ## Model Limitations (read before citing accuracy)
 
-Bundled weights remain usable for synthetic workflow demonstrations, but their legacy generator/splits do not establish independent performance. Historical accuracy/precision/recall, city/time holdouts, baseline uplift, and Top-1/3/5 claims have been withdrawn from metadata and the UI. Missing metrics display **Unavailable** or **Not measured**, not zero.
+Retrained 2026-10-09 (`rf-xgb-synthetic-v6-20261009`, 200k grouped-synthetic rows): group holdout precision 98.1 / recall 43.4 / F1 60.2 / ROC-AUC 0.74 / PR-AUC 0.49; time and location holdouts score similarly (see `model/validation_report.json`). High precision at the cost of recall is deliberate (avoid alert fatigue on a 3.6%-minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
 
 The revised generator keeps fraud-ring geography consistent, saves group IDs, and uses the same observable evening-window feature as serving. Its target is a synthetic cash-out event, **not automatically fraudulent cash-out**. Group-disjoint evaluation still measures simulator classification, not real-world location/time effectiveness.
 
@@ -355,7 +357,7 @@ python train_model.py
 python revalidate_model.py
 ```
 
-Training saves empirical SHAP background and pre-fit split/artifact provenance. Revalidation refuses mismatched artifacts or datasets. These expensive commands were **not** run as part of the local fixes. No new performance numbers are claimed.
+Training saves empirical SHAP background and pre-fit split/artifact provenance. Revalidation refuses mismatched artifacts or datasets. Regeneration commands were run 2026-10-09 (data, weights, metadata, validation report all committed); library versions are recorded in metadata.
 
 Actual next-ATM Hit@K, geographic error, and future-window coverage need case-grouped candidates, prediction-time cutoffs, and observed future outcomes. Authorised data, investigator feedback, and separate validation would be required before operational use.
 

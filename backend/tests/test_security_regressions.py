@@ -186,7 +186,6 @@ def test_department_is_not_self_editable(client, headers):
 
 
 def test_review_actor_comes_from_authentication(client, headers):
-    main.REVIEW_QUEUE.clear()
     response = client.post("/api/review/CASE-001", headers=headers(), json={"action": "approve", "reason": "private review", "reviewer_id": "spoofed-admin"})
     assert response.status_code == 200, response.text
     assert response.json()["reviewer_id"] == "INS-001"
@@ -200,7 +199,7 @@ class MemoryStore:
     def __init__(self):
         self.blocks = []
     def load(self):
-        return self.blocks, None
+        return self.blocks, None, 0
     def save(self, blocks, root):
         self.blocks = list(blocks)
     def persist_block(self, block):

@@ -93,7 +93,7 @@ def test_empty_database_upgrade_has_complete_schema(tmp_path):
             assert {index.name for index in table.indexes} <= indexes, name
         assert config.get_main_option('sqlalchemy.url') == DATABASE_URL
         with engine.connect() as conn:
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0003_tx_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
         command.upgrade(config, 'head')
         engine.dispose()
     """)
@@ -144,7 +144,7 @@ def test_existing_schema_upgrade_preserves_data(tmp_path, existing):
         assert 'ix_predictions_model_version' in {{i['name'] for i in inspector.get_indexes('predictions')}}
         with engine.connect() as conn:
             assert conn.execute(text("SELECT amount FROM cases WHERE case_id = 'keep-me'")).scalar_one() == 123
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0003_tx_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
         engine.dispose()
     """)
 
@@ -167,7 +167,7 @@ def test_demo_setup_only_is_repeatable(tmp_path):
         with engine.connect() as conn:
             for name, count in counts.items():
                 assert conn.execute(text('SELECT COUNT(*) FROM ' + name)).scalar_one() == count
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0003_tx_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
         engine.dispose()
     """
     _run(tmp_path, code, demo="true")

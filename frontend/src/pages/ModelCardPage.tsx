@@ -16,9 +16,9 @@ interface ValidationProtocol {
   intended_use?: string | null; prohibited_use?: string | null;
   holdout_revalidation?: {
     protocol?: string | null; ensemble?: string | null;
-    slices?: { random_holdout_note?: string | null; time_holdout?: HoldoutSlice | null; location_holdout?: HoldoutSlice | null } | null;
+    slices?: { random_holdout_note?: string | null; group_holdout?: HoldoutSlice | null; time_holdout?: HoldoutSlice | null; location_holdout?: HoldoutSlice | null } | null;
     calibration?: { brier_score?: Metric; note?: string | null } | null;
-    threshold_sweep?: ThresholdRow[] | null;
+    threshold_sweep?: ThresholdRow[] | Record<string, ThresholdRow[]> | null;
   } | null;
 }
 type CardResponse = ModelCard & { validation_protocol?: ValidationProtocol | null };
@@ -55,12 +55,17 @@ function ApiModelCardPage() {
     <section className="card p-5 space-y-4"><h2 className="text-base font-semibold">Validation Protocol &amp; Holdout Revalidation</h2>
       <div className="grid grid-cols-2 gap-3 text-sm text-gray-700"><p>Majority Baseline: {protocol?.baseline_majority_accuracy ?? 'Unavailable'}</p><p>Calibration Brier score: {formatMetric(holdout?.calibration?.brier_score, 4)}</p><p>Calibration status: {protocol?.calibration_status ?? 'Unavailable'}</p><p>Split: {protocol?.split ?? 'Unavailable'}</p><p>Intended use: {protocol?.intended_use ?? 'Unavailable'}</p></div>
       {holdout?.slices ? <div className="overflow-x-auto"><h3 className="text-sm font-medium mb-2">Holdout Revalidation — {holdout.protocol ?? 'Protocol unavailable'}</h3><table className="w-full text-sm"><thead><tr className="text-left border-b border-gray-300">{['Slice', 'n', 'Precision', 'Recall', 'F1', 'PR-AUC', 'Majority Baseline'].map(label => <th key={label} className="p-2 font-medium">{label}</th>)}</tr></thead><tbody>
-        {(['time_holdout', 'location_holdout'] as const).map(key => {
+        {(['group_holdout', 'time_holdout', 'location_holdout'] as const).map(key => {
           const row = holdout.slices?.[key];
-          return row ? <tr key={key} className="border-b border-gray-200"><td className="p-2">{key === 'time_holdout' ? 'Time holdout' : 'Location holdout'}<span className="block text-xs text-gray-700">{row.slice}</span></td>{[count(row.n), percent(row.precision, true), percent(row.recall, true), formatMetric(row.f1, 3), formatMetric(row.pr_auc, 3), percent(row.baseline_majority_accuracy_pct)].map((value, i) => <td key={i} className="p-2 font-mono">{value}</td>)}</tr> : null;
+          const label = key === 'group_holdout' ? 'Group holdout' : key === 'time_holdout' ? 'Time holdout' : 'Location holdout';
+          return row ? <tr key={key} className="border-b border-gray-200"><td className="p-2">{label}<span className="block text-xs text-gray-700">{row.slice}</span></td>{[count(row.n), percent(row.precision, true), percent(row.recall, true), formatMetric(row.f1, 3), formatMetric(row.pr_auc, 3), percent(row.baseline_majority_accuracy_pct)].map((value, i) => <td key={i} className="p-2 font-mono">{value}</td>)}</tr> : null;
         })}
       </tbody></table><p className="mt-2 text-sm text-gray-700">{holdout.slices.random_holdout_note}</p></div> : <p className="text-sm text-gray-700">Holdout revalidation report: Unavailable.</p>}
-      {holdout?.threshold_sweep?.length ? <div className="overflow-x-auto"><h3 className="text-sm font-medium mb-2">Threshold Sweep — supplied evaluation</h3><table className="w-full text-sm"><thead><tr className="text-left border-b border-gray-300">{['Threshold', 'Precision', 'Recall', 'F1', 'Flagged'].map(label => <th key={label} className="p-2 font-medium">{label}</th>)}</tr></thead><tbody>{holdout.threshold_sweep.map((row, i) => <tr key={i} className="border-b border-gray-200">{[formatMetric(row.threshold, 2), percent(row.precision, true), percent(row.recall, true), formatMetric(row.f1, 3), count(row.flagged)].map((value, j) => <td key={j} className="p-2 font-mono">{value}</td>)}</tr>)}</tbody></table></div> : <p className="text-sm text-gray-700">Threshold sweep: Unavailable.</p>}
+      {(() => {
+        const sweep = holdout?.threshold_sweep;
+        const rows = Array.isArray(sweep) ? sweep : sweep?.group_holdout ?? [];
+        return rows.length ? <div className="overflow-x-auto"><h3 className="text-sm font-medium mb-2">Threshold Sweep — supplied evaluation</h3><table className="w-full text-sm"><thead><tr className="text-left border-b border-gray-300">{['Threshold', 'Precision', 'Recall', 'F1', 'Flagged'].map(label => <th key={label} className="p-2 font-medium">{label}</th>)}</tr></thead><tbody>{rows.map((row, i) => <tr key={i} className="border-b border-gray-200">{[formatMetric(row.threshold, 2), percent(row.precision, true), percent(row.recall, true), formatMetric(row.f1, 3), count(row.flagged)].map((value, j) => <td key={j} className="p-2 font-mono">{value}</td>)}</tr>)}</tbody></table></div> : <p className="text-sm text-gray-700">Threshold sweep: Unavailable.</p>;
+      })()}
       <p className="text-sm text-gray-700">{protocol?.threshold_guidance}</p><p className="text-sm text-amber-900">Prohibited use: {protocol?.prohibited_use ?? 'Do not use this synthetic prototype for automated enforcement or live operational decisions.'}</p>
     </section>
     <section className="card p-5"><h2 className="text-base font-semibold mb-4">Performance Metrics</h2><ScoreGrid scores={card} roc={card.roc_auc} pr={card.pr_auc} /><p className="mt-3 text-sm text-gray-700">Cross-validation accuracy: {percent(card.cv_accuracy)} · std: {formatMetric(card.cv_std, 1, '%')}</p></section>

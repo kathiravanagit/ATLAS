@@ -190,6 +190,29 @@ class TestBlockchainNetwork:
         heads = {n.last_block.hash for n in net.nodes.values()}
         assert len(heads) == 1
 
+    def test_corrupt_pow_rows_skipped_and_surfaced(self, tmp_path):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from database import Base
+        from models_db import BlockchainBlockRow
+        eng = create_engine(f"sqlite:///{tmp_path}/pow.db")
+        Base.metadata.create_all(bind=eng)
+        mk = sessionmaker(bind=eng)
+        db = mk()
+        db.add(BlockchainBlockRow(chain_name="primary", block_index=0,
+                                 block_hash="x", prev_hash="y",
+                                 payload="corrupt{{{"))
+        db.commit()
+        db.close()
+        bc = Blockchain(node_id="t-corrupt", persist=True, backend="db",
+                        session_factory=mk)
+        assert bc.corrupt_rows == 1
+        assert bc.degraded is True
+        status = bc.get_status()
+        assert status["corrupt_rows_skipped"] == 1
+        assert status["degraded"] is True
+        assert status["stored_rows"] == 1
+
 
 # ─── API endpoints ───────────────────────────────────────────────────────────
 

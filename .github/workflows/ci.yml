@@ -40,6 +40,15 @@ jobs:
           python -m pip install --only-binary=:all: -r requirements.txt
           python -m pip check
 
+      - name: Bandit static security scan (blocking)
+        run: python -m pip install bandit && python -m bandit -q -r . --exclude ./tests -f txt
+
+      - name: pip-audit dependency scan (advisory)
+        # Non-blocking: framework pins (e.g. starlette via FastAPI) cannot be
+        # bumped without a full compatibility pass; findings are surfaced here.
+        continue-on-error: true
+        run: python -m pip install pip-audit && python -m pip-audit -r requirements.txt
+
       - name: Run isolated full backend regression
         working-directory: .
         # Local Windows equivalent from the repository root:
@@ -95,9 +104,8 @@ jobs:
           ENCRYPTION_KEY: ""
           SSL_CERTFILE: ""
           SSL_KEYFILE: ""
-          TWILIO_ACCOUNT_SID: ""
-          TWILIO_AUTH_TOKEN: ""
-          TWILIO_FROM_NUMBER: ""
+          SMS_PROVIDER: "fast2sms"
+          FAST2SMS_API_KEY: ""
           SMTP_HOST: ""
           SMTP_USER: ""
           SMTP_PASSWORD: ""

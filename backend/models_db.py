@@ -177,6 +177,23 @@ class FieldOutcome(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class ReviewRecord(Base):
+    """Persisted human review decisions (approve/override/dismiss).
+
+    Replaces the old in-memory REVIEW_QUEUE list, which lost all history
+    on every restart. Reasons require >=10 characters at the API layer.
+    """
+    __tablename__ = "review_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    case_id = Column(String, ForeignKey("cases.case_id"), nullable=False, index=True)
+    action = Column(String, nullable=False)  # approve | override | dismiss
+    reason = Column(Text, nullable=False)
+    reviewer_id = Column(String, nullable=False)
+    previous_risk = Column(String, nullable=False, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 # ─── Production-hardening tables ────────────────────────────────────────────
 # Evidence/blockchain rows replace local JSON files when CHAIN_BACKEND=db
 # (default for Postgres deployments; file backend stays for offline demos/tests).

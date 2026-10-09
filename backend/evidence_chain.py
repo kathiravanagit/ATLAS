@@ -58,10 +58,10 @@ class FileEvidenceStore:
             try:
                 with open(CHAIN_FILE, "r") as f:
                     data = json.load(f)
-                return data.get("blocks", []), data.get("merkle_root")
+                return data.get("blocks", []), data.get("merkle_root"), 0
             except (json.JSONDecodeError, KeyError):
                 pass
-        return [], None
+        return [], None, 0
 
     def save(self, blocks, merkle_root):
         os.makedirs(os.path.dirname(CHAIN_FILE) if os.path.dirname(CHAIN_FILE) else ".", exist_ok=True)
@@ -92,8 +92,13 @@ class DbEvidenceStore:
         db = self._session()
         try:
             rows = db.query(EvidenceBlockRow).order_by(EvidenceBlockRow.block_id).all()
-            blocks = [json.loads(r.payload) for r in rows]
-            return blocks, None  # merkle root rebuilt in memory
+            blocks, corrupt = [], 0
+            for r in rows:
+                try:
+                    blocks.append(json.loads(r.payload))
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    corrupt += 1
+            return blocks, None, corrupt
         finally:
             db.close()
 
@@ -137,10 +142,17 @@ class EvidenceChain:
         self._load()
 
     def _load(self):
-        """Load chain from the configured store."""
-        blocks, merkle_root = self._store.load()
+        """Load chain from the configured store; never crash on corrupt rows."""
+        try:
+            blocks, merkle_root, corrupt = self._store.load()
+        except Exception as exc:
+            blocks, merkle_root, corrupt = [], None, 0
+            logger = __import__("logging").getLogger(__name__)
+            logger.error("Evidence chain failed to load; starting degraded: %s", exc)
         self.evidence_blocks = blocks or []
         self.merkle_root = merkle_root
+        self.corrupt_blocks = corrupt
+        self.degraded = corrupt > 0
         if self.evidence_blocks and self.merkle_root is None:
             self._rebuild_merkle()
 
@@ -306,6 +318,8 @@ class EvidenceChain:
             "cases_covered": list(set(b["case_id"] for b in self.evidence_blocks)),
             "persisted_to": CHAIN_FILE,
             "file_exists": os.path.exists(CHAIN_FILE),
+            "corrupt_blocks_skipped": getattr(self, "corrupt_blocks", 0),
+            "degraded": getattr(self, "degraded", False),
         }
 
 

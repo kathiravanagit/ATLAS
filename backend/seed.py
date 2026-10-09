@@ -1,50 +1,16 @@
 from database import engine, SessionLocal, Base
 from sqlalchemy import text
 from models_db import (
-    Case, Prediction, RankedLocation, Alert, Suspect,
+    Case, Alert, Suspect,
     AuditLog, AtmLocation, FieldOutcome
 )
 from datetime import datetime, timedelta, timezone
 import random
 import json
-import math
 import os
-import hashlib
 from encryption import is_encrypted, encrypt as aes_encrypt
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
-
-
-def _stable_int(value: str) -> int:
-    return int.from_bytes(hashlib.sha256(value.encode("utf-8")).digest()[:4], "big")
-
-# City center coordinates for distance calculations
-CITY_CENTERS = {
-    "PNY": (11.9416, 79.8083), "CHN": (13.0827, 80.2707),
-    "DEL": (28.7041, 77.1025), "MUM": (19.0760, 72.8777),
-    "BLR": (12.9716, 77.5946), "KOL": (22.5726, 88.3639),
-    "HYD": (17.3850, 78.4867), "AMD": (23.0225, 72.5714),
-}
-
-# Map case IDs to city prefixes
-CASE_CITY_MAP = {
-    "CC-2026-0147": "PNY", "CC-2026-0146": "PNY", "CC-2026-0145": "PNY",
-    "CC-2026-0144": "CHN", "CC-2026-0143": "CHN", "CC-2026-0142": "CHN",
-    "CC-2026-0141": "DEL", "CC-2026-0140": "DEL", "CC-2026-0139": "DEL",
-    "CC-2026-0138": "MUM", "CC-2026-0137": "MUM", "CC-2026-0136": "MUM",
-    "CC-2026-0135": "BLR", "CC-2026-0134": "BLR", "CC-2026-0133": "BLR",
-    "CC-2026-0132": "KOL", "CC-2026-0131": "KOL", "CC-2026-0130": "KOL",
-    "CC-2026-0129": "HYD", "CC-2026-0128": "HYD", "CC-2026-0127": "HYD",
-    "CC-2026-0126": "AMD", "CC-2026-0125": "AMD",
-}
-
-
-def _haversine(lat1, lng1, lat2, lng2):
-    R = 6371
-    dlat = math.radians(lat2 - lat1)
-    dlng = math.radians(lng2 - lng1)
-    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
-    return R * 2 * math.asin(math.sqrt(a))
 
 
 def _enc(val):
@@ -58,6 +24,10 @@ def create_tables():
 
 
 def seed_data(force=False):
+    # Imported first: main runs DDL at import time, which must happen before
+    # this function's session opens any write transaction (SQLite locking).
+    # Still lazy (not module-level) so importing seed never boots the API.
+    from main import get_predictions_for_case
     db = SessionLocal()
 
     try:
@@ -216,12 +186,12 @@ def seed_data(force=False):
 
         alerts = []
         for aid, cid, msg, level, loc, tw, ack in alert_data:
-            ts = (now - timedelta(minutes=random.randint(5, 120))).strftime("%H:%M:%S")
+            ts = (now - timedelta(minutes=random.randint(5, 120))).strftime("%H:%M:%S")  # nosec B311 (synthetic demo timestamps)
             alerts.append(Alert(
                 alert_id=aid, case_id=cid, message=_enc(msg),
                 risk_level=level, location=loc, time_window=tw,
                 timestamp=ts, acknowledged=ack,
-                acknowledged_at=(now - timedelta(minutes=random.randint(1, 30))).strftime("%H:%M:%S") if ack else None,
+                acknowledged_at=(now - timedelta(minutes=random.randint(1, 30))).strftime("%H:%M:%S") if ack else None,  # nosec B311 (synthetic demo timestamps)
             ))
         db.add_all(alerts)
 
@@ -258,59 +228,19 @@ def seed_data(force=False):
         db.add_all(suspects)
 
         # ─── Predictions + Ranked Locations ───────────────────────────
-        windows = ["17:00-19:00", "18:00-20:00", "18:30-20:30", "19:00-21:00", "19:30-21:30"]
-        reasons = [
-            "Evening withdrawal pattern matches historical behavior",
-            "Transaction velocity spike detected in linked accounts",
-            "Geographic cluster aligns with previous activity",
-            "Historical cash-out similarity in this area",
-            "Account network shows coordinated movement",
-            "Amount pattern matches known fraud signature",
-            "Multiple accounts activated within 24-hour window",
-            "Location anomaly detected — distance from registered address",
-        ]
-
-        active_cases = [c for c in cases if c.status == "active"]
+        # Generated through the real prediction pipeline (not random scores)
+        # so persisted snapshots exist for SHAP explainability out of the box.
+        active_case_ids = [c.case_id for c in cases if c.status == "active"]
         prediction_count = 0
         ranked_count = 0
-        for case in active_cases:
-            random.seed(_stable_int(case.case_id) % 10000)
-            pred = Prediction(
-                case_id=case.case_id,
-                status="HIGH PRIORITY" if case.current_risk == "High" else "MEDIUM PRIORITY",
-                risk_trend=json.dumps([10, 18, 27, 44, 67, min(random.randint(60, 95), 99)]),
-                created_at=now,
-            )
-            db.add(pred)
-            db.flush()
+        for case_id in active_case_ids:
+            try:
+                result = get_predictions_for_case(case_id, db)
+            except Exception as exc:
+                print(f"  WARNING: pipeline prediction failed for {case_id}: {exc}")
+                continue
             prediction_count += 1
-
-            # Filter ATMs to the same city as the case
-            city_prefix = CASE_CITY_MAP.get(case.case_id, "PNY")
-            city_center = CITY_CENTERS.get(city_prefix, (11.9416, 79.8083))
-            city_atms = [a for a in atm_locations if a.atm_id.startswith(city_prefix)]
-            if not city_atms:
-                city_atms = atm_locations
-
-            # Generate victim location near city center
-            victim_lat = city_center[0] + random.gauss(0, 0.01)
-            victim_lng = city_center[1] + random.gauss(0, 0.01)
-
-            # Top 12 ranked locations per case from the same city
-            sample_atms = random.sample(city_atms, min(12, len(city_atms)))
-            for i, atm in enumerate(sample_atms):
-                score = random.randint(30, 98)
-                level = "High" if score > 70 else "Medium" if score > 45 else "Watch"
-                dist = round(_haversine(victim_lat, victim_lng, atm.latitude, atm.longitude), 1)
-                db.add(RankedLocation(
-                    prediction_id=pred.id, rank=i+1, atm_id=atm.atm_id,
-                    location_name=atm.name, risk_score=score,
-                    expected_window=random.choice(windows),
-                    distance=f"{dist} km",
-                    reason=random.choice(reasons), status=level,
-                    latitude=atm.latitude, longitude=atm.longitude,
-                ))
-                ranked_count += 1
+            ranked_count += len(result.get("ranked_locations", []))
 
         print(f"  Predictions: {prediction_count}, Ranked Locations: {ranked_count}")
 
@@ -374,7 +304,7 @@ def seed_data(force=False):
             db.add(AuditLog(
                 action=action, details=_enc(details),
                 action_type=atype,
-                timestamp=now - timedelta(minutes=random.randint(5, 720)),
+                timestamp=now - timedelta(minutes=random.randint(5, 720)),  # nosec B311 (synthetic demo timestamps)
             ))
 
         # ─── Field Outcomes ──────────────────────────────────────────
@@ -391,7 +321,7 @@ def seed_data(force=False):
             db.add(FieldOutcome(
                 case_id=case_id, atm_id=atm_id, outcome=outcome,
                 officer_id=officer, notes=notes,
-                created_at=now - timedelta(hours=random.randint(1, 72)),
+                created_at=now - timedelta(hours=random.randint(1, 72)),  # nosec B311 (synthetic demo timestamps)
             ))
 
         db.commit()

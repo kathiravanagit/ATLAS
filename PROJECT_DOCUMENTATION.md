@@ -36,7 +36,7 @@ flowchart TD
 | ML | Random Forest/XGBoost binary classification; synthetic training generator and provenance-bound revalidation |
 | Explanations | Exact saved candidate inputs and model identity; ensemble Kernel SHAP with empirical training background, or explicitly non-local importance |
 | Evidence | SHA-256-linked local ledger, Merkle proofs, prototype PoW mining and in-process network simulation |
-| Notifications | Tracked queued SMS/email jobs with optional configured providers; delivery is not implied by enqueueing |
+| Notifications | Tracked queued SMS/email jobs with optional configured providers; delivery is not implied by enqueueing. Every HIGH (>70) prediction raises an on-screen toast + siren (mutable, browser-generated) and enqueues a Fast2SMS message to `INVESTIGATOR_PHONE_NUMBER` (trial key for testing; production needs DLT registration). Alert rows dedupe to one open alert per case+ATM and predictions never write audit entries |
 | Spatial | Synthetic city/ATM registry, haversine calculations, optional PostGIS integration |
 
 ### Two distinct console modes
@@ -84,9 +84,9 @@ Risk index and confidence are uncalibrated model-derived scores—not the probab
 
 ### Current artifact status
 
-The bundled weights predate this protocol. Their legacy accuracy, precision, recall, F1, confusion matrices, city/time holdout superiority and Top-1/3/5 claims are withdrawn. The API/UI display **Unavailable** or **Not measured**, preserving legitimate zero values without treating missing measurements as zero.
+Regenerated and retrained 2026-10-09 (`rf-xgb-synthetic-v6-20261009`): group holdout precision 98.1 / recall 43.4 / F1 60.2 / ROC-AUC 0.74 / PR-AUC 0.49, with matching time/location holdouts, 10-bin calibration and threshold sweeps in `model/validation_report.json`. Library versions are recorded in metadata; the XGBoost estimator is archived in native JSON as well as serving pickle. What remains unavailable by design: next-ATM Hit@K, geographic error, future-window coverage (need observed outcomes).
 
-No expensive full regeneration/training was performed during the local fixes. To explicitly replace generated data and weights after backing up anything needed:
+To explicitly replace generated data and weights after backing up anything needed:
 
 ```bash
 cd backend

@@ -159,6 +159,9 @@ class Blockchain:
         self._session_factory = session_factory
         self.chain: list[Block] = []
         self.pending: list[dict] = []
+        self.stored_rows = 0
+        self.corrupt_rows = 0
+        self.degraded = False
         self._lock = threading.Lock()
         if persist:
             if backend == "db":
@@ -166,6 +169,9 @@ class Blockchain:
             elif os.path.exists(CHAIN_FILE):
                 self._load()
         if not self.chain:
+            if self.stored_rows > 0:
+                # Rows exist but none loaded: degraded, never a silent fresh start.
+                self.degraded = True
             self._create_genesis()
 
     def _create_genesis(self):
@@ -284,6 +290,9 @@ class Blockchain:
             "last_block_time": self.last_block.timestamp,
             "chain_valid": self.validate_chain(self.get_chain())["valid"],
             "total_transactions": sum(len(b.transactions) for b in self.chain),
+            "stored_rows": getattr(self, "stored_rows", len(self.chain)),
+            "corrupt_rows_skipped": getattr(self, "corrupt_rows", 0),
+            "degraded": getattr(self, "degraded", False),
         }
 
     def replace_chain(self, new_chain_dicts: list, allow_equal: bool = False) -> dict:
@@ -367,11 +376,19 @@ class Blockchain:
             rows = db.query(BlockchainBlockRow).filter(
                 BlockchainBlockRow.chain_name == self.chain_name).order_by(
                 BlockchainBlockRow.block_index).all()
-            self.chain = [Block.from_dict(json.loads(r.payload)) for r in rows]
+            self.stored_rows = len(rows)
+            self.chain, self.corrupt_rows = [], 0
+            for r in rows:
+                try:
+                    self.chain.append(Block.from_dict(json.loads(r.payload)))
+                except Exception:
+                    self.corrupt_rows += 1
             self.pending = []
         except Exception:
             self.chain = []
             self.pending = []
+            self.stored_rows = 0
+            self.corrupt_rows = 0
         finally:
             db.close()
 
@@ -379,10 +396,19 @@ class Blockchain:
         try:
             with open(CHAIN_FILE) as f:
                 data = json.load(f)
-            chain = [Block.from_dict(d) for d in data.get("chain", [])]
+            raw = data.get("chain", [])
+            self.stored_rows = len(raw)
+            chain, corrupt = [], 0
+            for d in raw:
+                try:
+                    chain.append(Block.from_dict(d))
+                except Exception:
+                    corrupt += 1
             if not chain:
                 raise ValueError("empty chain file")
             self.chain = chain
+            self.corrupt_rows = corrupt
+            self.degraded = corrupt > 0
             self.pending = data.get("pending", [])
             self.difficulty = max(int(data.get("difficulty", self.difficulty)), MIN_DIFFICULTY)
         except (json.JSONDecodeError, KeyError, OSError, TypeError, ValueError):

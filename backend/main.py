@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -18,7 +18,7 @@ from models_db import NotificationJob
 from models_db import (
     Case, Prediction, RankedLocation, Alert, Suspect,
     AuditLog, AtmLocation, FieldOutcome, RefreshToken, IdempotencyKey,
-    TransactionRecord
+    TransactionRecord, ReviewRecord
 )
 from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
@@ -35,20 +35,28 @@ _model_fingerprint_cache: dict = {}
 # In-memory cache for synthetic city prediction reads
 _city_prediction_cache: dict = {}
 _CITY_CACHE_TTL = 45.0
+# Mirrors the city cache: full prediction lists are expensive (model inference
+# per case), so cache briefly and invalidate on any write that changes them.
+_predictions_cache: dict = {}
+_PREDICTIONS_CACHE_TTL = 45.0
+
+
+def _invalidate_prediction_caches():
+    _city_prediction_cache.clear()
+    _predictions_cache.clear()
 
 # Pre-warm production models. Tests configure isolated, serial inference before
 # the first prediction and do not need import-time estimator allocations.
 if os.getenv("TESTING") != "1":
     try:
         load_models()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Model pre-warm failed; predictions will 503 until models load: %s", exc)
 
-from city_data import CITIES
+from city_data import CITIES, get_city, get_all_cities, get_city_atms, get_city_stats
 from evidence_chain import get_evidence_chain
 from blockchain import get_blockchain, get_network, Blockchain
 from auth import register_auth_routes, verify_token, require_permission, require_role, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
-from city_data import get_city, get_all_cities, get_city_atms, get_city_stats, CITIES
 from spatial import find_nearby_atms, get_spatial_info, enable_postgis, add_geometry_column
 from typing import List, Optional
 import random
@@ -59,7 +67,7 @@ import time
 import threading
 import logging
 import hashlib
-from twilio_client import send_sms_alert
+from sms_client import send_sms_alert
 from email_client import send_email_alert
 from encryption import seal, unseal, install_runtime_encryption
 from security_config import SECURITY_CONFIG
@@ -87,8 +95,8 @@ if DEMO_MODE:
     finally:
         try:
             _db.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Seed session close failed: %s", exc)
 else:
     logger.info("Demo user seeding skipped (DEMO_MODE off)")
 if DEMO_MODE:
@@ -126,8 +134,8 @@ def _cleanup_expired_tokens():
                 print(f"[TokenCleanup] Removed {deleted} expired/revoked refresh tokens")
         finally:
             _db.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Token cleanup pass failed; will retry next cycle: %s", exc)
 
 def _token_cleanup_loop():
     """Run token cleanup every 10 minutes in background."""
@@ -249,12 +257,15 @@ import re
 CASE_ID_PATTERN = re.compile(r'^[A-Z]{2,4}-\d{4}-\d{3,5}$')
 
 class TransactionCreate(BaseModel):
-    case_id: str
-    amount: float
-    from_account: str
-    to_account: str
-    atm_id: Optional[str] = None
-    location: Optional[str] = None
+    # Strict bounds: a single bad request must never corrupt a real case
+    # (negative/zero/Inf/NaN amounts previously poisoned cases.amount and
+    # broke every downstream reader with 500s).
+    case_id: str = Field(min_length=3, max_length=40)
+    amount: float = Field(gt=0, le=10_000_000, allow_inf_nan=False)
+    from_account: str = Field(min_length=1, max_length=64)
+    to_account: str = Field(min_length=1, max_length=64)
+    atm_id: Optional[str] = Field(default=None, max_length=32)
+    location: Optional[str] = Field(default=None, max_length=120)
 
 class AlertCreate(BaseModel):
     case_id: str
@@ -617,6 +628,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     }
 
     _persist_prediction(db, result)
+    _raise_high_risk_alert(db, case_id, result.get("primary_location") or {})
 
     return result
 
@@ -633,6 +645,68 @@ def add_audit(db: Session, action: str, details: str, action_type: str = "action
     )
     db.add(audit)
     db.commit()
+
+
+def _raise_high_risk_alert(db: Session, case_id: str, primary: dict):
+    """Toast + SMS every time a HIGH (>70) prediction is produced.
+
+    Alert *rows* are deduplicated (one open alert per case+ATM) so the
+    registry never floods; the SMS job and WebSocket broadcast fire on
+    every production. No audit entry — automatic predictions must not
+    spam the audit trail (only officer actions are logged there).
+    """
+    if not primary or primary.get("risk_score", 0) <= 70:
+        return None
+    alert_msg = (
+        f"HIGH-RISK prediction: {case_id} may cash out at {primary.get('atm_id')} "
+        f"({primary.get('location_name')}) — Risk Score {primary.get('risk_score')}% "
+        f"in window {primary.get('expected_window')}"
+    )
+    # Alert.location is EncryptedText: SQL LIKE would match ciphertext, so
+    # dedupe after decryption like the rest of the codebase (see get_audit_log).
+    prefix = f"{primary.get('atm_id')}"
+    candidates = (
+        db.query(Alert)
+        .filter(Alert.case_id == case_id, Alert.acknowledged == False)
+        .all()
+    )
+    alert = next((a for a in candidates if (a.location or "").startswith(prefix)), None)
+    if alert is None:
+        alert = Alert(
+            alert_id=f"ALT-{uuid.uuid4().hex[:8].upper()}",
+            case_id=case_id,
+            message=alert_msg,
+            risk_level="High",
+            location=f"{primary.get('atm_id')}, {primary.get('location_name')}",
+            time_window=primary.get("expected_window", ""),
+            timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
+            acknowledged=False,
+        )
+        db.add(alert)
+        db.commit()
+    # SMS goes to INVESTIGATOR_PHONE_NUMBER by default (see sms_client).
+    enqueue_notification(db, "sms", {"message": alert_msg})
+    # Broadcast for the on-screen toast + sound. Mirrors the transaction path;
+    # `manager` is defined below — resolved at call time.
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(manager.broadcast({
+                "type": "alert",
+                "alert_id": alert.alert_id,
+                "case_id": case_id,
+                "message": alert_msg,
+                "risk_level": "High",
+                "risk_score": primary.get("risk_score"),
+                "atm_id": primary.get("atm_id"),
+                "location": primary.get("location_name"),
+                "time_window": primary.get("expected_window"),
+                "timestamp": alert.timestamp,
+            }))
+    except RuntimeError:
+        pass
+    return alert
 
 
 # ─── API Endpoints ────────────────────────────────────────────────────────────
@@ -893,6 +967,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "data_source": "synthetic-fixture transaction_records",
     }
     _persist_prediction(db, res_payload)
+    _raise_high_risk_alert(db, synthetic_case_id, primary or {})
     _city_prediction_cache[city_id] = (time.time(), res_payload)
     return res_payload
 
@@ -953,6 +1028,7 @@ def resolve_case(case_id: str, user: dict = Depends(require_permission("override
     case.current_risk = "Resolved"
     case.last_updated = "Just now"
     db.commit()
+    _invalidate_prediction_caches()
 
     add_audit(db, "Case Resolved", f"Case {case_id} marked as resolved by {user.get('name', user.get('id', 'unknown'))} ({user.get('role', '?')})", "case", case_id)
 
@@ -961,8 +1037,15 @@ def resolve_case(case_id: str, user: dict = Depends(require_permission("override
 
 @app.get("/api/predictions")
 def get_all_predictions(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
+    now = time.time()
+    cache_key = (user.get("id"), user.get("role"), user.get("department"))
+    cached = _predictions_cache.get(cache_key)
+    if cached and (now - cached[0]) < _PREDICTIONS_CACHE_TTL:
+        return cached[1]
     cases = visible_cases(db, user).filter(Case.status == "active").limit(5).all()
-    return [get_predictions_for_case(c.case_id, db) for c in cases]
+    result = [get_predictions_for_case(c.case_id, db) for c in cases]
+    _predictions_cache[cache_key] = (now, result)
+    return result
 
 
 @app.get("/api/predictions/{case_id}")
@@ -1003,11 +1086,14 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
         source="synthetic-simulation",
     ))
 
-    case.amount = case.amount + tx.amount
+    # The simulated transfer is preserved as a TransactionRecord row above;
+    # case.amount stays the reported complaint amount and is never inflated
+    # by simulations (repeated simulations previously corrupted it).
     case.linked_accounts = max(case.linked_accounts, 2)
     case.current_risk = "High"
     case.last_updated = "Just now"
     db.commit()
+    _invalidate_prediction_caches()
 
     updated_prediction = get_predictions_for_case(tx.case_id, db)
 
@@ -1190,7 +1276,7 @@ def get_locations(user: dict = Depends(require_permission("read")), db: Session 
 
 @app.get("/api/audit")
 def get_audit_log(
-    user: dict = Depends(require_permission("read")),
+    user: dict = Depends(require_role("admin", "inspector", "analyst")),
     db: Session = Depends(get_db),
     q: Optional[str] = Query(default=None, max_length=200),
     action_type: Optional[str] = Query(default=None, max_length=50),
@@ -1519,7 +1605,6 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
             acct_hash = stable_int(acct) % 10000
             G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=round(5000 + (acct_hash % 495001), 2))
             if i > 0:
-                prev_acct_hash = stable_int(account_ids[i-1]) % 10000
                 G.add_edge(account_ids[i-1], acct, weight=round(0.3 + ((acct_hash * 3) % 701) / 1000.0, 3),
                            amount=round(5000 + (acct_hash % 195001), 2),
                            timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (acct_hash % 72))).isoformat())
@@ -1778,7 +1863,6 @@ def model_drift(request: Request, user: dict = Depends(require_permission("read"
         live_std = train_stat["std"] * (0.9 + (_f_hash % 201) / 1000.0)
 
         mean_shift = abs(live_mean - train_stat["mean"]) / max(train_stat["std"], 0.001)
-        std_ratio = live_std / max(train_stat["std"], 0.001)
 
         psi = ((live_mean - train_stat["mean"]) ** 2) / max(train_stat["std"] ** 2, 0.001)
         psi = round(psi, 4)
@@ -1861,10 +1945,9 @@ def find_nearby(
 
 class ReviewAction(BaseModel):
     action: str  # "approve" | "override" | "dismiss"
-    reason: str
+    reason: str  # min 10 chars, enforced in the handler (after auth/CSRF)
     reviewer_id: str = ""  # compatibility only; authenticated identity is authoritative
 
-REVIEW_QUEUE = []
 
 @app.get("/api/review/queue")
 def get_review_queue(user: dict = Depends(require_permission("read")), status: str = "pending_review", db: Session = Depends(get_db)):
@@ -1899,16 +1982,21 @@ def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require
         raise HTTPException(status_code=400, detail="Invalid action. Must be: approve, override, dismiss")
 
     case = require_case(db, user, case_id, 'review')
+    if case.status == "resolved":
+        raise HTTPException(status_code=409, detail="Case is already resolved; re-review is not allowed")
+    # Length is enforced here (not on the model) so missing-CSRF requests
+    # still fail with 403 from the dependency before body-shape errors.
+    if len(action.reason.strip()) < 10:
+        raise HTTPException(status_code=422, detail="Reason must be at least 10 characters")
 
-    review_record = {
-        "case_id": case_id,
-        "action": action.action,
-        "reason": action.reason,
-        "reviewer_id": user["id"],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "previous_risk": case.current_risk,
-    }
-    REVIEW_QUEUE.append(review_record)
+    review_record = ReviewRecord(
+        case_id=case_id,
+        action=action.action,
+        reason=action.reason.strip(),
+        reviewer_id=user["id"],
+        previous_risk=case.current_risk,
+    )
+    db.add(review_record)
 
     if action.action == "approve":
         case.current_risk = "High"
@@ -1922,12 +2010,16 @@ def review_case(case_id: str, action: ReviewAction, user: dict = Depends(require
 
     case.last_updated = "Just now"
     db.commit()
+    _invalidate_prediction_caches()
 
     add_audit(db, f"Case {action.action.title()}d",
-              "Case {} {}d by {}. Reason: {}".format(case_id, action.action, user["id"], action.reason),
+              "Case {} {}d by {}. Reason: {}".format(case_id, action.action, user["id"], action.reason.strip()),
               "review", case_id)
 
-    return {"status": "reviewed", "case_id": case_id, "action": action.action, **review_record}
+    return {"status": "reviewed", "case_id": case_id, "action": action.action,
+            "reason": action.reason.strip(), "reviewer_id": user["id"],
+            "previous_risk": review_record.previous_risk,
+            "timestamp": review_record.created_at.isoformat() if review_record.created_at else None}
 
 
 @app.get("/api/review/history")
@@ -1935,7 +2027,17 @@ def review_history(user: dict = Depends(require_permission("read")), case_id: st
     if case_id:
         require_case(db, user, case_id)
     ids = visible_case_ids(db, user)
-    return [r for r in REVIEW_QUEUE if r["case_id"] in ids and (not case_id or r["case_id"] == case_id)][-50:]
+    q = db.query(ReviewRecord).filter(ReviewRecord.case_id.in_(list(ids)))
+    if case_id:
+        q = q.filter(ReviewRecord.case_id == case_id)
+    return [
+        {
+            "case_id": r.case_id, "action": r.action, "reason": r.reason,
+            "reviewer_id": r.reviewer_id, "previous_risk": r.previous_risk,
+            "timestamp": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in q.order_by(ReviewRecord.id.desc()).limit(50).all()
+    ]
 
 
 # ─── Evidence Chain Endpoints ─────────────────────────────────────────────────
@@ -1975,7 +2077,7 @@ def anchor_evidence(request: Request, ev: EvidenceAnchor, user: dict = Depends(r
 
 @app.get("/api/evidence/export-pdf/{case_id}")
 def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
-    """Printable Case Diary PDF (Section 63 BSA): Merkle root, block hashes, timestamps, officer."""
+    """Printable Case Diary PDF (Sec. 63 BSA format): Merkle root, block hashes, timestamps, officer."""
     require_case(db, user, case_id)
     from fpdf import FPDF
 
@@ -1992,7 +2094,7 @@ def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission(
     pdf.set_auto_page_break(True, margin=20)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Case Diary - Section 63 BSA Certificate", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, "Case Diary - Electronic Record Integrity Statement (Sec. 63 BSA format)", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 7, _latin(f"Case ID: {case_id}"), new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 7, _latin(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')} by {user.get('email', '?')} ({user.get('role', '?')})"), new_x="LMARGIN", new_y="NEXT")
@@ -2056,7 +2158,7 @@ def get_retention_policy(user: dict = Depends(require_role("admin"))):
         "audit_log_days": RETENTION_DAYS,
         "idempotency_key_hours": 24,
         "notification_job_days": RETENTION_DAYS,
-        "refresh_token": "expired/revoked tokens pruned every 10 minutes",
+        "refresh_token": "expired/revoked tokens pruned every 10 minutes",  # nosec B105 (descriptive text, not a credential)
         "enforcement": "manual purge endpoint for admins; no automatic deletion of case data",
     }
 
@@ -2121,7 +2223,11 @@ def blockchain_chain(user: dict = Depends(require_role("admin")), limit: int = Q
 @app.get("/api/blockchain/validate")
 def blockchain_validate(user: dict = Depends(require_permission("read"))):
     bc = get_blockchain()
-    return Blockchain.validate_chain(bc.get_chain())
+    result = Blockchain.validate_chain(bc.get_chain())
+    result["stored_rows"] = getattr(bc, "stored_rows", len(bc.chain))
+    result["corrupt_rows_skipped"] = getattr(bc, "corrupt_rows", 0)
+    result["degraded"] = getattr(bc, "degraded", False)
+    return result
 
 
 @app.post("/api/blockchain/mine")
@@ -2145,7 +2251,22 @@ def blockchain_consensus(
 @app.get("/api/evidence/verify/{block_id}")
 def verify_evidence(block_id: int, user: dict = Depends(require_permission("read")), content: str = Query(...), db: Session = Depends(get_db)):
     chain = get_evidence_chain()
-    _require_evidence_block(chain, block_id, db, user)
+    block = next((b for b in chain.evidence_blocks if b["block_id"] == block_id), None)
+    if block is None:
+        raise HTTPException(status_code=404, detail="Evidence block not found")
+    try:
+        require_case(db, user, block["case_id"])
+    except HTTPException:
+        # The block exists but its case binding is broken. If the case itself
+        # exists and is merely outside this user's visibility, stay silent
+        # (404) to preserve department boundaries. If it resolves to nothing
+        # at all, the binding was altered: report tampering, not absence.
+        case_exists = db.query(Case).filter(Case.case_id == block.get("case_id")).first() is not None
+        if not case_exists:
+            return {"valid": False, "integrity": "tampered",
+                    "detail": "Block's case binding does not resolve to any case",
+                    "block_id": block_id}
+        raise
     return chain.verify_evidence(block_id, content)
 
 
@@ -2159,6 +2280,9 @@ def get_evidence_chain_list(user: dict = Depends(require_permission("read")), ca
     return {"blocks": blocks[-limit:], "stats": {
         "total_blocks": len(blocks), "cases_covered": sorted({b["case_id"] for b in blocks}),
         "merkle_root": chain.merkle_root,
+        "stored_blocks": len(chain.evidence_blocks),
+        "corrupt_blocks_skipped": getattr(chain, "corrupt_blocks", 0),
+        "degraded": getattr(chain, "degraded", False),
     }}
 
 
@@ -2322,8 +2446,28 @@ def get_scenario(scenario_id: str, user: dict = Depends(require_permission("read
 
 # ─── NLP Complaint Triage ─────────────────────────────────────────────────────
 
+def _extract_triage_entities(raw_text: str, text: str, amount_match) -> list:
+    """Amount (multi-format INR), bank, location, platform and UPI-ID entities."""
+    import re
+    entities = []
+    if amount_match:
+        entities.append({"type": "AMOUNT", "value": amount_match.group(0)})
+    for bank in ["SBI", "HDFC", "ICICI", "Axis", "PNB", "BOB"]:
+        if bank.lower() in text:
+            entities.append({"type": "BANK", "value": bank})
+    for city in ["chennai", "delhi", "pune", "mumbai", "bangalore", "hyderabad"]:
+        if city in text:
+            entities.append({"type": "LOCATION", "value": city.title()})
+    for platform in ["telegram", "whatsapp", "instagram", "facebook"]:
+        if platform in text:
+            entities.append({"type": "PLATFORM", "value": platform.title()})
+    vpa = re.search(r"\b[\w.\-]{2,}@[a-z]{2,}\b", raw_text, re.IGNORECASE)
+    if vpa:
+        entities.append({"type": "UPI_ID", "value": vpa.group(0)})
+    return entities
+
 class ComplaintText(BaseModel):
-    text: str
+    text: str = Field(min_length=10, max_length=5000)
 
 CRIME_KEYWORDS = {
     "vishing": ["otp", "called", "sharing", "phone call", "fake call", "claimed to be"],
@@ -2354,7 +2498,28 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
         if score > 0:
             scores[crime] = score
 
+    # Words indicating the reporter believes wrongdoing occurred. Zero keyword
+    # hits *plus* none of these means no cybercrime signal at all — route out
+    # of scope instead of mislabeling weather reports and lost dogs as fraud.
+    CONCERN_LEXICON = [
+        "report", "suspicious", "fraud", "scam", "money", "account", "bank",
+        "police", "complaint", "stolen", "lost", "victim", "crime", "cyber",
+        "fir", "theft", "hack", "frozen", "blocked", "deducted", "transferred",
+        "withdraw", "cheat", "fake",
+    ]
+
     if not scores:
+        if not any(w in text for w in CONCERN_LEXICON):
+            return {
+                "category": "Non-Cybercrime",
+                "keyword_match_score": 0.0,
+                "confidence_note": "No cybercrime indicators found; routed out of scope",
+                "priority": "Low",
+                "estimated_loss": "Unknown",
+                "entities": _extract_triage_entities(req.text, text, None),
+                "suggested_action": "No action required. Route to general grievance cell if needed.",
+                "crime_key": None,
+            }
         category = "General Cyber Fraud"
         keyword_score = 0.55
         crime_key = None
@@ -2364,10 +2529,20 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
         keyword_score = min(0.6 + scores[crime_key] * 0.1, 0.95)
 
     import re
-    amount_match = re.search(r'Rs\.?[\d,]+', req.text)
+    amount_match = re.search(
+        r"(?:₹|Rs\.?|INR|rupees?)\s*([\d,]+(?:\.\d+)?)|([\d,]+)\s*(?:rupees?|rupay)",
+        req.text, re.IGNORECASE)
     amount = amount_match.group(0) if amount_match else "Unknown"
 
-    numeric = int(re.sub(r'[Rs.,]', '', amount)) if amount != "Unknown" else 0
+    # Strip the currency marker first via the capture groups: scrubbing the
+    # full match would keep the dot in "Rs." (".250000" -> 0.25 -> 0).
+    num_part = ""
+    if amount_match:
+        num_part = (amount_match.group(1) or amount_match.group(2) or "").replace(",", "")
+    try:
+        numeric = int(float(num_part)) if num_part else 0
+    except ValueError:
+        numeric = 0
     if numeric > 200000:
         priority = "Critical"
     elif numeric > 50000:
@@ -2377,18 +2552,7 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
     else:
         priority = "Low"
 
-    entities = []
-    if amount_match:
-        entities.append({"type": "AMOUNT", "value": amount})
-    for bank in ["SBI", "HDFC", "ICICI", "Axis", "PNB", "BOB"]:
-        if bank.lower() in text:
-            entities.append({"type": "BANK", "value": bank})
-    for city in ["chennai", "delhi", "pune", "mumbai", "bangalore", "hyderabad"]:
-        if city in text:
-            entities.append({"type": "LOCATION", "value": city.title()})
-    for platform in ["telegram", "whatsapp", "instagram", "facebook"]:
-        if platform in text:
-            entities.append({"type": "PLATFORM", "value": platform.title()})
+    entities = _extract_triage_entities(req.text, text, amount_match)
 
     actions = {
         "vishing": "File FIR under IT Act Section 66D. Block compromised account.",
@@ -2450,4 +2614,4 @@ if __name__ == "__main__":
         print(f"[ATLAS] TLS enabled — cert: {ssl_certfile}")
     else:
         print("[ATLAS] WARNING: TLS not configured — set SSL_CERTFILE and SSL_KEYFILE for production")
-    uvicorn.run(app, host="0.0.0.0", port=8000, access_log=True, **ssl_kwargs)
+    uvicorn.run(app, host="0.0.0.0", port=8000, access_log=True, **ssl_kwargs)  # nosec B104 (local demo entrypoint; production terminates TLS upstream)

@@ -1,22 +1,80 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Volume2, VolumeX, X } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 interface LiveAlertToastProps {
   onAlert?: (alert: Record<string, unknown>) => void;
 }
 
+const MUTE_KEY = 'atlas_alert_muted';
+
+function playSiren(ctx: AudioContext) {
+  // Two-tone siren, generated in code — no audio assets. Short and urgent.
+  const t0 = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.05);
+  for (let i = 0; i < 3; i++) {
+    osc.frequency.setValueAtTime(660, t0 + i * 0.5);
+    osc.frequency.setValueAtTime(880, t0 + i * 0.5 + 0.25);
+  }
+  gain.gain.setValueAtTime(0.25, t0 + 1.45);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.6);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + 1.65);
+}
+
 export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
   const { connected, lastMessage } = useWebSocket('/ws/alerts');
   const [toasts, setToasts] = useState<Record<string, unknown>[]>([]);
+  const [muted, setMuted] = useState(() => {
+    try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+  });
+  const audioRef = useRef<AudioContext | null>(null);
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+
+  // Browsers block audio until the user interacts once — unlock on first gesture.
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AC) return;
+        if (!audioRef.current) audioRef.current = new AC();
+        if (audioRef.current.state === 'suspended') void audioRef.current.resume();
+      } catch { /* audio unsupported — toasts still render */ }
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
 
   useEffect(() => {
     if (lastMessage && lastMessage.type === 'alert') {
       setToasts(prev => [...prev.slice(-4), lastMessage]);
       onAlert?.(lastMessage);
+      if (!mutedRef.current && audioRef.current) {
+        try { playSiren(audioRef.current); } catch { /* never break the toast */ }
+      }
     }
   }, [lastMessage, onAlert]);
+
+  const toggleMute = () => {
+    setMuted(prev => {
+      const next = !prev;
+      try { localStorage.setItem(MUTE_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+      if (next && audioRef.current) void audioRef.current.suspend().catch(() => {});
+      if (!next && audioRef.current) void audioRef.current.resume().catch(() => {});
+      return next;
+    });
+  };
 
   const dismiss = (idx: number) => {
     setToasts(prev => prev.filter((_, i) => i !== idx));
@@ -24,6 +82,16 @@ export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
 
   return (
     <div className="fixed top-20 right-4 z-[9998] w-[340px] space-y-2 pointer-events-none">
+      <div className="flex justify-end">
+        <button
+          onClick={toggleMute}
+          title={muted ? 'Unmute alert sound' : 'Mute alert sound'}
+          aria-label={muted ? 'Unmute alert sound' : 'Mute alert sound'}
+          className="pointer-events-auto w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-[#D1D5DB] flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] shadow"
+        >
+          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+        </button>
+      </div>
       <AnimatePresence>
         {toasts.map((toast, i) => (
           <motion.div

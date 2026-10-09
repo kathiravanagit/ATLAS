@@ -68,7 +68,7 @@ def main(argv=None):
     import uvicorn
     # Keep one server process so the frontend cannot remain attached to a stale
     # reloader child using a different environment or database.
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, **ssl_kwargs)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, **ssl_kwargs)  # nosec B104 (local demo entrypoint)
 
 
 if __name__ == "__main__":

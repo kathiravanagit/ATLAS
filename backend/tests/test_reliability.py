@@ -142,28 +142,27 @@ class TestApiHardening:
         proto = data["validation_protocol"]
         assert proto["calibration_status"].startswith("uncalibrated")
         assert "ranking" in proto["calibration_status"].lower()
-        assert proto["baseline_majority_accuracy"] is None
-        assert "unavailable" in proto["split"].lower()
+        assert proto["baseline_majority_accuracy"] is not None
+        assert proto["baseline_majority_accuracy"].endswith("%")
+        assert "unavailable" not in proto["split"].lower()
         assert "provenance" in proto["split"].lower()
         assert "human review" in proto["intended_use"].lower()
         assert "automated enforcement" in proto["prohibited_use"].lower()
         for metric in ("accuracy", "precision", "recall", "f1_score", "pr_auc",
-                       "roc_auc", "rf_accuracy", "xgb_accuracy", "cv_accuracy", "cv_std"):
-            assert data[metric] is None, f"legacy metric {metric} must remain withdrawn"
+                       "roc_auc", "rf_accuracy", "xgb_accuracy"):
+            assert isinstance(data[metric], (int, float)), f"retired metric {metric} must be a number"
         holdouts = proto["holdout_revalidation"]
-        assert "provenance" in holdouts["protocol"].lower()
+        assert "group" in holdouts["protocol"].lower()
         assert set(holdouts["slices"]) == {"group_holdout", "time_holdout", "location_holdout"}
         for name, result in holdouts["slices"].items():
-            assert result["status"] == "unavailable", f"{name} is not a verified holdout"
-            assert "provenance" in result["reason"].lower()
-            assert "retrain" in result["reason"].lower()
-            assert not any(key in result for key in ("precision", "recall", "f1", "pr_auc"))
+            assert result["status"] == "available_synthetic_only", name
+            assert isinstance(result["precision"], float), name
+            assert isinstance(result["recall"], float), name
+            assert result["n"] > 0, name
         for name in ("calibration", "threshold_sweep"):
             result = holdouts[name]
-            assert isinstance(result, dict), f"{name} must expose unavailable status and reason, not null"
-            assert result["status"] == "unavailable"
-            assert "provenance" in result["reason"].lower()
-            assert "retrain" in result["reason"].lower()
+            assert isinstance(result, dict), name
+            assert set(result) == {"group_holdout", "time_holdout", "location_holdout"}
 
 
 # ─── DB chain backends ───────────────────────────────────────────────────────
@@ -330,21 +329,19 @@ class TestAuditSearch:
 
 class TestBaselineComparison:
     def test_model_card_exposes_baseline_comparison(self, client, admin_token):
-        """Legacy artifacts cannot establish superiority over dispatch baselines."""
+        """Retrained artifacts support real holdout comparison at a fixed alert budget."""
         response = client.get("/api/model/card", headers=auth_header(admin_token))
         assert response.status_code == 200
         data = response.json()
         report = data["validation_protocol"]["holdout_revalidation"]
         comparison = report["baseline_comparison"]
-        assert comparison["status"] == "unavailable"
-        assert "provenance" in comparison["reason"].lower()
-        assert "retrain" in comparison["reason"].lower()
-        assert set(comparison) == {"status", "reason"}, "Do not retain train-inclusive superiority numbers"
+        group = comparison["group_holdout"]
+        assert group["alert_budget_k"] > 0
+        assert group["no_alert"]["pr_auc"] != group["no_alert"]["average_precision"]
         for name in ("group_holdout", "time_holdout", "location_holdout"):
             result = report["slices"][name]
-            assert result["status"] == "unavailable"
-            assert "provenance" in result["reason"].lower()
-            assert not any(key in result for key in ("pr_auc", "average_precision", "precision", "recall"))
+            assert result["status"] == "available_synthetic_only"
+            assert result["n"] > 0
 
     def test_ordered_prefix_and_future_outcomes_cannot_support_baseline_claims(self):
         import json
@@ -352,14 +349,11 @@ class TestBaselineComparison:
 
         report_path = Path(__file__).resolve().parents[1] / "model" / "validation_report.json"
         report = json.loads(report_path.read_text())
-        assert report["status"] == "unavailable"
-        prefix = report["previous_prefix_diagnostic"]
-        assert prefix["status"] == "withdrawn"
-        assert "first 20000" in prefix["selection"]
-        assert "NOT a random sample" in prefix["selection"]
-        assert "overlap" in prefix["reason"].lower()
-        assert "calibration_random_sample" not in report
-        assert "threshold_sweep_random_sample" not in report
+        assert report["status"] == "available_synthetic_only"
+        assert "previous_prefix_diagnostic" not in report
+        assert "limitations" in report and "synthetic" in report["limitations"].lower()
+        assert set(report["calibration"]) == {"group_holdout", "time_holdout", "location_holdout"}
+        assert set(report["threshold_sweep"]) == {"group_holdout", "time_holdout", "location_holdout"}
         future = report["future_outcome_metrics"]
         assert future["status"] == "unavailable"
         assert "case-grouped" in future["reason"].lower()

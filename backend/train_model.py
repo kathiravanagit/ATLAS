@@ -317,6 +317,9 @@ def train_model():
     joblib.dump(rf, "model/cashout_predictor.pkl")
     if has_xgb:
         joblib.dump(xgb, "model/xgboost_predictor.pkl")
+        # Native archival format alongside the serving pickle (item: pickles
+        # are version-sensitive; the JSON artifact loads across XGBoost versions).
+        xgb.save_model("model/xgboost_predictor.json")
 
     # Sample ROC curve data (downsample for storage)
     roc_step = max(1, len(fpr) // 50)
@@ -339,6 +342,13 @@ def train_model():
     metadata = {
         "model_version": f"rf-xgb-synthetic-v6-{datetime.now().strftime('%Y%m%d')}",
         "model_type": "Ensemble (RF + XGBoost)" if has_xgb else "RandomForestClassifier",
+        "library_versions": {
+            "python": ".".join(map(str, __import__("sys").version_info[:3])),
+            "scikit_learn": __import__("sklearn").__version__,
+            "xgboost": __import__("xgboost").__version__ if has_xgb else None,
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+        },
         "rf_params": {
             "n_estimators": 200, "max_depth": 12,
             "min_samples_split": 8, "min_samples_leaf": 4,

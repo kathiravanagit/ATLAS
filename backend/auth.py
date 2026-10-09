@@ -48,7 +48,29 @@ class _BcryptPasswordContext:
 
 
 pwd_context = _BcryptPasswordContext()
-security = HTTPBearer()
+
+
+class _Bearer401(HTTPBearer):
+    """Missing/malformed credentials are unauthenticated (401), not forbidden.
+
+    Stock HTTPBearer answers 403, which conflates 'who are you' with
+    'you may not'. Authenticated-but-denied paths still return 403 below.
+    """
+
+    async def __call__(self, request: Request):
+        try:
+            return await super().__call__(request)
+        except HTTPException as exc:
+            if exc.status_code == 403:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Missing or malformed Authorization header",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise
+
+
+security = _Bearer401()
 
 # ── Password Policy ───────────────────────────────────────────────────────────
 
@@ -245,14 +267,21 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
 DEMO_USER_SEEDS = [
+    # Demo-only credentials for the evaluation build. Seeding is gated on
+    # DEMO_MODE and production startup refuses default secrets (see
+    # security_config). nosec B105: no production credential here.
     {"id": "INS-001", "name": "Inspector Rajesh Kumar", "email": "inspector@atlas.gov",
-     "password": "inspector123", "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division"},
+     "password": "inspector123",  # nosec B105
+     "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division"},
     {"id": "ANL-001", "name": "Analyst Priya Sharma", "email": "analyst@atlas.gov",
-     "password": "analyst123", "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit"},
+     "password": "analyst123",  # nosec B105
+     "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit"},
     {"id": "BNK-001", "name": "Bank Officer Amit Patel", "email": "bank@atlas.gov",
-     "password": "bank123", "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing"},
+     "password": "bank123",  # nosec B105
+     "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing"},
     {"id": "ADM-001", "name": "Admin Suresh Nair", "email": "admin@atlas.gov",
-     "password": "admin123", "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division"},
+     "password": "admin123",  # nosec B105
+     "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division"},
 ]
 
 
@@ -460,7 +489,7 @@ def register_auth_routes(app):
 
         return TokenResponse(
             access_token="",
-            refresh_token="",
+            refresh_token="",  # nosec B106 (pending-approval placeholder, not a credential)
             expires_in=0,
             user={"id": user_id, "name": req.name, "email": req.email, "role": req.role, "badge": user.badge, "department": req.department, "pending_approval": True}
         )
