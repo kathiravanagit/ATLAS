@@ -273,3 +273,10 @@
   background: #ffffff;
   border-bottom: 1px solid #D1D5DB;
 }
+
+/* "Sound armed" pulse — plays on speaker toggle when AudioContext unlocks */
+@keyframes armed-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+  50% { transform: scale(1.15); box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.25); }
+}
+
