@@ -31,6 +31,6 @@ describe('dashboard null operational metrics', () => {
     const { container } = render(<PredictionCard prediction={{ ...FALLBACK_PREDICTION, evidence: {} }} onShowEvidence={vi.fn()} />);
     expect(screen.getByText('No evidence supplied')).toBeDefined();
     expect(container.textContent).not.toContain('Loading...');
-    expect(screen.getByText(/not measured lead time/)).toBeDefined();
+    expect(screen.getByText(/lead time not measured/)).toBeDefined();
   });
 });

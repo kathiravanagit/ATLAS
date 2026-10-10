@@ -174,11 +174,9 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center space-y-2">
           <div className="inline-flex items-center gap-4 text-[11px] text-[#6B7280]">
-            <span>SIH 2026 Prototype</span>
-            <span className="w-1 h-1 rounded-full bg-[#D1D5DB]" />
-            <span>Cybercrime Coordination Prototype</span>
+            <span>SIH 2026 Prototype — demo build</span>
           </div>
-          <p className="text-[11px] text-[#9CA3AF]">Demo build · All access is monitored and logged · Not affiliated with any government body</p>
+          <p className="text-[11px] text-[#9CA3AF]">Access is logged · Not affiliated with any government body</p>
         </div>
       </div>
     </div>

@@ -139,6 +139,39 @@ def test_audit_restricted_to_investigative_roles(client, admin_token, inspector_
     assert client.get("/api/audit", headers=auth_header(bank_officer_token)).status_code == 403
 
 
+def test_dashboard_aggregates_resolved_highrisk_and_windows(client, inspector_token):
+    from tests.conftest import TestingSessionLocal
+    from models_db import Case, TransactionRecord
+    from datetime import datetime, timezone
+    csrf = get_csrf_header(client, inspector_token)
+    headers = {**auth_header(inspector_token), **csrf}
+    db = TestingSessionLocal()
+    try:
+        case = db.query(Case).filter(Case.case_id == "CASE-001").first()
+        case.status = "resolved"
+        db.add(TransactionRecord(case_id="CASE-001", from_account="A1", to_account="MULE-9",
+                                 amount=5000, occurred_at=datetime.now(timezone.utc),
+                                 source="test"))
+        db.commit()
+    finally:
+        db.close()
+    # Seed one high-risk rank-1 window via the prediction pipeline.
+    resp = client.get("/api/predictions/CASE-002", headers=auth_header(inspector_token))
+    assert resp.status_code == 200
+    data = client.get("/api/dashboard", headers=auth_header(inspector_token)).json()
+    assert data["prevented_fraud"] == 150000
+    assert isinstance(data["mules_flagged"], int)
+    assert isinstance(data["avg_lead_time"], str) and len(data["avg_lead_time"]) > 0
+
+
+def test_window_lead_hours_parses_and_rolls_over():
+    import main as main_module
+    assert main_module._window_lead_hours("not-a-window") is None
+    assert main_module._window_lead_hours("") is None
+    hours = main_module._window_lead_hours("18:00-20:00")
+    assert isinstance(hours, float) and 0 < hours <= 24
+
+
 def test_read_endpoints_reject_unauthenticated(client):
     for method, path in READ_ENDPOINTS[:5]:
         resp = client.request(method, path)

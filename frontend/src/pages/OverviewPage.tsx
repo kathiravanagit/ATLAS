@@ -10,6 +10,7 @@ import ModelPerformanceCard from '../components/ModelPerformanceCard';
 import ModelHealthCard from '../components/ModelHealthCard';
 import DriftIndicator from '../components/DriftIndicator';
 import CostRoiCard from '../components/CostRoiCard';
+import ScenarioRunner from '../components/ScenarioRunner';
 import Pipeline from '../components/Pipeline';
 import SyntheticOperationalSimulation from '../components/SyntheticOperationalSimulation';
 import { FolderOpen, MapPin, Bell, Clock, ExternalLink, RefreshCw, ShieldCheck, AlertOctagon } from 'lucide-react';
@@ -35,6 +36,8 @@ export default function OverviewPage() {
           </a>
         </div>
       </div>
+
+      {dataMode !== 'demo' && <ScenarioRunner />}
 
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard icon={FolderOpen} label="Active Cases" value={stats.active_cases} sub="Under investigation" color="default" className="animate-fade-in-up" style={{ animationDelay: '0ms' }} />

@@ -76,7 +76,7 @@ test('real backend isolated investigation: login → case → exact ATM → tran
     await page.locator('button[type="submit"]').click();
     await expect(page).toHaveURL('/real', { timeout: 20000 });
     await expect(page.getByText('Prevented Fraud', { exact: true })).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText('Prevented Fraud', { exact: true }).locator('..')).toContainText('Not measured');
+    await expect(page.getByText('Prevented Fraud', { exact: true }).locator('..')).toContainText('Resolved amount is not prevention');
     await page.getByRole('navigation').getByRole('button', { name: 'Cases', exact: true }).click();
     await page.getByRole('button', { name: 'View prediction for case CASE-INTEGRATION-001', exact: true }).click();
     await expect(page.getByText(/Predictions: selected case CASE-INTEGRATION-001/)).toBeVisible({ timeout: 20000 });

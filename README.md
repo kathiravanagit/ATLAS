@@ -344,7 +344,7 @@ SMTP_PASSWORD=
 
 ## Model Limitations (read before citing accuracy)
 
-Retrained 2026-10-09 (`rf-xgb-synthetic-v6-20261009`, 200k grouped-synthetic rows): group holdout precision 98.1 / recall 43.4 / F1 60.2 / ROC-AUC 0.74 / PR-AUC 0.49; time and location holdouts score similarly (see `model/validation_report.json`). High precision at the cost of recall is deliberate (avoid alert fatigue on a 3.6%-minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
+Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 87.3 / recall 33.7 / F1 48.7 / ROC-AUC 0.67 / PR-AUC 0.36; time and location holdouts score similarly (see `model/validation_report.json`). High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
 
 The revised generator keeps fraud-ring geography consistent, saves group IDs, and uses the same observable evening-window feature as serving. Its target is a synthetic cash-out event, **not automatically fraudulent cash-out**. Group-disjoint evaluation still measures simulator classification, not real-world location/time effectiveness.
 

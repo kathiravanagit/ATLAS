@@ -84,7 +84,7 @@ Risk index and confidence are uncalibrated model-derived scores—not the probab
 
 ### Current artifact status
 
-Regenerated and retrained 2026-10-09 (`rf-xgb-synthetic-v6-20261009`): group holdout precision 98.1 / recall 43.4 / F1 60.2 / ROC-AUC 0.74 / PR-AUC 0.49, with matching time/location holdouts, 10-bin calibration and threshold sweeps in `model/validation_report.json`. Library versions are recorded in metadata; the XGBoost estimator is archived in native JSON as well as serving pickle. What remains unavailable by design: next-ATM Hit@K, geographic error, future-window coverage (need observed outcomes).
+Regenerated and retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`): group holdout precision 87.3 / recall 33.7 / F1 48.7 / ROC-AUC 0.67 / PR-AUC 0.36, with matching time/location holdouts, 10-bin calibration and threshold sweeps in `model/validation_report.json`. Library versions are recorded in metadata; the XGBoost estimator is archived in native JSON as well as serving pickle. What remains unavailable by design: next-ATM Hit@K, geographic error, future-window coverage (need observed outcomes).
 
 To explicitly replace generated data and weights after backing up anything needed:
 

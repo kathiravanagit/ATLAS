@@ -162,20 +162,30 @@ def generate_transactions(atms, n_transactions=200000):
     fraud_count = 0
     target_fraud = int(n_transactions * 0.015)
 
-    # Pre-generate fraud clusters (mule account rings)
+    # Pre-generate fraud clusters (mule account rings). Rings concentrate on
+    # high-crime-density ATMs (hotspots) instead of uniform placement.
     n_fraud_rings = target_fraud // 3
+    hotspot_pool = [a for a in atms if a["crime_density"] >= 10] or atms
     fraud_rings = []
     for _ in range(n_fraud_rings):
-        ring_center_atm = atms[np.random.randint(len(atms))]
+        if np.random.random() < 0.7:
+            ring_center_atm = hotspot_pool[np.random.randint(len(hotspot_pool))]
+        else:
+            ring_center_atm = atms[np.random.randint(len(atms))]
         ring_size = np.random.randint(2, 6)
         ring_members = []
         for _ in range(ring_size):
             member_lat = ring_center_atm["lat"] + np.random.normal(0, 0.01)
             member_lng = ring_center_atm["lng"] + np.random.normal(0, 0.01)
+            # Mostly evening hours, with a small late-night (0-4) sub-pattern.
+            if np.random.random() < 0.15:
+                member_hour = int(np.random.randint(0, 5))
+            else:
+                member_hour = np.random.choice(range(17, 23), p=[0.15, 0.20, 0.25, 0.20, 0.15, 0.05])
             ring_members.append({
                 "lat": member_lat, "lng": member_lng,
                 "amount": np.random.uniform(8000, 120000),
-                "hour": np.random.choice(range(17, 23), p=[0.15, 0.20, 0.25, 0.20, 0.15, 0.05]),
+                "hour": member_hour,
             })
         fraud_rings.append({
             "atm": ring_center_atm,
@@ -234,22 +244,23 @@ def generate_transactions(atms, n_transactions=200000):
         amount_norm = min(amount / 150000, 1.0)
         freq = min(np.random.poisson(atm["base_risk"] * 8) / 10, 1.0)
 
-        # Fraud rows: high probability of cash_out=1
-        # Legit rows: low probability (~1-2%) of cash_out=1
+        # Fraud rows: high probability of cash_out=1. Coefficients are
+        # deliberately moderate (plus wide noise) so positives and negatives
+        # overlap — a separable generator would make every score >90%.
         if is_fraud:
             logit = (
                 -1.0
-                + 2.0 * proximity
-                + 1.8 * density
-                + 1.5 * time_match
-                + 1.0 * type_score
-                + 1.2 * suspect_prox
-                + 0.8 * velocity
-                + 0.4 * freq
-                + 0.5 * amount_norm
-                + 0.7 * (num_mules >= 3)
-                + 0.5 * (hour >= 17)
-                + np.random.normal(0, 0.3)
+                + 1.2 * proximity
+                + 1.0 * density
+                + 0.8 * time_match
+                + 0.5 * type_score
+                + 0.7 * suspect_prox
+                + 0.4 * velocity
+                + 0.2 * freq
+                + 0.25 * amount_norm
+                + 0.35 * (num_mules >= 3)
+                + 0.25 * (hour >= 17)
+                + np.random.normal(0, 0.9)
             )
             prob = 1 / (1 + np.exp(-logit))
             cash_out = 1 if np.random.random() < prob else 0
@@ -257,18 +268,26 @@ def generate_transactions(atms, n_transactions=200000):
             # Much lower base rate for legit transactions
             logit = (
                 -5.5
-                + 0.8 * proximity
-                + 0.6 * density
-                + 0.3 * time_match
-                + 0.2 * type_score
-                + 0.2 * suspect_prox
-                + 0.1 * velocity
-                + 0.2 * freq
-                + 0.1 * amount_norm
-                + np.random.normal(0, 0.3)
+                + 0.4 * proximity
+                + 0.3 * density
+                + 0.15 * time_match
+                + 0.1 * type_score
+                + 0.1 * suspect_prox
+                + 0.05 * velocity
+                + 0.1 * freq
+                + 0.05 * amount_norm
+                + np.random.normal(0, 0.9)
             )
             prob = 1 / (1 + np.exp(-logit))
             cash_out = 1 if np.random.random() < prob else 0
+
+        # Label noise (asymmetric, like real mislabeling): missed fraud is
+        # more common than false fraud reports, so flip 7% of positives but
+        # only 1.5% of negatives. A symmetric rate would drown a ~4% base
+        # rate in noise and the model would learn mostly flips.
+        flip_p = 0.07 if cash_out == 1 else 0.015
+        if np.random.random() < flip_p:
+            cash_out = 1 - cash_out
 
         txn_type = np.random.choice(["withdrawal", "transfer", "upi", "qr_scan", "pos"],
                                       p=[0.35, 0.25, 0.20, 0.10, 0.10])

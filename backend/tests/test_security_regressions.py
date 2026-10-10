@@ -446,15 +446,18 @@ def test_legacy_model_card_does_not_invent_verified_holdouts(tmp_path, monkeypat
     assert protocol["holdout_revalidation"]["previous_prefix_diagnostic"]["status"] == "withdrawn"
 
 
-def test_dashboard_retains_nullable_unmeasured_contract(client, headers):
+def test_dashboard_computes_live_aggregates(client, headers):
     response = client.get("/api/dashboard", headers=headers())
     assert response.status_code == 200
     data = response.json()
     assert data["active_cases"] == 3
-    assert data["prevented_fraud"] is None
-    assert data["mules_flagged"] is None
+    # Fixture has no resolved cases, predictions, or transaction records:
+    # aggregates are real zeros, and lead time honestly uncomputable.
+    assert data["prevented_fraud"] == 0
+    assert data["mules_flagged"] == 0
     assert data["avg_lead_time"] == "Not measured"
     assert data["resolved_case_amount"] == 0
+    assert "case records" in data["metrics_note"]
 
 
 def test_seed_pre_encryption_is_normalized_at_runtime(monkeypatch):

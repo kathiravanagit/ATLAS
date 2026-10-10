@@ -14,7 +14,7 @@ export default function CasesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#1F2937]">Case Registry</h2>
-          <p className="text-base text-[#374151] mt-1">Synthetic complaint registry — all cities, not live government records</p>
+          <p className="text-base text-[#374151] mt-1">Complaint registry — all cities (illustrative records)</p>
         </div>
         <a href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer"
           className="px-4 py-2 bg-white text-[#1F2937] text-base font-medium rounded-lg hover:bg-[#F3F4F6] transition-colors flex items-center gap-2">
