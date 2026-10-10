@@ -87,7 +87,7 @@ The model is decision support — every high-risk case needs human review.
 **What remains unvalidated or prototype-only:**
 
 - Next-ATM Hit@K, geographic error, and future-window coverage (need observed future outcomes and authorised data)
-- NLP complaint triage (statistical TF-IDF classifier trained on illustrative templates, not transformer-based)
+- NLP complaint triage (statistical TF-IDF + Naive Bayes classifier trained on illustrative templates, not transformer-based)
 - Mule network graph built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback when no records exist)
 
 **The honest pitch for judges:** "This is a security-focused investigation-console prototype. Its prediction workflow uses persisted, reproducible synthetic transaction fixtures. It has not been validated on real data, connected to a government system, or deployed to production."
@@ -130,7 +130,7 @@ Python 3.13 · FastAPI 0.115 · SQLAlchemy 2.0 · PostgreSQL 16 + optional PostG
 
 ### AI/ML
 
-scikit-learn 1.6.1 (RandomForest) · XGBoost 2.1.1 · SHAP 0.48 · NetworkX 3.3 (Louvain) · pandas 2.2.3 · NumPy 2.1.3. Anomaly/drift surfaces use explicitly labelled heuristics, not validated IsolationForest/PSI monitoring.
+scikit-learn 1.6.1 (RandomForest) · XGBoost 3.4.1 · SHAP 0.48 · NetworkX 3.3 (Louvain) · pandas 2.2.3 · NumPy 2.5.2. Anomaly/drift surfaces use explicitly labelled heuristics, not validated IsolationForest/PSI monitoring.
 
 ---
 

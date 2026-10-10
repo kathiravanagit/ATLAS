@@ -101,7 +101,7 @@ Define the actual task before claiming next-location/time effectiveness: given i
 
 Evaluate Hit@3/Hit@5, geographic error, future-window coverage, precision/recall and investigator alert workload against genuine per-case baselines. Select thresholds with a separate validation process; descriptive holdout sweeps do not establish a tuned operational threshold. No model improvement or real-world metric is guaranteed by correcting the evaluation.
 
-NLP triage is a statistical TF-IDF classifier trained on illustrative templates (not transformer-based, not trained on real complaints). Mule graphs are built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback). Drift/anomaly surfaces are heuristics, not validated population stability index or IsolationForest monitoring. Federated learning is not implemented.
+NLP triage is a statistical TF-IDF + Naive Bayes classifier trained on illustrative templates (not transformer-based, not trained on real complaints). Mule graphs are built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback). Drift/anomaly surfaces are heuristics, not validated population stability index or IsolationForest monitoring. Federated learning is not implemented.
 
 ## Setup and configuration
 
