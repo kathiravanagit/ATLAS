@@ -50,7 +50,7 @@ def run():
             "JWT_SECRET_KEY": "", "SECRET_KEY": "frontend-isolated-test-access-secret-at-least-32-chars",
             "REFRESH_SECRET_KEY": "frontend-isolated-test-refresh-secret-at-least-32-chars",
             "ENCRYPTION_KEY": bytes(range(32)).hex(), "COOKIE_SECURE": "false", "CHAIN_BACKEND": "file",
-            "SMS_PROVIDER": "fast2sms", "FAST2SMS_API_KEY": "",
+            "SMS_PROVIDER": "textbee", "TEXTBEE_API_KEY": "", "TEXTBEE_DEVICE_ID": "",
             "SMTP_HOST": "", "SMTP_USER": "", "SMTP_PASSWORD": "",
         })
         sys.path.insert(0, str(BACKEND))

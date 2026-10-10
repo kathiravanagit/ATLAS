@@ -9,6 +9,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "")
 ALERT_FROM_EMAIL = os.getenv("ALERT_FROM_EMAIL", "alerts@atlas.gov")
 INVESTIGATOR_EMAIL = os.getenv("INVESTIGATOR_EMAIL", "investigator@atlas.gov")
 
@@ -25,7 +26,7 @@ def send_email_alert(subject: str, message: str, to_email: str = None):
         msg = EmailMessage()
         msg.set_content(message)
         msg['Subject'] = f"[ATLAS ALERT] {subject}"
-        msg['From'] = ALERT_FROM_EMAIL
+        msg['From'] = SMTP_FROM or ALERT_FROM_EMAIL
         msg['To'] = to_email if to_email else INVESTIGATOR_EMAIL
         
         # Connect to SMTP server (TLS)

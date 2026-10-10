@@ -139,6 +139,55 @@ def threshold_sweep(y, proba):
     return rows
 
 
+def hit_at_k_metrics(df, splits, rf, xgb, ks=(1, 3, 5)):
+    """Synthetic ATM-retrieval check mirroring the heatmap ranking.
+
+    Per holdout city-slice, rank that slice's ATMs by mean ensemble
+    probability over the slice's rows at each ATM; truth is the slice ATM
+    with the most actual cash-outs. Synthetic only, small-n city slices —
+    not real-world next-ATM accuracy.
+    """
+    if not {"atm_id", "city", "cash_out_occurred"}.issubset(df.columns):
+        return {"status": "unavailable",
+                "reason": "Retrieval needs per-row atm_id, city and cash-out labels"}
+    units = []
+    for name in ("group_holdout", "time_holdout", "location_holdout"):
+        part = df.iloc[splits[name]]
+        if part.empty:
+            continue
+        for city_name, city_part in part.groupby("city"):
+            units.append((f"{name}:{city_name}", city_part))
+    hits = {k: 0 for k in ks}
+    evaluated = 0
+    details = []
+    for uname, upart in units:
+        if upart["atm_id"].nunique() < 2 or int(upart["cash_out_occurred"].sum()) == 0:
+            continue
+        proba = ensemble_proba(rf, xgb, upart[FEATURE_COLS])
+        ranked = (upart.assign(_proba=proba).groupby("atm_id")["_proba"]
+                  .mean().sort_values(ascending=False))
+        truth = (upart.loc[upart["cash_out_occurred"] == 1]
+                 .groupby("atm_id").size().sort_values(ascending=False))
+        top_actual = truth.index[0]
+        rank_of_truth = list(ranked.index).index(top_actual) + 1
+        evaluated += 1
+        for k in ks:
+            if rank_of_truth <= k:
+                hits[k] += 1
+        details.append({"unit": uname, "n_atms": int(upart["atm_id"].nunique()),
+                        "cashouts": int(upart["cash_out_occurred"].sum()),
+                        "truth_atm": str(top_actual), "truth_rank": rank_of_truth})
+    return {
+        "status": "available_synthetic_only" if evaluated else "unavailable",
+        "method": "per holdout city-slice, rank ATMs by mean ensemble probability over slice rows; truth = slice ATM with most actual cash-outs",
+        "n_units": evaluated,
+        "hits": {f"top_{k}": f"{hits[k]}/{evaluated}" for k in ks},
+        "hit_rate": {f"top_{k}": (round(hits[k] / evaluated, 4) if evaluated else None) for k in ks},
+        "units": details,
+        "note": "synthetic ATM-retrieval check mirroring the heatmap ranking; small-n city slices, not real-world next-ATM accuracy",
+    }
+
+
 def unavailable_report(reason):
     unavailable = {"status": "unavailable", "reason": reason}
     return {
@@ -148,6 +197,7 @@ def unavailable_report(reason):
                    ("group_holdout", "time_holdout", "location_holdout")},
         "baseline_comparison": dict(unavailable),
         "calibration": dict(unavailable), "threshold_sweep": dict(unavailable),
+        "synthetic_hit_at_k": dict(unavailable),
         "previous_prefix_diagnostic": {
             "status": "withdrawn",
             "selection": "first 20000 rows in file order, NOT a random sample",
@@ -211,6 +261,7 @@ def build_validation_report(df, metadata, rf, xgb, artifact_paths=None):
         report["baseline_comparison"][name] = baseline_comparison(part, y, proba)
         report["calibration"][name] = calibration(proba, y)
         report["threshold_sweep"][name] = threshold_sweep(y, proba)
+    report["synthetic_hit_at_k"] = hit_at_k_metrics(df, splits, rf, xgb)
     return report
 
 

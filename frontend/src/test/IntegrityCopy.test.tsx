@@ -32,13 +32,14 @@ describe('prototype integrity copy', () => {
     expect(screen.getAllByText(/Not implemented;/)).toHaveLength(3);
   });
 
-  it('notification copy limits enqueueing to high-risk simulations and disclaims atomic delivery', async () => {
+  it('notification copy limits enqueueing to new high-risk alert rows and disclaims atomic delivery', async () => {
     const { container } = render(<AlertPanel alerts={[]} onAcknowledge={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'Notification log' }));
     await waitFor(() => expect(screen.getByText(/No notification jobs recorded/)).toBeInTheDocument());
-    expect(container.textContent).toContain('High-risk transaction simulations enqueue');
+    expect(container.textContent).toContain('HIGH-risk predictions and');
+    expect(container.textContent).toContain('once per open case+ATM');
     expect(container.textContent).toContain('separate commits, not one atomic transaction');
-    expect(container.textContent).toContain('Other alert creation paths do not automatically queue notifications');
+    expect(container.textContent).toContain('TextBee/SMTP');
     expect(container.textContent).not.toMatch(/each alert enqueues|work transactionally|dispatch rows appear here once an alert is created/);
   });
 });

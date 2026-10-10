@@ -41,6 +41,27 @@ _predictions_cache: dict = {}
 _PREDICTIONS_CACHE_TTL = 45.0
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    return os.getenv(name, "true" if default else "false").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(0, int((os.getenv(name, str(default)) or "").strip() or default))
+    except (ValueError, TypeError):
+        return default
+
+
+# Anti-spam dispatch controls. All True/permissive by default so the queued
+# contract holds; set false/low in backend/.env for daily coding (dashboard
+# toasts only), and enable once for a single stage-demo test.
+ALERTS_SMS_ENABLED = _env_flag("ALERTS_SMS_ENABLED", True)
+ALERTS_EMAIL_ENABLED = _env_flag("ALERTS_EMAIL_ENABLED", True)
+ALERTS_SMS_MAX_PER_DAY = _env_int("ALERTS_SMS_MAX_PER_DAY", 10)
+ALERTS_EMAIL_MAX_PER_DAY = _env_int("ALERTS_EMAIL_MAX_PER_DAY", 20)
+ALERTS_COOLDOWN_MINUTES = _env_int("ALERTS_COOLDOWN_MINUTES", 45)
+
+
 def _invalidate_prediction_caches():
     _city_prediction_cache.clear()
     _predictions_cache.clear()
@@ -606,6 +627,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
 
     result = {
         "case_id": case_id,
+        "city": city["name"],
         "status": "HIGH PRIORITY" if primary["risk_score"] > 70 else "MEDIUM PRIORITY",
         "primary_location": primary,
         "ranked_locations": ranked,
@@ -628,7 +650,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     }
 
     _persist_prediction(db, result)
-    _raise_high_risk_alert(db, case_id, result.get("primary_location") or {})
+    _raise_high_risk_alert(db, case_id, result.get("primary_location") or {}, city=result.get("city", ""))
 
     return result
 
@@ -647,21 +669,71 @@ def add_audit(db: Session, action: str, details: str, action_type: str = "action
     db.commit()
 
 
-def _raise_high_risk_alert(db: Session, case_id: str, primary: dict):
-    """Toast + SMS every time a HIGH (>70) prediction is produced.
+def _dispatch_guard(db: Session, kind: str) -> tuple:
+    """(allowed, reason) for enqueueing one sms/email job. Never raises.
+
+    Single recipient per kind; guards are global per kind: kill-switch flag,
+    cooldown since the last sent job, and per-day sent cap. Breaches fail
+    soft (log + dashboard row/toast only, never crash).
+    """
+    try:
+        enabled = ALERTS_SMS_ENABLED if kind == "sms" else ALERTS_EMAIL_ENABLED
+        if not enabled:
+            return False, f"{kind} dispatch disabled (ALERTS_{kind.upper()}_ENABLED=false)"
+        now = datetime.now(timezone.utc)
+        sent = db.query(NotificationJob).filter(
+            NotificationJob.kind == kind, NotificationJob.status == "sent").all()
+
+        def _aware(ts):
+            return ts.replace(tzinfo=timezone.utc) if ts is not None and ts.tzinfo is None else ts
+        stamps = [_aware(j.updated_at or j.created_at) for j in sent]
+        stamps = [s for s in stamps if s is not None]
+        if ALERTS_COOLDOWN_MINUTES > 0 and stamps:
+            latest = max(stamps)
+            elapsed = (now - latest).total_seconds()
+            if elapsed < ALERTS_COOLDOWN_MINUTES * 60:
+                return False, f"{kind} cooldown: last dispatch {int(elapsed // 60)}m ago"
+        cap = ALERTS_SMS_MAX_PER_DAY if kind == "sms" else ALERTS_EMAIL_MAX_PER_DAY
+        today = sum(1 for s in stamps if s.date() == now.date())
+        if today >= cap:
+            return False, f"{kind} daily cap reached ({cap}/day)"
+        return True, "ok"
+    except Exception as exc:
+        logger.warning("Dispatch guard error; skipping %s enqueue: %s", kind, exc)
+        return False, f"guard error: {exc}"
+
+
+def _high_risk_message(case_id: str, primary: dict, city: str = "") -> tuple:
+    """Dynamic HIGH-risk notification body + email subject from prediction fields."""
+    location = f"{primary.get('atm_id')}, {primary.get('location_name')}"
+    if city:
+        location = f"{location}, {city}"
+    body = (
+        "ATLAS ALERT\n"
+        f"Case: {case_id}\n"
+        f"Risk: HIGH ({primary.get('risk_score')}%)\n"
+        f"Location: {location}\n"
+        f"Window: {primary.get('expected_window')}\n"
+        "Action: Open ATLAS console to review ranked ATMs."
+    )
+    subject_city = city or primary.get('location_name') or ""
+    subject = f"ATLAS HIGH RISK — {case_id} — {subject_city}".rstrip(" — ")
+    return body, subject
+
+
+def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str = ""):
+    """Dashboard alert + toast every HIGH (>70) prediction; SMS/email once per open case+ATM.
 
     Alert *rows* are deduplicated (one open alert per case+ATM) so the
-    registry never floods; the SMS job and WebSocket broadcast fire on
-    every production. No audit entry — automatic predictions must not
-    spam the audit trail (only officer actions are logged there).
+    registry never floods; SMS/email jobs enqueue only when a NEW alert row
+    is created (no repeat dispatch until acknowledged/resolved). The
+    WebSocket toast still fires on every production for the live console.
+    No audit entry — automatic predictions must not spam the audit trail
+    (only officer actions are logged there).
     """
     if not primary or primary.get("risk_score", 0) <= 70:
         return None
-    alert_msg = (
-        f"HIGH-RISK prediction: {case_id} may cash out at {primary.get('atm_id')} "
-        f"({primary.get('location_name')}) — Risk Score {primary.get('risk_score')}% "
-        f"in window {primary.get('expected_window')}"
-    )
+    alert_msg, email_subject = _high_risk_message(case_id, primary, city)
     # Alert.location is EncryptedText: SQL LIKE would match ciphertext, so
     # dedupe after decryption like the rest of the codebase (see get_audit_log).
     prefix = f"{primary.get('atm_id')}"
@@ -671,7 +743,8 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict):
         .all()
     )
     alert = next((a for a in candidates if (a.location or "").startswith(prefix)), None)
-    if alert is None:
+    is_new = alert is None
+    if is_new:
         alert = Alert(
             alert_id=f"ALT-{uuid.uuid4().hex[:8].upper()}",
             case_id=case_id,
@@ -684,8 +757,29 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict):
         )
         db.add(alert)
         db.commit()
-    # SMS goes to INVESTIGATOR_PHONE_NUMBER by default (see sms_client).
-    enqueue_notification(db, "sms", {"message": alert_msg})
+    if is_new:
+        # Durable dispatch via tracked jobs (retry + dead-letter), same path
+        # as the transaction flow. Recipients default to the investigator
+        # env numbers/addresses (see sms_client / email_client). Anti-spam
+        # guards (enabled flag, cooldown, daily cap) fail soft to log +
+        # dashboard row/toast only.
+        queued_any = False
+        for kind, payload in (("sms", {"message": alert_msg}),
+                              ("email", {"subject": email_subject, "message": alert_msg})):
+            allowed, reason = _dispatch_guard(db, kind)
+            if allowed:
+                enqueue_notification(db, kind, payload)
+                queued_any = True
+            else:
+                logger.info("Alert dispatch skipped (%s): %s", kind, reason)
+        # Test fixtures process queued jobs explicitly with fake senders; never
+        # dispatch real SMS/email or race fixture teardown in TESTING mode.
+        if queued_any and os.getenv("TESTING") != "1":
+            threading.Thread(
+                target=run_notification_worker,
+                args=(SessionLocal, send_sms_alert, send_email_alert),
+                daemon=True,
+            ).start()
     # Broadcast for the on-screen toast + sound. Mirrors the transaction path;
     # `manager` is defined below — resolved at call time.
     import asyncio
@@ -967,7 +1061,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "data_source": "synthetic-fixture transaction_records",
     }
     _persist_prediction(db, res_payload)
-    _raise_high_risk_alert(db, synthetic_case_id, primary or {})
+    _raise_high_risk_alert(db, synthetic_case_id, primary or {}, city=city["name"])
     _city_prediction_cache[city_id] = (time.time(), res_payload)
     return res_payload
 
@@ -1313,6 +1407,43 @@ def acknowledge_alert(alert_id: str, user: dict = Depends(require_permission("re
     add_audit(db, "Alert Acknowledged", "Alert {} acknowledged by {}".format(alert_id, user["id"]), "alert", alert.case_id)
 
     return {"status": "acknowledged", "alert_id": alert_id}
+
+
+@app.post("/api/alerts/{alert_id}/notify")
+def notify_officer(alert_id: str, user: dict = Depends(require_permission("read")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    """Officer-triggered SMS/email for one alert (the "Notify officer" button).
+
+    Prediction flow only auto-dispatches on new alert rows, so this is the
+    deliberate manual path. Same anti-spam guards (enabled flag, cooldown,
+    daily cap) apply; the dashboard row and toast are unaffected.
+    """
+    alert = db.query(Alert).filter(Alert.alert_id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    require_case(db, user, alert.case_id, "acknowledge")
+    if alert.acknowledged:
+        raise HTTPException(status_code=409, detail="Alert already acknowledged; no dispatch")
+
+    dispatch = {}
+    for kind, payload in (
+        ("sms", {"message": alert.message}),
+        ("email", {"subject": f"ATLAS HIGH RISK — {alert.case_id} — {alert.location}",
+                   "message": alert.message}),
+    ):
+        allowed, reason = _dispatch_guard(db, kind)
+        dispatch[kind] = {"queued": False, "reason": reason}
+        if allowed:
+            enqueue_notification(db, kind, payload)
+            dispatch[kind] = {"queued": True, "reason": "ok"}
+    if any(r["queued"] for r in dispatch.values()) and os.getenv("TESTING") != "1":
+        threading.Thread(
+            target=run_notification_worker,
+            args=(SessionLocal, send_sms_alert, send_email_alert),
+            daemon=True,
+        ).start()
+    queued = [k for k, r in dispatch.items() if r["queued"]]
+    return {"status": "queued" if queued else "skipped", "alert_id": alert_id, "dispatch": dispatch}
 
 
 @app.get("/api/locations")

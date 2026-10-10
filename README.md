@@ -78,19 +78,23 @@ PR-AUC 0.36). See `backend/model/validation_report.json`,
 `backend/model/metadata.json`, and the UI Model Card page.
 
 Reported holdout figures are **simulator classification metrics only**
-(not real-world cash-out location accuracy). Next-ATM Hit@K and
-future-window coverage remain unavailable without observed outcomes
+(not real-world cash-out location accuracy). Synthetic ATM retrieval over
+14 holdout city-slices: Hit@1 6/14, Hit@3 11/14, Hit@5 11/14
+(`synthetic_hit_at_k` in `validation_report.json` — small-n, synthetic only).
+Future-window coverage remains unavailable without observed outcomes
 and authorised data.
 
 The model is decision support — every high-risk case needs human review.
 
 **What remains unvalidated or prototype-only:**
 
-- Next-ATM Hit@K, geographic error, and future-window coverage (need observed future outcomes and authorised data)
+- Future-window coverage and geographic error (need observed future outcomes and authorised data)
 - NLP complaint triage (statistical TF-IDF + Naive Bayes classifier trained on illustrative templates, not transformer-based)
 - Mule network graph built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback when no records exist)
 
 **The honest pitch for judges:** "This is a security-focused investigation-console prototype. Its prediction workflow uses persisted, reproducible synthetic transaction fixtures. It has not been validated on real data, connected to a government system, or deployed to production."
+
+**Scope of "100%":** with fully synthetic but end-to-end data, ATLAS implements 100% of the deliverable modules (ranking engine, heatmap, LEA console with alerts + evidence, notifications). It does not claim 100% operational national impact, which requires authorised real data and official channels — honest alignment is ~85–90% of the problem statement.
 
 ---
 
@@ -340,25 +344,28 @@ ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 SSL_CERTFILE=
 SSL_KEYFILE=
 
-# Optional — SMS (Fast2SMS; trial key from fast2sms.com, production needs DLT registration)
-SMS_PROVIDER=fast2sms
-FAST2SMS_API_KEY=
-FAST2SMS_SENDER_ID=FSTSMS
-FAST2SMS_ROUTE=q
-INVESTIGATOR_PHONE_NUMBER=
+# Optional — SMS (TextBee device gateway; prototype demo channel, not a government SMS system)
+SMS_PROVIDER=textbee
+TEXTBEE_API_KEY=
+TEXTBEE_DEVICE_ID=
+INVESTIGATOR_PHONE_NUMBER=+91XXXXXXXXXX
 
-# Optional — Email (SMTP)
-SMTP_HOST=
+# Optional — Email (SMTP; prototype notification path)
+SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
+SMTP_FROM=
+INVESTIGATOR_EMAIL=
 ```
+
+HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toast, and — once per open case+ATM — a TextBee SMS plus an SMTP email built from the prediction fields. Repeat predictions dispatch nothing new until acknowledged/resolved, and per-kind cooldown (45 min) plus daily caps (10 SMS / 20 email, env-configurable) fail soft to dashboard-only. An officer can also trigger one manual dispatch per open alert via the **Notify officer** button (`POST /api/alerts/{id}/notify`, same guards). Kill-switches `ALERTS_SMS_ENABLED` / `ALERTS_EMAIL_ENABLED` reduce the console to dashboard toasts. TextBee is a prototype device gateway and SMTP email a prototype path; production would use authorised LEA/bank/I4C channels, and India production SMS would require DLT plus an approved gateway where applicable. Synthetic data only; decision support, not automated enforcement.
 
 ---
 
 ## Model Limitations (read before citing accuracy)
 
-Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 87.3 / recall 33.7 / F1 48.7 / ROC-AUC 0.67 / PR-AUC 0.36; time and location holdouts score similarly (see `model/validation_report.json`). High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
+Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 87.3 / recall 33.7 / F1 48.7 / ROC-AUC 0.67 / PR-AUC 0.36; time and location holdouts score similarly (see `model/validation_report.json`). Synthetic ATM retrieval over 14 holdout city-slices (rank slice ATMs by mean model score; truth = slice ATM with most actual cash-outs): Hit@1 6/14, Hit@3 11/14, Hit@5 11/14 — small-n and synthetic only, not real-world next-ATM accuracy. High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
 
 The revised generator keeps fraud-ring geography consistent, saves group IDs, and uses the same observable evening-window feature as serving. Its target is a synthetic cash-out event, **not automatically fraudulent cash-out**. Group-disjoint evaluation still measures simulator classification, not real-world location/time effectiveness.
 

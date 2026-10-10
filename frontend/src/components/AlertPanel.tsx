@@ -35,6 +35,27 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
   const [jobs, setJobs] = useState<NotificationJob[]>([]);
   const [jobsError, setJobsError] = useState(false);
   const [jobsLoading, setJobsLoading] = useState(false);
+  const [notifyState, setNotifyState] = useState<Record<string, string>>({});
+  const [notifyBusy, setNotifyBusy] = useState<string | null>(null);
+
+  const handleNotify = (alertId: string) => {
+    setNotifyBusy(alertId);
+    authFetch(`${API_BASE}/alerts/${encodeURIComponent(alertId)}/notify`, { method: 'POST' })
+      .then(async r => {
+        const data = r.ok ? await r.json().catch(() => null) : null;
+        if (!r.ok || !data) {
+          setNotifyState(s => ({ ...s, [alertId]: r.status === 409 ? 'Already acknowledged — no dispatch.' : 'Notify unavailable.' }));
+          return;
+        }
+        const d = data.dispatch || {};
+        const sms = d.sms?.queued ? 'SMS queued' : `SMS skipped (${d.sms?.reason || 'guard'})`;
+        const email = d.email?.queued ? 'Email queued' : `Email skipped (${d.email?.reason || 'guard'})`;
+        setNotifyState(s => ({ ...s, [alertId]: `${sms}; ${email}.` }));
+        if (showNotifications) loadJobs();
+      })
+      .catch(() => setNotifyState(s => ({ ...s, [alertId]: 'Notify unavailable.' })))
+      .finally(() => setNotifyBusy(null));
+  };
 
   const loadJobs = () => {
     setJobsLoading(true);
@@ -157,10 +178,11 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
               </button>
             </div>
             <div className="text-[11px] text-[#6B7280] mb-3">
-              Dispatch log from <span className="font-mono">notification_jobs</span>. High-risk transaction simulations enqueue
-              SMS/email jobs after the alert is committed; these are separate commits, not one atomic transaction.
-              Other alert creation paths do not automatically queue notifications. Job status records retries and dead-letter failures;
-              external delivery requires configured Fast2SMS/SMTP credentials and is not guaranteed.
+              Dispatch log from <span className="font-mono">notification_jobs</span>. HIGH-risk predictions and
+              high-risk transaction simulations enqueue SMS/email jobs when a new alert row is committed
+              (once per open case+ATM); repeats dispatch nothing new until acknowledged/resolved. These are
+              separate commits, not one atomic transaction. Job status records retries and dead-letter failures;
+              external delivery requires configured TextBee/SMTP credentials and is not guaranteed.
             </div>
             <div className="grid grid-cols-4 gap-2 mb-1">
               <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
@@ -238,7 +260,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
 
           <div className="card p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] text-center">
-              Queued notification jobs, when present, are recorded in the backend. SMS (Fast2SMS) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
+              Queued notification jobs, when present, are recorded in the backend. SMS (TextBee) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
             </div>
           </div>
         </div>
@@ -371,6 +393,20 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                   >
                     <CheckCircle size={10} /> Acknowledge
                   </button>
+                )}
+                {!alert.acknowledged && (
+                  <button
+                    onClick={() => handleNotify(alert.alert_id)}
+                    disabled={notifyBusy === alert.alert_id}
+                    className="text-[11px] text-[#1F2937] bg-[#F3F4F6] hover:bg-[#E5E7EB] px-2 py-0.5 rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                    title="Queue one SMS + one email for this alert (kill-switch, cooldown and daily-cap guarded)"
+                    style={can('case.acknowledge') ? undefined : { display: 'none' }}
+                  >
+                    <Send size={10} /> {notifyBusy === alert.alert_id ? 'Notifying…' : 'Notify officer'}
+                  </button>
+                )}
+                {notifyState[alert.alert_id] && (
+                  <span className="text-[11px] text-[#6B7280]">{notifyState[alert.alert_id]}</span>
                 )}
                 {alert.acknowledged && (
                   <span className="text-[11px] text-[#6B7280] flex items-center gap-1">

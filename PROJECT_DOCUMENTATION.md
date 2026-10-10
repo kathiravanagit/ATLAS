@@ -36,7 +36,7 @@ flowchart TD
 | ML | Random Forest/XGBoost binary classification; synthetic training generator and provenance-bound revalidation |
 | Explanations | Exact saved candidate inputs and model identity; ensemble Kernel SHAP with empirical training background, or explicitly non-local importance |
 | Evidence | SHA-256-linked local ledger, Merkle proofs, prototype PoW mining and in-process network simulation |
-| Notifications | Tracked queued SMS/email jobs with optional configured providers; delivery is not implied by enqueueing. Every HIGH (>70) prediction raises an on-screen toast + siren (mutable, browser-generated) and enqueues a Fast2SMS message to `INVESTIGATOR_PHONE_NUMBER` (trial key for testing; production needs DLT registration). Alert rows dedupe to one open alert per case+ATM and predictions never write audit entries |
+| Notifications | Tracked queued SMS/email jobs with optional configured providers; delivery is not implied by enqueueing. Every HIGH (>70) prediction raises an on-screen toast + siren (mutable, browser-generated); a new open alert row also enqueues one TextBee SMS to `INVESTIGATOR_PHONE_NUMBER` plus one SMTP email (prototype channels; India production SMS would need DLT plus an approved gateway). Alert rows dedupe to one open alert per case+ATM with no repeat dispatch until acknowledged/resolved, and predictions never write audit entries |
 | Spatial | Synthetic city/ATM registry, haversine calculations, optional PostGIS integration |
 
 ### Two distinct console modes
@@ -167,7 +167,11 @@ No. All records are authorised synthetic demonstration fixtures. External integr
 
 **How accurate is the next-ATM prediction?**
 
-Not established. The implemented classifiers score synthetic rows (current holdout metrics in `backend/model/validation_report.json`); actual next-location/time metrics require case-grouped future outcomes. Older unsupported metrics stay withdrawn.
+Not established on real data. On synthetic holdouts the model retrieves the top actual cash-out ATM within its top 3 in 11 of 14 city-slices (Hit@1 6/14, Hit@5 11/14 — small-n, synthetic only, see `synthetic_hit_at_k` in `validation_report.json`). Actual next-location/time metrics require case-grouped future outcomes. Older unsupported metrics stay withdrawn.
+
+**What does "100%" mean here?**
+
+100% of the deliverable modules on synthetic end-to-end data (ranking engine, heatmap, LEA console with alerts + evidence, notifications) — not 100% operational national impact, which needs authorised real data and official channels. Honest alignment is ~85–90% of the problem statement.
 
 **What does the blockchain prove?**
 

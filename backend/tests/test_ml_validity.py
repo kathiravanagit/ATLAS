@@ -392,6 +392,19 @@ def test_unavailable_model_never_returns_neutral_valid_risk(monkeypatch, failure
         validation.ensemble_proba(None, None, pd.DataFrame())
 
 
+def test_synthetic_hit_at_k_reported_with_honest_scope():
+    model_dir = Path(ml.MODEL_DIR)
+    report = json.loads((model_dir / "validation_report.json").read_text())
+    hit = report["synthetic_hit_at_k"]
+    assert hit["status"] == "available_synthetic_only"
+    assert hit["n_units"] >= 3
+    for key in ("top_1", "top_3", "top_5"):
+        rate = hit["hit_rate"][key]
+        assert rate is None or 0.0 <= rate <= 1.0
+    assert "synthetic" in hit["note"].lower()
+    assert "not real-world" in hit["note"].lower()
+
+
 def test_future_metrics_and_checked_in_claims_are_unavailable():
     future = training.future_outcome_metrics()
     assert future["status"] == "unavailable"

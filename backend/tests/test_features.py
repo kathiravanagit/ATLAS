@@ -508,7 +508,7 @@ class TestNlpTriage:
             assert resp.status_code == 422
 
 class TestPredictionAlerts:
-    """HIGH (>70) predictions raise toast + SMS every time; Alert rows dedupe."""
+    """HIGH (>70) predictions: toast every time; alert row + SMS/email once per open case+ATM."""
 
     def test_high_city_prediction_creates_alert_and_sms_job(self, client, admin_token):
         resp = client.get("/api/cities/puducherry/predictions",
@@ -523,19 +523,39 @@ class TestPredictionAlerts:
                 Alert.acknowledged == False).first()
             assert alert is not None
             assert alert.risk_level == "High"
+            assert "ATLAS ALERT" in (alert.message or "")
             job = db.query(NotificationJob).filter(
                 NotificationJob.kind == "sms").order_by(NotificationJob.id.desc()).first()
             assert job is not None
             assert "SYN-CITY-PUDUCHERRY" in (job.payload or "")
+            email_job = db.query(NotificationJob).filter(
+                NotificationJob.kind == "email").order_by(NotificationJob.id.desc()).first()
+            assert email_job is not None
+            assert "ATLAS HIGH RISK" in (email_job.payload or "")
         finally:
             db.close()
 
-    def test_repeat_prediction_sms_every_time_but_single_open_alert(self, client, admin_token):
+    def test_high_risk_message_builds_dynamic_body(self):
+        import main as main_module
+        body, subject = main_module._high_risk_message(
+            "CASE-001",
+            {"atm_id": "PNY-003", "location_name": "White Town",
+             "risk_score": 87, "expected_window": "18:00-20:00"},
+            city="Puducherry",
+        )
+        assert "ATLAS ALERT" in body
+        assert "CASE-001" in body and "87" in body
+        assert "PNY-003" in body and "Puducherry" in body
+        assert "18:00-20:00" in body
+        assert subject == "ATLAS HIGH RISK — CASE-001 — Puducherry"
+
+    def test_repeat_prediction_dedupes_jobs_but_single_open_alert(self, client, admin_token):
         import main as main_module
         main_module._city_prediction_cache.pop("puducherry", None)
         db = TestingSessionLocal()
         try:
-            jobs_before = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
+            sms_before = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
+            email_before = db.query(NotificationJob).filter(NotificationJob.kind == "email").count()
         finally:
             db.close()
         for _ in range(2):
@@ -549,12 +569,118 @@ class TestPredictionAlerts:
                 Alert.case_id == "SYN-CITY-PUDUCHERRY",
                 Alert.acknowledged == False).all()
             assert len(alerts) == 1
-            jobs_after = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
-            assert jobs_after >= jobs_before + 2
+            sms_after = db.query(NotificationJob).filter(NotificationJob.kind == "sms").count()
+            email_after = db.query(NotificationJob).filter(NotificationJob.kind == "email").count()
+            assert sms_after == sms_before + 1
+            assert email_after == email_before + 1
         finally:
             db.close()
+class TestManualNotify:
+    """Officer-triggered dispatch ("Notify officer"): deliberate path, same anti-spam guards."""
+
+    def _open_alert_id(self, client, admin_token):
+        import main as main_module
+        main_module._city_prediction_cache.pop("puducherry", None)
+        resp = client.get("/api/cities/puducherry/predictions",
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        db = TestingSessionLocal()
+        try:
+            alert = db.query(Alert).filter(
+                Alert.case_id == "SYN-CITY-PUDUCHERRY",
+                Alert.acknowledged == False).first()
+            assert alert is not None
+            return alert.alert_id
+        finally:
+            db.close()
+
+    def _notify(self, client, token, alert_id):
+        csrf = get_csrf_header(client, token)
+        return client.post(f"/api/alerts/{alert_id}/notify",
+                           headers={**auth_header(token), **csrf})
+
+    def _job_counts(self):
+        db = TestingSessionLocal()
+        try:
+            return {k: db.query(NotificationJob).filter(NotificationJob.kind == k).count()
+                    for k in ("sms", "email")}
+        finally:
+            db.close()
+
+    def test_notify_queues_sms_and_email(self, client, admin_token):
+        alert_id = self._open_alert_id(client, admin_token)
+        before = self._job_counts()
+        resp = self._notify(client, admin_token, alert_id)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["status"] == "queued"
+        assert data["dispatch"]["sms"]["queued"] is True
+        assert data["dispatch"]["email"]["queued"] is True
+        after = self._job_counts()
+        assert after["sms"] == before["sms"] + 1
+        assert after["email"] == before["email"] + 1
+
+    def test_notify_rejects_acknowledged(self, client, admin_token):
+        alert_id = self._open_alert_id(client, admin_token)
+        csrf = get_csrf_header(client, admin_token)
+        ack = client.post(f"/api/alerts/{alert_id}/acknowledge",
+                          headers={**auth_header(admin_token), **csrf})
+        assert ack.status_code == 200
+        resp = self._notify(client, admin_token, alert_id)
+        assert resp.status_code == 409
+
+    def test_notify_respects_cooldown(self, client, admin_token):
+        from reliability import enqueue_notification, process_notification_jobs
+        db = TestingSessionLocal()
+        try:
+            enqueue_notification(db, "sms", {"message": "prior"})
+            enqueue_notification(db, "email", {"subject": "s", "message": "prior"})
+            process_notification_jobs(db, lambda m, t=None: True,
+                                      lambda s, m, t=None: True, backoff_base_s=0)
+        finally:
+            db.close()
+        alert_id = self._open_alert_id(client, admin_token)
+        resp = self._notify(client, admin_token, alert_id)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["status"] == "skipped"
+        assert "cooldown" in data["dispatch"]["sms"]["reason"]
+        assert "cooldown" in data["dispatch"]["email"]["reason"]
+
+    def test_notify_disabled_flag_skips(self, client, admin_token, monkeypatch):
+        import main as main_module
+        monkeypatch.setattr(main_module, "ALERTS_SMS_ENABLED", False)
+        monkeypatch.setattr(main_module, "ALERTS_EMAIL_ENABLED", False)
+        alert_id = self._open_alert_id(client, admin_token)
+        before = self._job_counts()
+        resp = self._notify(client, admin_token, alert_id)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["status"] == "skipped"
+        assert self._job_counts() == before
+
+    def test_raise_respects_daily_cap(self, client, admin_token, monkeypatch):
+        import main as main_module
+        monkeypatch.setattr(main_module, "ALERTS_SMS_MAX_PER_DAY", 0)
+        monkeypatch.setattr(main_module, "ALERTS_EMAIL_MAX_PER_DAY", 0)
+        main_module._city_prediction_cache.pop("puducherry", None)
+        before = self._job_counts()
+        resp = client.get("/api/cities/puducherry/predictions",
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        # Dashboard row still created; zero dispatch jobs (fail soft).
+        db = TestingSessionLocal()
+        try:
+            alert = db.query(Alert).filter(
+                Alert.case_id == "SYN-CITY-PUDUCHERRY",
+                Alert.acknowledged == False).first()
+            assert alert is not None
+        finally:
+            db.close()
+        assert self._job_counts() == before
+
+
 class TestSmsDispatcher:
-    """SMS provider swap: GSM sanitize, fast2sms gating, offline-safe."""
+    """SMS provider: TextBee gateway, GSM sanitize, offline-safe."""
 
     def test_sanitize_gsm_ascii(self):
         import sms_client
@@ -562,42 +688,66 @@ class TestSmsDispatcher:
         assert out == "Risk Rs.25000 - window 18:00"
         out.encode("ascii")
 
-    def test_fast2sms_missing_key_returns_false(self, monkeypatch):
+    def test_textbee_missing_key_returns_false(self, monkeypatch):
         import sms_client
-        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "")
-        assert sms_client._send_fast2sms("hello", "+919876543210") is False
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "dev-1")
+        assert sms_client._send_textbee("hello", "+919876543210") is False
 
-    def test_fast2sms_success_strips_plus(self, monkeypatch):
+    def test_textbee_missing_device_returns_false(self, monkeypatch):
+        import sms_client
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "test-key")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "")
+        assert sms_client._send_textbee("hello", "+919876543210") is False
+
+    def test_textbee_success_posts_gateway_payload(self, monkeypatch):
         import sms_client
         calls = {}
         class FakeResp:
-            def json(self):
-                return {"return": True, "request_id": "req-1"}
-        def fake_post(url, headers=None, data=None, timeout=None):
-            calls.update(url=url, headers=headers, data=data)
+            status_code = 200
+            text = '{"success":true}'
+        def fake_post(url, headers=None, json=None, timeout=None):
+            calls.update(url=url, headers=headers, json=json)
             return FakeResp()
-        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "test-key")
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "test-key")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "dev-1")
         monkeypatch.setattr(sms_client.httpx, "post", fake_post)
-        assert sms_client._send_fast2sms("hello", "+919876543210") is True
-        assert calls["data"]["numbers"] == "919876543210"
-        assert calls["headers"]["authorization"] == "test-key"
+        assert sms_client._send_textbee("hello", "919876543210") is True
+        assert calls["url"] == "https://api.textbee.dev/api/v1/gateway/send-sms"
+        assert calls["headers"] == {"x-api-key": "test-key"}
+        assert calls["json"] == {
+            "deviceId": "dev-1",
+            "recipients": ["+919876543210"],
+            "message": "hello",
+        }
 
-    def test_fast2sms_rejection_returns_false(self, monkeypatch):
+    def test_textbee_rejection_returns_false(self, monkeypatch):
         import sms_client
         class FakeResp:
-            def json(self):
-                return {"return": False, "message": "invalid key"}
-        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "bad-key")
+            status_code = 401
+            text = "unauthorized"
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "bad-key")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "dev-1")
         monkeypatch.setattr(sms_client.httpx, "post", lambda *a, **k: FakeResp())
-        assert sms_client._send_fast2sms("hello", "919876543210") is False
+        assert sms_client._send_textbee("hello", "+919876543210") is False
+
+    def test_textbee_never_raises_on_transport_error(self, monkeypatch):
+        import sms_client
+        def boom(*a, **k):
+            raise RuntimeError("offline")
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "test-key")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "dev-1")
+        monkeypatch.setattr(sms_client.httpx, "post", boom)
+        assert sms_client._send_textbee("hello", "+919876543210") is False
 
     def test_dispatcher_rejects_unknown_provider(self, monkeypatch):
         import sms_client
         monkeypatch.setattr(sms_client, "PROVIDER", "carrier-pigeon")
         assert sms_client.send_sms_alert("hello", "919876543210") is False
 
-    def test_dispatcher_defaults_to_fast2sms(self, monkeypatch):
+    def test_dispatcher_defaults_to_textbee(self, monkeypatch):
         import sms_client
-        monkeypatch.setattr(sms_client, "PROVIDER", "fast2sms")
-        monkeypatch.setattr(sms_client, "FAST2SMS_API_KEY", "")
+        monkeypatch.setattr(sms_client, "PROVIDER", "textbee")
+        monkeypatch.setattr(sms_client, "TEXTBEE_API_KEY", "")
+        monkeypatch.setattr(sms_client, "TEXTBEE_DEVICE_ID", "dev-1")
         assert sms_client.send_sms_alert("hello", "919876543210") is False

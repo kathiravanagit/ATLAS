@@ -398687,5 +398687,121 @@
     "next_cashout_time_mae": null,
     "reason": "Requires case-grouped candidate ATMs, prediction timestamps, and observed future ATM/time outcomes; row classification and ROC curves cannot supply these metrics."
   },
-  "limitations": "Synthetic row-level classification; month ordering is not observed future time. Threshold sweeps are descriptive, not an independent threshold-selection test."
+  "limitations": "Synthetic row-level classification; month ordering is not observed future time. Threshold sweeps are descriptive, not an independent threshold-selection test.",
+  "synthetic_hit_at_k": {
+    "status": "available_synthetic_only",
+    "method": "per holdout city-slice, rank ATMs by mean ensemble probability over slice rows; truth = slice ATM with most actual cash-outs",
+    "n_units": 14,
+    "hits": {
+      "top_1": "6/14",
+      "top_3": "11/14",
+      "top_5": "11/14"
+    },
+    "hit_rate": {
+      "top_1": 0.4286,
+      "top_3": 0.7857,
+      "top_5": 0.7857
+    },
+    "units": [
+      {
+        "unit": "group_holdout:bangalore",
+        "n_atms": 50,
+        "cashouts": 160,
+        "truth_atm": "BAN-021",
+        "truth_rank": 1
+      },
+      {
+        "unit": "group_holdout:chennai",
+        "n_atms": 50,
+        "cashouts": 168,
+        "truth_atm": "CHE-013",
+        "truth_rank": 1
+      },
+      {
+        "unit": "group_holdout:delhi",
+        "n_atms": 50,
+        "cashouts": 214,
+        "truth_atm": "DEL-049",
+        "truth_rank": 1
+      },
+      {
+        "unit": "group_holdout:hyderabad",
+        "n_atms": 50,
+        "cashouts": 165,
+        "truth_atm": "HYD-038",
+        "truth_rank": 3
+      },
+      {
+        "unit": "group_holdout:mumbai",
+        "n_atms": 50,
+        "cashouts": 205,
+        "truth_atm": "MUM-040",
+        "truth_rank": 3
+      },
+      {
+        "unit": "group_holdout:puducherry",
+        "n_atms": 50,
+        "cashouts": 132,
+        "truth_atm": "PUD-001",
+        "truth_rank": 37
+      },
+      {
+        "unit": "time_holdout:bangalore",
+        "n_atms": 50,
+        "cashouts": 161,
+        "truth_atm": "BAN-028",
+        "truth_rank": 1
+      },
+      {
+        "unit": "time_holdout:chennai",
+        "n_atms": 50,
+        "cashouts": 175,
+        "truth_atm": "CHE-012",
+        "truth_rank": 8
+      },
+      {
+        "unit": "time_holdout:delhi",
+        "n_atms": 50,
+        "cashouts": 205,
+        "truth_atm": "DEL-005",
+        "truth_rank": 1
+      },
+      {
+        "unit": "time_holdout:hyderabad",
+        "n_atms": 50,
+        "cashouts": 169,
+        "truth_atm": "HYD-034",
+        "truth_rank": 6
+      },
+      {
+        "unit": "time_holdout:mumbai",
+        "n_atms": 50,
+        "cashouts": 193,
+        "truth_atm": "MUM-006",
+        "truth_rank": 2
+      },
+      {
+        "unit": "time_holdout:puducherry",
+        "n_atms": 50,
+        "cashouts": 134,
+        "truth_atm": "PUD-016",
+        "truth_rank": 2
+      },
+      {
+        "unit": "location_holdout:ahmedabad",
+        "n_atms": 50,
+        "cashouts": 841,
+        "truth_atm": "AHM-016",
+        "truth_rank": 1
+      },
+      {
+        "unit": "location_holdout:kolkata",
+        "n_atms": 50,
+        "cashouts": 879,
+        "truth_atm": "KOL-006",
+        "truth_rank": 2
+      }
+    ],
+    "note": "synthetic ATM-retrieval check mirroring the heatmap ranking; small-n city slices, not real-world next-ATM accuracy"
+  }
 }
