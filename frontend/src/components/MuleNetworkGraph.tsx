@@ -40,6 +40,7 @@ interface MuleNetworkData {
   total_nodes: number;
   total_edges: number;
   graph_density: number;
+  graph_source?: string;
 }
 
 const CLUSTER_COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#22c55e', '#ec4899', '#06b6d4', '#f97316'];
@@ -271,13 +272,18 @@ export default function MuleNetworkGraph() {
 
   return (
     <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Network size={16} className="text-[#8b5cf6]" />
           <h3 className="text-base font-semibold text-[#1F2937]">Linked Account Analysis</h3>
           <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
             {data?.total_nodes ?? 0} nodes, {data?.total_edges ?? 0} edges
           </span>
+          {data?.graph_source && (
+            <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
+              Source: {data.graph_source === 'transaction_records' ? 'transaction records' : 'account-count fallback'}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[#6B7280]">Density: {data?.graph_density ?? 0}</span>
@@ -289,6 +295,8 @@ export default function MuleNetworkGraph() {
           )}
         </div>
       </div>
+
+      <p className="text-[11px] text-[#6B7280] mb-4">Illustrative fund-flow view from synthetic case transactions. Not a live bank network. Louvain clusters are for prototype exploration.</p>
 
       <div className="relative bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] overflow-hidden">
         <canvas

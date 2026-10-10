@@ -8,7 +8,7 @@ This identifier is the project's stated submission target; this repository does 
 
 ATLAS is an **ML-assisted investigation-console prototype** for demonstrating synthetic cash-out risk ranking, geospatial triage, human review, and tamper-evident evidence handling. It is not connected to banking, government, or operational crime databases.
 
-The trained binary classifier and application workflow are implemented. Effective prediction of the actual next ATM or future cash-out time is **not established**. Legacy performance claims have been withdrawn pending reproducible independent evaluation.
+The trained binary classifier and application workflow are implemented. Effective prediction of the actual next ATM or future cash-out time is **not established**. Current synthetic holdout metrics (retrained 2026-10-10, `rf-xgb-synthetic-v6-20261010`) are reported in `backend/model/validation_report.json`; older legacy performance claims stay withdrawn.
 
 ## Problem and proposed workflow
 
@@ -167,7 +167,7 @@ No. All records are authorised synthetic demonstration fixtures. External integr
 
 **How accurate is the next-ATM prediction?**
 
-Not established. The implemented classifiers score synthetic rows; actual next-location/time metrics require case-grouped future outcomes. Unsupported legacy metrics have been withdrawn.
+Not established. The implemented classifiers score synthetic rows (current holdout metrics in `backend/model/validation_report.json`); actual next-location/time metrics require case-grouped future outcomes. Older unsupported metrics stay withdrawn.
 
 **What does the blockchain prove?**
 

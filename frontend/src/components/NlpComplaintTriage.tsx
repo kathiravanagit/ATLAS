@@ -137,11 +137,12 @@ export default function NlpComplaintTriage() {
 
   return (
     <div className="card p-5">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-1">
         <MessageSquare size={16} className="text-[#f59e0b]" />
-        <h3 className="text-base font-semibold text-[#1F2937]">Complaint Classification</h3>
+        <h3 className="text-base font-semibold text-[#1F2937]">Complaint triage (prototype)</h3>
         <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">Simulation</span>
       </div>
+      <p className="text-[11px] text-[#6B7280] mb-4">Statistical TF-IDF classifier on illustrative templates — not real complaint training data</p>
 
       {/* Input */}
       <div className="flex gap-2 mb-3">

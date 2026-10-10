@@ -70,9 +70,23 @@ ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic A
 - Eight synthetic cities and 64 ATM fixtures, backend-independent `/demo` navigation, and an authenticated API-backed `/real` console
 - Exact ATM prediction snapshots, model identity checks, and clear errors instead of neutral scores when models are unavailable
 
+### Model status (synthetic)
+
+Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`) on group-holdout
+synthetic data (n=200000; acc 97.0, P87.3/R33.7/F1 48.7, ROC 0.6668,
+PR-AUC 0.36). See `backend/model/validation_report.json`,
+`backend/model/metadata.json`, and the UI Model Card page.
+
+Reported holdout figures are **simulator classification metrics only**
+(not real-world cash-out location accuracy). Next-ATM Hit@K and
+future-window coverage remain unavailable without observed outcomes
+and authorised data.
+
+The model is decision support — every high-risk case needs human review.
+
 **What remains unvalidated or prototype-only:**
 
-- The bundled ML weights are legacy synthetic artifacts without verified split provenance. Performance and future location/time metrics are unavailable pending explicit regeneration/retraining.
+- Next-ATM Hit@K, geographic error, and future-window coverage (need observed future outcomes and authorised data)
 - NLP complaint triage (statistical TF-IDF classifier trained on illustrative templates, not transformer-based)
 - Mule network graph built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback when no records exist)
 
@@ -86,7 +100,7 @@ The evidence ledger is not used to make a prediction. It provides a tamper-evide
 
 ## Model comparison and explainability
 
-The evaluation pipeline now establishes group-disjoint city/time exclusions **before fitting**, records row/group IDs and dataset/artifact hashes, and refuses to score train-inclusive slices as holdouts. Existing artifacts lack this provenance, so their performance, baseline superiority, and Top-K claims are withdrawn—not replaced with invented values.
+The evaluation pipeline establishes group-disjoint city/time exclusions **before fitting**, records row/group IDs and dataset/artifact hashes, and refuses to score train-inclusive slices as holdouts. The current artifacts (`rf-xgb-synthetic-v6-20261010`, retrained 2026-10-10) carry this provenance in `backend/model/metadata.json` and `backend/model/validation_report.json`; older legacy performance, baseline-superiority, and Top-K claims stay withdrawn — not replaced with invented values.
 
 `/api/model/shap/{case_id}?atm_id=<id>` explains the exact saved candidate inputs and verifies model identity. Ensemble Kernel SHAP uses empirical training rows and an actual expected value; without a valid background, the panel shows global feature importance explicitly **not** local attribution. All explanations are decision support, not causal evidence.
 
@@ -357,7 +371,7 @@ python train_model.py
 python revalidate_model.py
 ```
 
-Training saves empirical SHAP background and pre-fit split/artifact provenance. Revalidation refuses mismatched artifacts or datasets. Regeneration commands were run 2026-10-09 (data, weights, metadata, validation report all committed); library versions are recorded in metadata.
+Training saves empirical SHAP background and pre-fit split/artifact provenance. Revalidation refuses mismatched artifacts or datasets. Regeneration commands were run 2026-10-10 (data, weights, metadata, validation report all committed); library versions are recorded in metadata.
 
 Actual next-ATM Hit@K, geographic error, and future-window coverage need case-grouped candidates, prediction-time cutoffs, and observed future outcomes. Authorised data, investigator feedback, and separate validation would be required before operational use.
 
@@ -365,12 +379,12 @@ Actual next-ATM Hit@K, geographic error, and future-window coverage need case-gr
 
 ## Local validation and remaining limits
 
-- Full isolated backend suite: **237 passed, 2 skipped** in both the existing environment and a fresh Windows CPython 3.13 environment installed from `backend/requirements.txt`.
+- Full isolated backend suite: **268 passed, 2 skipped** in the existing environment (fresh Windows CPython 3.13 installs from `backend/requirements.txt` pass the same suite).
 - Fresh dependency installation, `pip check`, SHAP import, and bundled estimator loading passed. Windows/Linux wheel resolution passed; Linux runtime was not exercised locally.
-- Frontend: **83 unit tests passed**, lint and production build passed; **4 targeted browser tests passed**, including an isolated real-FastAPI-handler investigation flow.
+- Frontend: **86 unit tests passed**, lint and production build passed; **32 browser tests passed, 1 skipped** (Postgres integration skip), including an isolated real-FastAPI-handler investigation flow.
 - Real-handler browser integration uses TestClient transport and a temporary database; it is not a deployed HTTP/WebSocket/TLS test. No SMS/email delivery occurred.
 - Skips: Windows symlink privilege and unconfigured PostgreSQL/PostGIS integration. Existing XGBoost pickle-format warnings remain.
-- No legacy-data encryption backfill, model retraining, production deployment, real-data validation, or distributed-concurrency guarantee is claimed. Blockchain nodes are local simulations.
+- No legacy-data encryption backfill, further retraining beyond the committed 2026-10-10 artifacts, production deployment, real-data validation, or distributed-concurrency guarantee is claimed. Blockchain nodes are local simulations.
 - Package transitive dependencies are not fully locked. Re-run the documented checks in your submission environment.
 
 ## Data Disclaimer
