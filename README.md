@@ -73,8 +73,8 @@ ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic A
 **What remains unvalidated or prototype-only:**
 
 - The bundled ML weights are legacy synthetic artifacts without verified split provenance. Performance and future location/time metrics are unavailable pending explicit regeneration/retraining.
-- NLP complaint triage (keyword-based, not transformer-based)
-- Mule network graph analysis (demonstrates the concept, needs real transaction graphs)
+- NLP complaint triage (statistical TF-IDF classifier trained on illustrative templates, not transformer-based)
+- Mule network graph built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback when no records exist)
 
 **The honest pitch for judges:** "This is a security-focused investigation-console prototype. Its prediction workflow uses persisted, reproducible synthetic transaction fixtures. It has not been validated on real data, connected to a government system, or deployed to production."
 

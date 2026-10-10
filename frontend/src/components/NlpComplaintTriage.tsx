@@ -7,6 +7,8 @@ interface TriageResult {
   complaint_text: string;
   category: string;
   keyword_match_score: number;
+  model_score?: number;
+  classifier?: string;
   confidence_note?: string;
   priority: 'Critical' | 'High' | 'Medium' | 'Low';
   entities: { type: string; value: string }[];
@@ -114,6 +116,8 @@ export default function NlpComplaintTriage() {
             complaint_text: text,
             category: isUnrecognized ? 'Unrecognized Complaint Format' : data.category,
             keyword_match_score: data.keyword_match_score,
+            model_score: data.model_score ?? data.keyword_match_score,
+            classifier: data.classifier,
             confidence_note: data.confidence_note,
             priority: isUnrecognized ? 'Low' : data.priority,
             entities: data.entities || [],
@@ -206,7 +210,7 @@ export default function NlpComplaintTriage() {
             </div>
             <div className="flex-1">
               <div className="text-sm text-[#1F2937] font-medium">{result.category}</div>
-              <div className="text-[10px] text-[#6B7280]">Keyword Match: {(result.keyword_match_score * 100).toFixed(0)}% <span className="text-[#9CA3AF]">(heuristic)</span></div>
+              <div className="text-[10px] text-[#6B7280]">Keyword Match: {((result.model_score ?? result.keyword_match_score) * 100).toFixed(0)}% <span className="text-[#9CA3AF]">({result.classifier ? 'statistical model' : 'heuristic'})</span></div>
             </div>
             <div className="text-right">
               <div className="text-sm text-[#1F2937] font-medium">{result.estimated_loss}</div>

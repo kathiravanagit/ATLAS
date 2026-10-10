@@ -1647,29 +1647,57 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
         raise HTTPException(status_code=500, detail="NetworkX not installed")
 
     cases = visible_cases(db, user).all() if not case_id else [require_case(db, user, case_id)]
+    case_map = {c.case_id: c for c in cases}
+    case_ids = list(case_map.keys())
 
     G = nx.DiGraph()
-    for c in cases:
-        account_ids = [f"ACCT-{c.case_id}-{i}" for i in range(c.linked_accounts)]
-        for i, acct in enumerate(account_ids):
-            acct_hash = stable_int(acct) % 10000
-            G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=round(5000 + (acct_hash % 495001), 2))
-            if i > 0:
-                G.add_edge(account_ids[i-1], acct, weight=round(0.3 + ((acct_hash * 3) % 701) / 1000.0, 3),
-                           amount=round(5000 + (acct_hash % 195001), 2),
-                           timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (acct_hash % 72))).isoformat())
-        if len(account_ids) > 2:
-            h_first = stable_int(account_ids[0]) % 10000
-            h_last = stable_int(account_ids[-1]) % 10000
-            G.add_edge(account_ids[0], account_ids[-1], weight=1.0,
-                       amount=round(10000 + (h_first % 290001), 2),
-                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_first % 48))).isoformat())
-            G.add_edge(account_ids[-1], account_ids[0], weight=0.8,
-                       amount=round(5000 + (h_last % 95001), 2),
-                       timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_last % 24))).isoformat())
+    graph_source = "transaction_records"
+    if case_ids:
+        records = db.query(TransactionRecord).filter(TransactionRecord.case_id.in_(case_ids)).all()
+    else:
+        records = []
+    for r in records:
+        src, dst = r.from_account, r.to_account
+        if not src or not dst:
+            continue
+        case = case_map.get(r.case_id)
+        for acct in (src, dst):
+            if not G.has_node(acct):
+                acct_hash = stable_int(acct) % 10000
+                G.add_node(acct, risk=case.current_risk if case else "Medium",
+                           case=r.case_id, balance=round(5000 + (acct_hash % 495001), 2))
+        occurred = r.occurred_at.isoformat() if getattr(r, "occurred_at", None) else ""
+        if G.has_edge(src, dst):
+            G[src][dst]["amount"] = round(G[src][dst].get("amount", 0) + (r.amount or 0), 2)
+            G[src][dst]["weight"] = round(min(1.0, G[src][dst].get("weight", 0.5) + 0.1), 3)
+        else:
+            G.add_edge(src, dst, weight=0.6, amount=round(r.amount or 0, 2), timestamp=occurred)
+    if len(G.nodes) == 0:
+        # Fallback when no transaction rows exist yet: synthesize a chain from
+        # each case's linked-account count so the graph panel still renders.
+        graph_source = "account_counts_fallback"
+        for c in cases:
+            account_ids = [f"ACCT-{c.case_id}-{i}" for i in range(c.linked_accounts)]
+            for i, acct in enumerate(account_ids):
+                acct_hash = stable_int(acct) % 10000
+                G.add_node(acct, risk=c.current_risk, case=c.case_id, balance=round(5000 + (acct_hash % 495001), 2))
+                if i > 0:
+                    G.add_edge(account_ids[i-1], acct, weight=round(0.3 + ((acct_hash * 3) % 701) / 1000.0, 3),
+                               amount=round(5000 + (acct_hash % 195001), 2),
+                               timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (acct_hash % 72))).isoformat())
+            if len(account_ids) > 2:
+                h_first = stable_int(account_ids[0]) % 10000
+                h_last = stable_int(account_ids[-1]) % 10000
+                G.add_edge(account_ids[0], account_ids[-1], weight=1.0,
+                           amount=round(10000 + (h_first % 290001), 2),
+                           timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_first % 48))).isoformat())
+                G.add_edge(account_ids[-1], account_ids[0], weight=0.8,
+                           amount=round(5000 + (h_last % 95001), 2),
+                           timestamp=(datetime.now(timezone.utc) - timedelta(hours=1 + (h_last % 24))).isoformat())
 
     if len(G.nodes) == 0:
-        return {"nodes": [], "edges": [], "clusters": [], "total_nodes": 0, "total_edges": 0}
+        return {"nodes": [], "edges": [], "clusters": [], "total_nodes": 0, "total_edges": 0,
+                "graph_source": graph_source, "suspicious_accounts": [], "graph_density": 0}
 
     G_undirected = G.to_undirected()
     try:
@@ -1726,6 +1754,7 @@ def mule_network(request: Request, user: dict = Depends(require_permission("read
         "suspicious_accounts": list(set(suspicious_accounts)),
         "total_nodes": len(nodes), "total_edges": len(edges),
         "graph_density": round(nx.density(G), 4) if len(G.nodes) > 1 else 0,
+        "graph_source": graph_source,
     }
 
 
@@ -2539,6 +2568,48 @@ CRIME_LABELS = {
     "identity_theft": "Identity Theft",
 }
 
+_TRIAGE_VECTORIZER = None
+_TRIAGE_MODEL = None
+_TRIAGE_CLASSES: list = []
+
+
+def _get_triage_classifier():
+    """Lazy TF-IDF + Naive Bayes classifier trained on illustrative templates.
+
+    Deterministic synthetic training corpus derived from the crime keyword
+    lexicon — a statistical step beyond raw keyword counting, still not a
+    transformer and not trained on real complaints.
+    """
+    global _TRIAGE_VECTORIZER, _TRIAGE_MODEL, _TRIAGE_CLASSES
+    if _TRIAGE_MODEL is not None:
+        return _TRIAGE_VECTORIZER, _TRIAGE_MODEL, _TRIAGE_CLASSES
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.naive_bayes import MultinomialNB
+    texts: list = []
+    labels: list = []
+    for crime, keywords in CRIME_KEYWORDS.items():
+        for kw in keywords:
+            texts.append(f"Complaint regarding {kw}: money was deducted from my account, please help.")
+            labels.append(crime)
+            texts.append(f"I want to report an incident involving {kw}. Rs.50000 was lost.")
+            labels.append(crime)
+    general_templates = [
+        "I want to report something suspicious in my neighborhood.",
+        "General complaint about a bank service delay and account access issue.",
+        "I need help with a suspicious transaction alert on my statement.",
+        "Please look into an unclear deduction I noticed yesterday.",
+        "Reporting a concern about account safety, please advise next steps.",
+    ]
+    for t in general_templates:
+        texts.append(t)
+        labels.append("general")
+    vec = TfidfVectorizer(lowercase=True, ngram_range=(1, 2))
+    X = vec.fit_transform(texts)
+    model = MultinomialNB()
+    model.fit(X, labels)
+    _TRIAGE_VECTORIZER, _TRIAGE_MODEL, _TRIAGE_CLASSES = vec, model, list(model.classes_)
+    return vec, model, list(model.classes_)
+
 @app.post("/api/nlp/triage")
 def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission("read"))):
     text = req.text.lower()
@@ -2563,6 +2634,8 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
             return {
                 "category": "Non-Cybercrime",
                 "keyword_match_score": 0.0,
+                "model_score": 0.0,
+                "classifier": "tfidf-nb-statistical",
                 "confidence_note": "No cybercrime indicators found; routed out of scope",
                 "priority": "Low",
                 "estimated_loss": "Unknown",
@@ -2570,13 +2643,32 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
                 "suggested_action": "No action required. Route to general grievance cell if needed.",
                 "crime_key": None,
             }
-        category = "General Cyber Fraud"
+        keyword_top = None
         keyword_score = 0.55
-        crime_key = None
     else:
-        crime_key = max(scores, key=scores.get)
+        keyword_top = max(scores, key=scores.get)
+        keyword_score = min(0.6 + scores[keyword_top] * 0.1, 0.95)
+
+    # Statistical classifier decides the category; keyword counts are kept as
+    # a backward-compatible signal and as a fallback when confidence is low.
+    try:
+        vec, model, _ = _get_triage_classifier()
+        probs = model.predict_proba(vec.transform([req.text]))[0]
+        pred_idx = int(max(range(len(probs)), key=lambda i: probs[i]))
+        ml_key = str(model.classes_[pred_idx])
+        model_score = round(float(probs[pred_idx]), 2)
+    except Exception:
+        ml_key, model_score = (keyword_top or "general"), 0.0
+    if ml_key == "general":
+        crime_key = keyword_top
+    elif model_score >= 0.35:
+        crime_key = ml_key
+    else:
+        crime_key = keyword_top
+    if crime_key is None:
+        category = "General Cyber Fraud"
+    else:
         category = CRIME_LABELS.get(crime_key, "Unknown")
-        keyword_score = min(0.6 + scores[crime_key] * 0.1, 0.95)
 
     import re
     amount_match = re.search(
@@ -2617,7 +2709,9 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
     return {
         "category": category,
         "keyword_match_score": round(keyword_score, 2),
-        "confidence_note": "Keyword-based heuristic, not a calibrated ML model",
+        "model_score": model_score,
+        "classifier": "tfidf-nb-statistical",
+        "confidence_note": "Statistical TF-IDF model trained on illustrative templates, not a transformer; uncalibrated — use ranking only",
         "priority": priority,
         "estimated_loss": amount,
         "entities": entities,

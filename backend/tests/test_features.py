@@ -294,11 +294,35 @@ class TestMuleNetwork:
             if node.get("cluster") is not None:
                 assert node["cluster"] in cluster_ids
 
+    def test_uses_transaction_records_when_present(self, client, admin_token):
+        from tests.conftest import TestingSessionLocal
+        from models_db import TransactionRecord
+        from datetime import datetime, timezone
+        db = TestingSessionLocal()
+        try:
+            now = datetime.now(timezone.utc)
+            chain = [("MULE-SRC", "MULE-A"), ("MULE-A", "MULE-B"), ("MULE-B", "MULE-DST")]
+            for src, dst in chain:
+                db.add(TransactionRecord(case_id="CASE-001", from_account=src,
+                                         to_account=dst, amount=60000,
+                                         occurred_at=now, source="test"))
+            db.commit()
+        finally:
+            db.close()
+        resp = client.get("/api/model/mule-network",
+                          params={"case_id": "CASE-001"},
+                          headers=auth_header(admin_token))
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["graph_source"] == "transaction_records"
+        node_ids = {n["id"] for n in data["nodes"]}
+        assert {"MULE-SRC", "MULE-A", "MULE-B", "MULE-DST"} <= node_ids
+
 
 # ─── NLP Triage ─────────────────────────────────────────────────────────────
 
 class TestNlpTriage:
-    """Tests for the NLP complaint triage (keyword-based classification)."""
+    """Tests for the NLP complaint triage (statistical TF-IDF classification)."""
 
     def _triage(self, client, token, text):
         return client.post("/api/nlp/triage", json={"text": text},
@@ -426,7 +450,9 @@ class TestNlpTriage:
             "UPI fraud via QR code Rs.10000.")
         data = resp.json()
         assert "confidence_note" in data
-        assert "keyword" in data["confidence_note"].lower()
+        assert "statistical" in data["confidence_note"].lower()
+        assert data["classifier"] == "tfidf-nb-statistical"
+        assert 0.0 <= data["model_score"] <= 1.0
 
     def test_no_amount_returns_unknown(self, client, admin_token):
         resp = self._triage(client, admin_token,
