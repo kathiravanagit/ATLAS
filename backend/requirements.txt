@@ -10,8 +10,8 @@ PyJWT==2.14.0
 bcrypt==4.0.1
 slowapi==0.1.9
 cryptography==43.0.1
-# CPython 3.13 wheels; keep sklearn aligned with bundled 1.6.1 artifacts.
-numpy==2.1.3
+# CPython 3.13 wheels; keep sklearn/xgboost/numpy aligned with bundled artifacts (see backend/model/metadata.json library_versions).
+numpy==2.5.2
 pandas==2.2.3
 joblib==1.4.2
 scikit-learn==1.6.1
