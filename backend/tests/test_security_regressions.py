@@ -74,6 +74,9 @@ def production_env():
     ("REFRESH_SECRET_KEY", "dev-refresh-secret-do-not-use-in-production"),
     ("JWT_SECRET_KEY", "atlas-jwt-secret-key-change-in-production-2026"),
     ("ENCRYPTION_KEY", "00" * 32), ("ENCRYPTION_KEY", "invalid"),
+    ("JWT_SECRET_KEY", "change-me-in-production-use-openssl-rand-hex-32"),
+    ("REFRESH_SECRET_KEY", "change-me-refresh-use-openssl-rand-hex-32"),
+    ("ENCRYPTION_KEY", "0123456789abcdef" * 4),
 ])
 def test_production_secrets_fail_closed(field, value):
     env = production_env()
@@ -99,6 +102,15 @@ def test_secret_alias_and_explicit_relaxed_modes():
     assert auth.decode_access_token(auth.create_access_token({"sub": "officer"}))["sub"] == "officer"
     with pytest.raises(HTTPException):
         auth.decode_access_token(auth.create_refresh_token({"sub": "officer"}))
+
+
+def test_prewarm_failure_degrades_instead_of_killing_startup(monkeypatch):
+    assert main.logger is not None
+
+    def _boom():
+        raise RuntimeError("estimators missing")
+    monkeypatch.setattr(main, "load_models", _boom)
+    main._prewarm_models()  # must log and return, never raise
 
 
 def test_production_module_import_rejects_missing_secrets(tmp_path):

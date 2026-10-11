@@ -19,10 +19,10 @@ describe('dashboard null operational metrics', () => {
     };
     render(<OverviewPage />);
     await waitFor(() => expect(screen.queryAllByRole('status')).toHaveLength(0));
-    const impact = screen.getByText('Prevented Fraud').parentElement!;
+    const impact = screen.getByText('Resolved Case Value').parentElement!;
     expect(impact.textContent).toContain('Not measured');
     expect(impact.textContent).not.toMatch(/₹|0\.0L|12,345/);
-    expect(screen.getByText('Lead Time').parentElement!.textContent).toContain('Not measured');
+    expect(screen.getByText('Simulated Lead Time').parentElement!.textContent).toContain('Not measured');
     expect(screen.getByText('Linked Accounts Flagged').parentElement!.textContent).toContain('Not measured');
     expect(screen.getByText(/Resolved amounts are not verified/)).toBeDefined();
   });

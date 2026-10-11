@@ -156,12 +156,22 @@ def seed_data(force=False):
         ]
 
         cases = []
+        # A few seeded cases carry departments so the visibility filter can be
+        # shown in a demo; the rest stay in the shared pool ("").
+        dept_assignments = {
+            "CC-2026-0147": "Cybercrime Division",
+            "CC-2026-0146": "Cybercrime Division",
+            "CC-2026-0145": "Financial Crimes Wing",
+            "CC-2026-0144": "Financial Crimes Wing",
+            "CC-2026-0143": "Intelligence Unit",
+            "CC-2026-0142": "Intelligence Unit",
+        }
         for cid, ctype, amt, linked, risk, status, vname, contact, desc in case_data:
             cases.append(Case(
                 case_id=cid, crime_type=ctype, amount=amt,
                 linked_accounts=linked, current_risk=risk, last_updated="just now",
                 status=status, victim_name=_enc(vname), contact=_enc(contact),
-                description=_enc(desc),
+                description=_enc(desc), department=dept_assignments.get(cid, ""),
             ))
         db.add_all(cases)
         db.flush()

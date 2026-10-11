@@ -82,9 +82,14 @@ def test_refresh_token(client):
 def test_refresh_token_reuse_detected(client):
     resp = client.post("/api/auth/login", json={"email": "admin@atlas.gov", "password": "admin123"})
     refresh = resp.json()["refresh_token"]
-    client.post("/api/auth/refresh", json={"refresh_token": refresh})
+    rotated = client.post("/api/auth/refresh", json={"refresh_token": refresh})
+    assert rotated.status_code == 200
+    new_refresh = rotated.json()["refresh_token"]
     resp2 = client.post("/api/auth/refresh", json={"refresh_token": refresh})
     assert resp2.status_code in (401, 403)
+    # Family revocation: the rotated token dies with the reused one.
+    resp3 = client.post("/api/auth/refresh", json={"refresh_token": new_refresh})
+    assert resp3.status_code in (401, 403)
 
 
 def test_me_endpoint(client, admin_token):

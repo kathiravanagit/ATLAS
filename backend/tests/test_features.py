@@ -118,6 +118,8 @@ class TestEvidenceChain:
         assert resp.headers["content-type"] == "application/pdf"
         assert resp.content[:5] == b"%PDF-"
         assert b"CASE-001" in resp.content
+        assert b"not a statutory certificate" in resp.content
+        assert b"Signature:" in resp.content
         assert 'attachment; filename="case-diary-CASE-001.pdf"' == resp.headers["content-disposition"]
 
     def test_export_pdf_404_without_evidence(self, client, admin_token):
@@ -499,6 +501,23 @@ class TestNlpTriage:
             resp = self._triage(client, admin_token, text)
             assert resp.status_code == 200
             assert resp.json()["category"] == "Non-Cybercrime"
+
+    def test_lakh_amount_sets_high_priority(self, client, admin_token):
+        resp = self._triage(client, admin_token,
+            "Rs.1.5 lakh was stolen from my account via UPI fraud.")
+        data = resp.json()
+        assert data["priority"] == "High"
+        assert "lakh" in data["estimated_loss"].lower()
+
+    def test_crore_amount_sets_critical_priority(self, client, admin_token):
+        resp = self._triage(client, admin_token,
+            "I lost Rs.2 crore in a fake investment app. Please help.")
+        assert resp.json()["priority"] == "Critical"
+
+    def test_k_prefix_needs_word_boundary(self, client, admin_token):
+        resp = self._triage(client, admin_token,
+            "Rs.50000 was taken by known fraudsters from my account.")
+        assert resp.json()["priority"] == "Medium"
 
     def test_triage_rejects_empty_and_oversize_text(self, client, admin_token):
         from tests.conftest import auth_header as _ah

@@ -46,7 +46,7 @@ test.describe('Console Overview', () => {
   });
 
   test('shows impact metrics', async ({ page }) => {
-    await expect(page.locator('text=Prevented Fraud').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('text=Resolved Case Value').first()).toBeVisible({ timeout: 30000 });
     await expect(page.locator('text=Linked Accounts Flagged').first()).toBeVisible();
   });
 

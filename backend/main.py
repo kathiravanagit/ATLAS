@@ -57,8 +57,9 @@ def _env_int(name: str, default: int) -> int:
 # toasts only), and enable once for a single stage-demo test.
 ALERTS_SMS_ENABLED = _env_flag("ALERTS_SMS_ENABLED", True)
 ALERTS_EMAIL_ENABLED = _env_flag("ALERTS_EMAIL_ENABLED", True)
-ALERTS_SMS_MAX_PER_DAY = _env_int("ALERTS_SMS_MAX_PER_DAY", 10)
-ALERTS_EMAIL_MAX_PER_DAY = _env_int("ALERTS_EMAIL_MAX_PER_DAY", 20)
+# Free-tier safe: 2/day each (~60/month against a 300/month quota).
+ALERTS_SMS_MAX_PER_DAY = _env_int("ALERTS_SMS_MAX_PER_DAY", 2)
+ALERTS_EMAIL_MAX_PER_DAY = _env_int("ALERTS_EMAIL_MAX_PER_DAY", 2)
 ALERTS_COOLDOWN_MINUTES = _env_int("ALERTS_COOLDOWN_MINUTES", 45)
 
 
@@ -66,13 +67,23 @@ def _invalidate_prediction_caches():
     _city_prediction_cache.clear()
     _predictions_cache.clear()
 
-# Pre-warm production models. Tests configure isolated, serial inference before
-# the first prediction and do not need import-time estimator allocations.
-if os.getenv("TESTING") != "1":
+# Logging must exist before the pre-warm block: a failed model load logs
+# instead of raising NameError and killing startup.
+import logging
+logger = logging.getLogger("atlas")
+
+
+def _prewarm_models() -> None:
     try:
         load_models()
     except Exception as exc:
         logger.warning("Model pre-warm failed; predictions will 503 until models load: %s", exc)
+
+
+# Pre-warm production models. Tests configure isolated, serial inference before
+# the first prediction and do not need import-time estimator allocations.
+if os.getenv("TESTING") != "1":
+    _prewarm_models()
 
 from city_data import CITIES, get_city, get_all_cities, get_city_atms, get_city_stats
 from evidence_chain import get_evidence_chain
@@ -86,7 +97,6 @@ from datetime import datetime, timedelta, timezone
 import json
 import time
 import threading
-import logging
 import hashlib
 from sms_client import send_sms_alert
 from email_client import send_email_alert
@@ -98,7 +108,6 @@ install_runtime_encryption()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("atlas")
 
 # Seed demo users — demo builds only. Production startup must never create
 # well-known credentials; provision officers out of band instead.
@@ -131,7 +140,11 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="ATLAS — Advanced Threat Location & Alert System API",
     description="Law Enforcement Investigation Tool",
-    version="5.0.0"
+    version="5.0.0",
+    # Interactive docs only in explicit demo mode; production serves API routes alone.
+    docs_url="/docs" if DEMO_MODE else None,
+    redoc_url="/redoc" if DEMO_MODE else None,
+    openapi_url="/openapi.json" if DEMO_MODE else None,
 )
 
 app.state.limiter = limiter
@@ -1112,7 +1125,7 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
         "alerts_today": unacknowledged, "avg_lead_time": avg_lead_time,
         "prevented_fraud": prevented, "resolved_case_amount": int(resolved_amount or 0),
         "mules_flagged": mules,
-        "metrics_note": "Resolved totals, high-risk account counts, and window lead times are computed live from case records — not observed field outcomes",
+        "metrics_note": "Resolved totals, high-risk account counts, and window lead times are computed live from case records — not observed field outcomes; lead times drift with the clock and are simulated, not operational",
     }
 
 
@@ -1265,15 +1278,23 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
         db.commit()
 
         # Durable dispatch: enqueue SMS/email as tracked jobs (retry + dead-letter)
-        # instead of untracked fire-and-forget threads.
-        enqueue_notification(db, "sms", {"message": alert_msg})
-        enqueue_notification(
-            db, "email",
-            {"subject": f"High-Risk Cash-Out Alert ({tx.case_id})", "message": alert_msg},
-        )
+        # instead of untracked fire-and-forget threads. Same anti-spam guards
+        # as the prediction path: breaches fail soft to dashboard row/toast.
+        queued_any = False
+        for kind, payload in (
+            ("sms", {"message": alert_msg}),
+            ("email", {"subject": f"High-Risk Cash-Out Alert ({tx.case_id})",
+                       "message": alert_msg}),
+        ):
+            allowed, reason = _dispatch_guard(db, kind)
+            if allowed:
+                enqueue_notification(db, kind, payload)
+                queued_any = True
+            else:
+                logger.info("Transaction alert dispatch skipped (%s): %s", kind, reason)
         # Test fixtures process queued jobs explicitly with fake senders; never
         # dispatch real SMS/email or race fixture teardown in TESTING mode.
-        if os.getenv("TESTING") != "1":
+        if queued_any and os.getenv("TESTING") != "1":
             threading.Thread(
                 target=run_notification_worker,
                 args=(SessionLocal, send_sms_alert, send_email_alert),
@@ -1604,6 +1625,14 @@ async def websocket_alerts(ws: WebSocket, ticket: str = Query(default=None)):
     user = consume_ws_ticket(ticket)
     if not user:
         await ws.close(code=4002, reason="Invalid or expired ticket — request a new one via /api/auth/ws-ticket")
+        return
+
+    # Defence in depth behind the single-use ticket: browsers always send
+    # Origin; reject a present-but-foreign one. Absent Origin (tests, curl)
+    # is still allowed.
+    origin = ws.headers.get("origin")
+    if origin and origin.rstrip("/") not in [o.rstrip("/") for o in ALLOWED_ORIGINS]:
+        await ws.close(code=4003, reason="Foreign origin")
         return
 
     session_id = user.get("id", "unknown")
@@ -2323,6 +2352,16 @@ def export_case_diary_pdf(case_id: str, user: dict = Depends(require_permission(
     pdf.multi_cell(0, 5, "Verification: recompute SHA-256 over each block payload and compare with block_hash; "
         "check each prev_hash links to the previous block_hash; rebuild the Merkle root from leaf hashes "
         "and compare with the root above.")
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, "Prototype record - not a statutory certificate", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.multi_cell(0, 5, "This statement is generated by a prototype investigation console for demonstration. "
+        "It is not a certificate under Sec. 63 BSA or any other statute; evidentiary value requires "
+        "independent review by legally trained counsel.")
+    pdf.ln(2)
+    pdf.cell(0, 6, _latin(f"Recorded by: {user.get('email', '?')} ({user.get('role', '?')})"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, _latin(f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}    Signature: ____________________"), new_x="LMARGIN", new_y="NEXT")
     data = bytes(pdf.output())
     add_audit(
         db, "Evidence Exported",
@@ -2803,18 +2842,27 @@ def triage_complaint(req: ComplaintText, user: dict = Depends(require_permission
         category = CRIME_LABELS.get(crime_key, "Unknown")
 
     import re
+    # Indian magnitudes: "1.5 lakh" is 150000, not 1.5. Units are optional;
+    # bare "Rs.45000" still parses with multiplier 1.
+    _UNIT = r"(lakh|lacs|lac|crores|crore|cr|k)"
     amount_match = re.search(
-        r"(?:₹|Rs\.?|INR|rupees?)\s*([\d,]+(?:\.\d+)?)|([\d,]+)\s*(?:rupees?|rupay)",
+        rf"(?:₹|Rs\.?|INR|rupees?)\s*([\d,]+(?:\.\d+)?)(?:\s*{_UNIT}\b)?"
+        rf"|([\d,]+(?:\.\d+)?)\s*{_UNIT}\b\s*(?:rupees?|rupay)?"
+        rf"|([\d,]+)\s*(?:rupees?|rupay)",
         req.text, re.IGNORECASE)
     amount = amount_match.group(0) if amount_match else "Unknown"
 
     # Strip the currency marker first via the capture groups: scrubbing the
     # full match would keep the dot in "Rs." (".250000" -> 0.25 -> 0).
-    num_part = ""
+    _MULTIPLIERS = {"lakh": 1e5, "lacs": 1e5, "lac": 1e5,
+                    "crores": 1e7, "crore": 1e7, "cr": 1e7, "k": 1e3}
+    num_part, unit = "", None
     if amount_match:
-        num_part = (amount_match.group(1) or amount_match.group(2) or "").replace(",", "")
+        groups = amount_match.groups()
+        num_part = (groups[0] or groups[2] or groups[4] or "").replace(",", "")
+        unit = groups[1] or groups[3]
     try:
-        numeric = int(float(num_part)) if num_part else 0
+        numeric = int(float(num_part) * _MULTIPLIERS.get((unit or "").lower(), 1)) if num_part else 0
     except ValueError:
         numeric = 0
     if numeric > 200000:

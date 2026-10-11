@@ -151,7 +151,7 @@ scikit-learn 1.6.1 (RandomForest) · XGBoost 3.4.1 · SHAP 0.48 · NetworkX 3.3 
 ```bash
 cd backend
 pip install -r requirements.txt
-cp ../.env.example .env    # configure secrets
+cp ../.env.example .env    # then generate real secrets (see key comment in .env); never deploy the template values
 # Local API demonstration (Git Bash/POSIX): dedicated database, synthetic records
 DEMO_MODE=true DATABASE_URL=sqlite:///./atlas-demo.db python start.py
 
@@ -359,7 +359,7 @@ SMTP_FROM=
 INVESTIGATOR_EMAIL=
 ```
 
-HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toast, and — once per open case+ATM — a TextBee SMS plus an SMTP email built from the prediction fields. Repeat predictions dispatch nothing new until acknowledged/resolved, and per-kind cooldown (45 min) plus daily caps (10 SMS / 20 email, env-configurable) fail soft to dashboard-only. An officer can also trigger one manual dispatch per open alert via the **Notify officer** button (`POST /api/alerts/{id}/notify`, same guards). Kill-switches `ALERTS_SMS_ENABLED` / `ALERTS_EMAIL_ENABLED` reduce the console to dashboard toasts. TextBee is a prototype device gateway and SMTP email a prototype path; production would use authorised LEA/bank/I4C channels, and India production SMS would require DLT plus an approved gateway where applicable. Synthetic data only; decision support, not automated enforcement.
+HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toast, and — once per open case+ATM — a TextBee SMS plus an SMTP email built from the prediction fields. Repeat predictions dispatch nothing new until acknowledged/resolved, and per-kind cooldown (45 min) plus daily caps (2 SMS / 2 email, env-configurable) fail soft to dashboard-only. An officer can also trigger one manual dispatch per open alert via the **Notify officer** button (`POST /api/alerts/{id}/notify`, same guards). Kill-switches `ALERTS_SMS_ENABLED` / `ALERTS_EMAIL_ENABLED` reduce the console to dashboard toasts. Test and CI backends always run with both switches off (plus empty provider keys) so verification never spends quota or spams the investigator number — live dispatch is verified only through deliberate single manual notifies. TextBee is a prototype device gateway and SMTP email a prototype path; production would use authorised LEA/bank/I4C channels, and India production SMS would require DLT plus an approved gateway where applicable. Synthetic data only; decision support, not automated enforcement.
 
 ---
 

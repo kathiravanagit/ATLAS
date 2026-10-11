@@ -522,11 +522,20 @@ def register_auth_routes(app):
         # Check if refresh token exists and is not revoked
         db_token = db.query(RefreshToken).filter(
             RefreshToken.token == refresh_token_value,
-            RefreshToken.revoked == False,
         ).first()
 
         if not db_token:
             raise HTTPException(status_code=401, detail="Refresh token not found or revoked")
+
+        if db_token.revoked:
+            # Reuse of a rotated token signals theft: revoke the whole family
+            # (all of this user's refresh tokens), not just the presented one.
+            db.query(RefreshToken).filter(
+                RefreshToken.user_id == db_token.user_id,
+                RefreshToken.revoked == False,
+            ).update({RefreshToken.revoked: True})
+            db.commit()
+            raise HTTPException(status_code=401, detail="Refresh token reuse detected; all sessions revoked")
 
         # Revoke old token (rotation)
         db_token.revoked = True

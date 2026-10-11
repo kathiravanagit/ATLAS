@@ -13,10 +13,13 @@ Features:
 """
 import hashlib
 import json
+import logging
 import os
 import threading
 import time
 from typing import Optional, Callable
+
+logger = logging.getLogger("atlas")
 
 CHAIN_FILE = "model/atlas_chain.json"
 DEFAULT_DIFFICULTY = 3  # leading hex zeros required
@@ -383,6 +386,10 @@ class Blockchain:
                     self.chain.append(Block.from_dict(json.loads(r.payload)))
                 except Exception:
                     self.corrupt_rows += 1
+            self.degraded = self.corrupt_rows > 0
+            if self.corrupt_rows:
+                logger.warning("PoW chain %s: skipped %d corrupt rows at startup (degraded)",
+                               self.chain_name, self.corrupt_rows)
             self.pending = []
         except Exception:
             self.chain = []

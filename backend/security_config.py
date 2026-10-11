@@ -30,7 +30,11 @@ def load_security_config(environ=None) -> SecurityConfig:
     encryption = env.get("ENCRYPTION_KEY", "").strip()
     if not relaxed:
         for name, value in (("JWT_SECRET_KEY/SECRET_KEY", access), ("REFRESH_SECRET_KEY", refresh)):
-            if len(value) < 32 or value.lower() in _DEFAULTS or "do-not-use-in-production" in value.lower() or "change-in-production" in value.lower():
+            low = value.lower()
+            if (len(value) < 32 or value.lower() in _DEFAULTS
+                    or "do-not-use-in-production" in low or "change-in-production" in low
+                    or "change-me" in low or "changeme" in low or "rand-hex" in low
+                    or "0123456789abcdef" in low):
                 raise RuntimeError(f"{name} must be a unique non-default secret of at least 32 characters")
         if access == refresh:
             raise RuntimeError("Access and refresh signing secrets must differ")
@@ -38,7 +42,7 @@ def load_security_config(environ=None) -> SecurityConfig:
             key = bytes.fromhex(encryption)
         except ValueError:
             key = b""
-        if len(encryption) != 64 or len(key) != 32 or len(set(key)) < 8:
+        if len(encryption) != 64 or len(key) != 32 or len(set(key)) < 8 or encryption.lower() == "0123456789abcdef" * 4:
             raise RuntimeError("ENCRYPTION_KEY must be a non-default 64-hex-character key")
     # Deterministic test/demo keys allow encrypted persistence rather than silently
     # disabling encryption. These must never be selected in production.
