@@ -438,7 +438,8 @@ def generate_candidate_lists(df, atms, n_hard=6, n_easy=8, seed=42):
     rings = df[df["group_id"].str.startswith("RING")]
     true_atm = rings.groupby("group_id").agg(
         atm_id=("atm_id", "first"), city=("city", "first"))
-    assert (rings.groupby("group_id")["atm_id"].nunique() == 1).all()
+    if not (rings.groupby("group_id")["atm_id"].nunique() == 1).all():
+        raise ValueError("candidate cases need exactly one ATM per ring group")
 
     rows = []
     for group_id, row in true_atm.iterrows():
@@ -463,7 +464,8 @@ def generate_candidate_lists(df, atms, n_hard=6, n_easy=8, seed=42):
                          "true_atm_id": truth, "candidate_atm_id": a["atm_id"],
                          "is_true": 0, "difficulty": "easy"})
     out = pd.DataFrame(rows)
-    assert (out.groupby("case_id")["is_true"].sum() == 1).all()
+    if not (out.groupby("case_id")["is_true"].sum() == 1).all():
+        raise ValueError("each candidate case needs exactly one true ATM")
     return out
 
 

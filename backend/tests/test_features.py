@@ -677,6 +677,24 @@ class TestManualNotify:
         assert resp.json()["status"] == "skipped"
         assert self._job_counts() == before
 
+    def test_guard_counts_inflight_against_cap(self, client, admin_token):
+        import main as main_module
+        from reliability import enqueue_notification
+        db = TestingSessionLocal()
+        try:
+            enqueue_notification(db, "sms", {"message": "a"})
+            enqueue_notification(db, "sms", {"message": "b"})
+        finally:
+            db.close()
+        db2 = TestingSessionLocal()
+        try:
+            allowed, reason = main_module._dispatch_guard(db2, "sms")
+            assert allowed is False and "cap" in reason
+            allowed_email, _ = main_module._dispatch_guard(db2, "email")
+            assert allowed_email is True
+        finally:
+            db2.close()
+
     def test_raise_respects_daily_cap(self, client, admin_token, monkeypatch):
         import main as main_module
         monkeypatch.setattr(main_module, "ALERTS_SMS_MAX_PER_DAY", 0)

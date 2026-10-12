@@ -686,7 +686,8 @@ def _dispatch_guard(db: Session, kind: str) -> tuple:
     """(allowed, reason) for enqueueing one sms/email job. Never raises.
 
     Single recipient per kind; guards are global per kind: kill-switch flag,
-    cooldown since the last sent job, and per-day sent cap. Breaches fail
+    cooldown since the last sent job, and per-day cap counting queued,
+    sending and sent jobs. Breaches fail
     soft (log + dashboard row/toast only, never crash).
     """
     try:
@@ -707,8 +708,17 @@ def _dispatch_guard(db: Session, kind: str) -> tuple:
             if elapsed < ALERTS_COOLDOWN_MINUTES * 60:
                 return False, f"{kind} cooldown: last dispatch {int(elapsed // 60)}m ago"
         cap = ALERTS_SMS_MAX_PER_DAY if kind == "sms" else ALERTS_EMAIL_MAX_PER_DAY
-        today = sum(1 for s in stamps if s.date() == now.date())
-        if today >= cap:
+        # Count in-flight (queued/sending) as well as sent: back-to-back
+        # predictions must not all pass the guard before the first send lands.
+        # This bounds live dispatch to cap/day even under rapid repeats.
+        in_flight_today = sum(
+            1 for j in db.query(NotificationJob).filter(
+                NotificationJob.kind == kind,
+                NotificationJob.status.in_(["queued", "sending", "sent"])).all()
+            if _aware(j.updated_at or j.created_at) is not None
+            and _aware(j.updated_at or j.created_at).date() == now.date()
+        )
+        if in_flight_today >= cap:
             return False, f"{kind} daily cap reached ({cap}/day)"
         return True, "ok"
     except Exception as exc:
