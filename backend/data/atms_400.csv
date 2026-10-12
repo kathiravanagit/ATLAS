@@ -1,401 +1,401 @@
-atm_id,city,city_name,name,lat,lng,type,base_risk,crime_density,daily_volume
-PUD-001,puducherry,Puducherry,White Town,11.8909,79.8604,retail,0.416,1,9316
-PUD-002,puducherry,Puducherry,MG Road,11.9415,79.8078,bank,0.227,4,10628
-PUD-003,puducherry,Puducherry,Lawspet,11.9437,79.813,commercial,0.698,1,12188
-PUD-004,puducherry,Puducherry,Muthialpet,11.9472,79.8151,commercial,0.723,3,7238
-PUD-005,puducherry,Puducherry,Reddiarpalayam,11.9472,79.8259,retail,0.374,4,6002
-PUD-006,puducherry,Puducherry,Kurumbapet,11.9653,79.8254,retail,0.399,6,4774
-PUD-007,puducherry,Puducherry,Thattanchavady,12.0006,79.8215,commercial,0.705,4,32505
-PUD-008,puducherry,Puducherry,Nehru Park,11.9702,79.8757,highway,0.537,7,8828
-PUD-009,puducherry,Puducherry,Solarpuram,11.9463,79.8113,high_value,0.771,6,11930
-PUD-010,puducherry,Puducherry,Mudaliarpet,11.9364,79.8149,retail,0.416,3,6683
-PUD-011,puducherry,Puducherry,White Town Block B,12.0057,79.8415,highway,0.544,6,12672
-PUD-012,puducherry,Puducherry,MG Road Block B,11.9516,79.8134,high_value,0.867,10,13197
-PUD-013,puducherry,Puducherry,Lawspet Block B,11.9408,79.8098,commercial,0.605,9,12300
-PUD-014,puducherry,Puducherry,Muthialpet Block B,11.9384,79.8089,retail,0.418,4,17483
-PUD-015,puducherry,Puducherry,Reddiarpalayam Block B,11.9438,79.7909,retail,0.397,3,3986
-PUD-016,puducherry,Puducherry,Kurumbapet Block B,11.8818,79.805,commercial,0.724,8,6253
-PUD-017,puducherry,Puducherry,Thattanchavady Block B,11.9419,79.8103,commercial,0.708,7,9214
-PUD-018,puducherry,Puducherry,Nehru Park Block B,11.9634,79.8612,retail,0.365,4,6878
-PUD-019,puducherry,Puducherry,Solarpuram Block B,11.9435,79.8225,highway,0.517,1,6649
-PUD-020,puducherry,Puducherry,Mudaliarpet Block B,11.904,79.8709,commercial,0.744,6,8842
-PUD-021,puducherry,Puducherry,White Town Block C,11.8945,79.8638,bank,0.166,2,4739
-PUD-022,puducherry,Puducherry,MG Road Block C,11.9646,79.8139,retail,0.39,2,9421
-PUD-023,puducherry,Puducherry,Lawspet Block C,11.952,79.8219,bank,0.193,4,5499
-PUD-024,puducherry,Puducherry,Muthialpet Block C,11.94,79.7966,retail,0.429,5,24227
-PUD-025,puducherry,Puducherry,Reddiarpalayam Block C,11.9799,79.8332,commercial,0.694,10,8140
-PUD-026,puducherry,Puducherry,Kurumbapet Block C,11.9454,79.8346,commercial,0.604,6,17587
-PUD-027,puducherry,Puducherry,Thattanchavady Block C,11.945,79.8068,commercial,0.678,6,13655
-PUD-028,puducherry,Puducherry,Nehru Park Block C,11.9238,79.8017,commercial,0.663,7,11979
-PUD-029,puducherry,Puducherry,Solarpuram Block C,11.9359,79.8177,retail,0.461,5,9073
-PUD-030,puducherry,Puducherry,Mudaliarpet Block C,11.9443,79.8085,retail,0.493,5,10269
-PUD-031,puducherry,Puducherry,White Town Block D,11.9379,79.803,retail,0.343,2,11908
-PUD-032,puducherry,Puducherry,MG Road Block D,11.9573,79.7859,retail,0.388,6,5558
-PUD-033,puducherry,Puducherry,Lawspet Block D,11.9409,79.8155,bank,0.238,4,14834
-PUD-034,puducherry,Puducherry,Muthialpet Block D,11.92,79.8079,retail,0.431,5,5278
-PUD-035,puducherry,Puducherry,Reddiarpalayam Block D,11.9415,79.8089,retail,0.437,3,6462
-PUD-036,puducherry,Puducherry,Kurumbapet Block D,11.9056,79.8407,commercial,0.661,8,4346
-PUD-037,puducherry,Puducherry,Thattanchavady Block D,11.9692,79.7963,retail,0.36,4,13748
-PUD-038,puducherry,Puducherry,Nehru Park Block D,11.9399,79.7777,retail,0.331,4,5069
-PUD-039,puducherry,Puducherry,Solarpuram Block D,11.9568,79.7685,bank,0.294,2,16625
-PUD-040,puducherry,Puducherry,Mudaliarpet Block D,11.9237,79.7831,highway,0.484,5,11842
-PUD-041,puducherry,Puducherry,White Town Block E,11.9398,79.8101,retail,0.373,4,3313
-PUD-042,puducherry,Puducherry,MG Road Block E,11.9409,79.8079,high_value,0.826,9,13967
-PUD-043,puducherry,Puducherry,Lawspet Block E,11.9546,79.8219,highway,0.436,6,26756
-PUD-044,puducherry,Puducherry,Muthialpet Block E,11.9204,79.783,bank,0.149,6,8894
-PUD-045,puducherry,Puducherry,Reddiarpalayam Block E,11.9438,79.8005,retail,0.483,2,6855
-PUD-046,puducherry,Puducherry,Kurumbapet Block E,11.9416,79.8288,retail,0.337,3,12822
-PUD-047,puducherry,Puducherry,Thattanchavady Block E,11.9739,79.7987,retail,0.492,1,5623
-PUD-048,puducherry,Puducherry,Nehru Park Block E,11.9416,79.8079,high_value,0.872,6,11936
-PUD-049,puducherry,Puducherry,Solarpuram Block E,11.939,79.8087,retail,0.395,1,2988
-PUD-050,puducherry,Puducherry,Mudaliarpet Block E,11.9227,79.7911,high_value,0.922,6,3952
-CHE-001,chennai,Chennai,T Nagar,12.9912,80.2688,retail,0.403,5,11199
-CHE-002,chennai,Chennai,Anna Nagar,13.0621,80.2598,retail,0.507,6,3053
-CHE-003,chennai,Chennai,Velachery,13.1042,80.2622,bank,0.26,2,12613
-CHE-004,chennai,Chennai,Adyar,13.1613,80.2826,commercial,0.668,8,5730
-CHE-005,chennai,Chennai,Mylapore,13.0144,80.1971,retail,0.444,4,10677
-CHE-006,chennai,Chennai,Porur,13.1298,80.1411,retail,0.464,4,6028
-CHE-007,chennai,Chennai,Tambaram,13.0147,80.3795,bank,0.228,6,6608
-CHE-008,chennai,Chennai,Chromepet,13.1099,80.2511,highway,0.534,8,6938
-CHE-009,chennai,Chennai,Nungambakkam,13.0823,80.271,bank,0.219,3,21081
-CHE-010,chennai,Chennai,Kodambakkam,13.0672,80.276,commercial,0.708,11,12038
-CHE-011,chennai,Chennai,T Nagar Block B,13.1017,80.1978,high_value,0.85,11,2849
-CHE-012,chennai,Chennai,Anna Nagar Block B,13.0982,80.2571,high_value,0.871,16,6112
-CHE-013,chennai,Chennai,Velachery Block B,13.079,80.2672,high_value,0.86,11,10716
-CHE-014,chennai,Chennai,Adyar Block B,13.0863,80.2728,bank,0.178,5,4008
-CHE-015,chennai,Chennai,Mylapore Block B,13.1345,80.143,bank,0.318,2,2926
-CHE-016,chennai,Chennai,Porur Block B,13.0873,80.2675,retail,0.399,9,7014
-CHE-017,chennai,Chennai,Tambaram Block B,13.0883,80.2728,high_value,0.889,15,10366
-CHE-018,chennai,Chennai,Chromepet Block B,13.0715,80.2822,bank,0.261,3,8154
-CHE-019,chennai,Chennai,Nungambakkam Block B,13.1167,80.2882,bank,0.27,8,6529
-CHE-020,chennai,Chennai,Kodambakkam Block B,13.0539,80.2402,bank,0.359,7,5409
-CHE-021,chennai,Chennai,T Nagar Block C,13.081,80.2806,retail,0.309,8,3113
-CHE-022,chennai,Chennai,Anna Nagar Block C,13.1039,80.2192,commercial,0.584,10,20246
-CHE-023,chennai,Chennai,Velachery Block C,13.1692,80.2308,high_value,0.836,12,9393
-CHE-024,chennai,Chennai,Adyar Block C,12.984,80.3648,highway,0.494,5,15046
-CHE-025,chennai,Chennai,Mylapore Block C,13.0697,80.2786,high_value,0.865,13,17294
-CHE-026,chennai,Chennai,Porur Block C,13.1667,80.2395,commercial,0.597,10,7546
-CHE-027,chennai,Chennai,Tambaram Block C,13.1248,80.2579,commercial,0.727,11,5356
-CHE-028,chennai,Chennai,Chromepet Block C,13.0663,80.2394,highway,0.559,6,8381
-CHE-029,chennai,Chennai,Nungambakkam Block C,13.0459,80.2579,bank,0.237,1,17060
-CHE-030,chennai,Chennai,Kodambakkam Block C,13.0843,80.2776,high_value,0.903,14,3363
-CHE-031,chennai,Chennai,T Nagar Block D,13.0616,80.2882,bank,0.141,4,6352
-CHE-032,chennai,Chennai,Anna Nagar Block D,13.0154,80.2041,bank,0.165,6,7881
-CHE-033,chennai,Chennai,Velachery Block D,12.9524,80.3058,retail,0.328,8,7620
-CHE-034,chennai,Chennai,Adyar Block D,13.0872,80.2755,commercial,0.668,9,5064
-CHE-035,chennai,Chennai,Mylapore Block D,13.091,80.2894,bank,0.234,7,6481
-CHE-036,chennai,Chennai,Porur Block D,13.0911,80.273,commercial,0.645,8,4828
-CHE-037,chennai,Chennai,Tambaram Block D,13.0885,80.2918,retail,0.402,5,10480
-CHE-038,chennai,Chennai,Chromepet Block D,13.1676,80.3199,bank,0.244,6,7255
-CHE-039,chennai,Chennai,Nungambakkam Block D,13.1052,80.208,commercial,0.589,8,26557
-CHE-040,chennai,Chennai,Kodambakkam Block D,13.0628,80.2928,retail,0.429,5,9467
-CHE-041,chennai,Chennai,T Nagar Block E,13.047,80.268,high_value,0.727,15,5403
-CHE-042,chennai,Chennai,Anna Nagar Block E,13.082,80.2714,commercial,0.618,7,4718
-CHE-043,chennai,Chennai,Velachery Block E,13.1589,80.3439,retail,0.433,8,5234
-CHE-044,chennai,Chennai,Adyar Block E,13.0421,80.2608,retail,0.348,5,7367
-CHE-045,chennai,Chennai,Mylapore Block E,13.0782,80.2921,retail,0.447,2,8216
-CHE-046,chennai,Chennai,Porur Block E,13.0831,80.2759,commercial,0.617,10,6351
-CHE-047,chennai,Chennai,Tambaram Block E,13.0888,80.2857,commercial,0.684,4,9849
-CHE-048,chennai,Chennai,Chromepet Block E,13.1359,80.2092,commercial,0.675,9,4970
-CHE-049,chennai,Chennai,Nungambakkam Block E,13.1174,80.2538,retail,0.362,7,6110
-CHE-050,chennai,Chennai,Kodambakkam Block E,13.0529,80.2862,commercial,0.663,7,5155
-DEL-001,delhi,Delhi,Connaught Place,28.6909,77.1631,commercial,0.569,18,7523
-DEL-002,delhi,Delhi,Karol Bagh,28.7068,77.106,bank,0.3,4,6072
-DEL-003,delhi,Delhi,Lajpat Nagar,28.702,77.1845,highway,0.622,8,3343
-DEL-004,delhi,Delhi,Rohini,28.805,77.048,bank,0.269,2,5990
-DEL-005,delhi,Delhi,Dwarka,28.7157,77.0971,high_value,0.929,17,7631
-DEL-006,delhi,Delhi,Saket,28.7081,77.087,commercial,0.67,12,6564
-DEL-007,delhi,Delhi,Janakpuri,28.6805,77.0568,commercial,0.697,12,7150
-DEL-008,delhi,Delhi,Pitampura,28.6761,77.1336,commercial,0.651,15,18736
-DEL-009,delhi,Delhi,Vasant Kunj,28.7202,77.2662,commercial,0.655,14,5206
-DEL-010,delhi,Delhi,Malviya Nagar,28.7618,77.0764,commercial,0.667,13,6583
-DEL-011,delhi,Delhi,Connaught Place Block B,28.6692,77.0651,bank,0.27,3,4695
-DEL-012,delhi,Delhi,Karol Bagh Block B,28.704,77.1001,retail,0.424,6,9574
-DEL-013,delhi,Delhi,Lajpat Nagar Block B,28.6449,77.2058,high_value,0.828,19,6543
-DEL-014,delhi,Delhi,Rohini Block B,28.6902,77.0126,retail,0.421,6,20710
-DEL-015,delhi,Delhi,Dwarka Block B,28.7038,77.1329,commercial,0.692,13,5190
-DEL-016,delhi,Delhi,Saket Block B,28.714,77.0986,retail,0.522,3,8643
-DEL-017,delhi,Delhi,Janakpuri Block B,28.8326,77.1192,bank,0.28,8,9031
-DEL-018,delhi,Delhi,Pitampura Block B,28.7351,77.1529,retail,0.48,8,6275
-DEL-019,delhi,Delhi,Vasant Kunj Block B,28.8538,77.0279,retail,0.426,12,6038
-DEL-020,delhi,Delhi,Malviya Nagar Block B,28.652,77.2026,high_value,0.799,16,3542
-DEL-021,delhi,Delhi,Connaught Place Block C,28.5498,77.0604,commercial,0.609,15,3822
-DEL-022,delhi,Delhi,Karol Bagh Block C,28.695,77.1057,commercial,0.515,12,7886
-DEL-023,delhi,Delhi,Lajpat Nagar Block C,28.7284,77.086,retail,0.426,5,5434
-DEL-024,delhi,Delhi,Rohini Block C,28.748,77.1015,retail,0.401,7,8005
-DEL-025,delhi,Delhi,Dwarka Block C,28.7399,77.261,commercial,0.595,17,16224
-DEL-026,delhi,Delhi,Saket Block C,28.6741,77.1159,retail,0.383,2,6729
-DEL-027,delhi,Delhi,Janakpuri Block C,28.8202,76.9461,commercial,0.584,14,6761
-DEL-028,delhi,Delhi,Pitampura Block C,28.7481,77.1775,retail,0.436,7,4607
-DEL-029,delhi,Delhi,Vasant Kunj Block C,28.711,77.1035,highway,0.447,10,6799
-DEL-030,delhi,Delhi,Malviya Nagar Block C,28.7076,77.1943,bank,0.232,4,14467
-DEL-031,delhi,Delhi,Connaught Place Block D,28.697,77.0882,commercial,0.738,9,4355
-DEL-032,delhi,Delhi,Karol Bagh Block D,28.6633,77.1464,commercial,0.586,11,19484
-DEL-033,delhi,Delhi,Lajpat Nagar Block D,28.67,77.0893,commercial,0.648,14,6850
-DEL-034,delhi,Delhi,Rohini Block D,28.7236,77.1057,retail,0.333,10,11750
-DEL-035,delhi,Delhi,Dwarka Block D,28.7767,77.2017,bank,0.255,2,3587
-DEL-036,delhi,Delhi,Saket Block D,28.6416,77.0773,highway,0.513,10,13244
-DEL-037,delhi,Delhi,Janakpuri Block D,28.6486,77.0562,commercial,0.69,12,9816
-DEL-038,delhi,Delhi,Pitampura Block D,28.715,77.1063,retail,0.409,3,5554
-DEL-039,delhi,Delhi,Vasant Kunj Block D,28.705,77.1378,commercial,0.606,15,10796
-DEL-040,delhi,Delhi,Malviya Nagar Block D,28.6364,77.1142,bank,0.207,1,11500
-DEL-041,delhi,Delhi,Connaught Place Block E,28.7229,77.1067,retail,0.367,7,3481
-DEL-042,delhi,Delhi,Karol Bagh Block E,28.705,77.0945,high_value,0.848,18,19641
-DEL-043,delhi,Delhi,Lajpat Nagar Block E,28.6906,77.0646,commercial,0.677,13,4703
-DEL-044,delhi,Delhi,Rohini Block E,28.6803,77.0853,high_value,0.846,18,11051
-DEL-045,delhi,Delhi,Dwarka Block E,28.7236,77.1539,bank,0.281,6,15415
-DEL-046,delhi,Delhi,Saket Block E,28.7146,77.0858,retail,0.421,9,8989
-DEL-047,delhi,Delhi,Janakpuri Block E,28.7264,77.157,bank,0.239,5,14250
-DEL-048,delhi,Delhi,Pitampura Block E,28.7176,77.0797,highway,0.505,9,6430
-DEL-049,delhi,Delhi,Vasant Kunj Block E,28.7051,77.1116,high_value,0.914,14,7111
-DEL-050,delhi,Delhi,Malviya Nagar Block E,28.6847,77.1535,highway,0.552,10,3855
-MUM-001,mumbai,Mumbai,Bandra,19.1168,72.8401,commercial,0.652,13,14936
-MUM-002,mumbai,Mumbai,Andheri,19.0458,72.9003,retail,0.378,5,16759
-MUM-003,mumbai,Mumbai,Lower Parel,19.0093,72.9157,commercial,0.61,11,4899
-MUM-004,mumbai,Mumbai,Powai,19.0763,72.8803,high_value,0.848,13,9109
-MUM-005,mumbai,Mumbai,Thane,19.0279,72.923,commercial,0.609,11,25715
-MUM-006,mumbai,Mumbai,Vashi,19.1565,73.0261,commercial,0.658,10,10365
-MUM-007,mumbai,Mumbai,Kurla,19.0443,72.8507,commercial,0.62,10,10696
-MUM-008,mumbai,Mumbai,Dadar,19.074,72.8806,bank,0.321,3,6091
-MUM-009,mumbai,Mumbai,Borivali,19.0729,72.8683,highway,0.465,7,26335
-MUM-010,mumbai,Mumbai,Mulund,19.0712,72.8749,bank,0.219,6,6675
-MUM-011,mumbai,Mumbai,Bandra Block B,19.1998,72.7676,bank,0.304,5,5296
-MUM-012,mumbai,Mumbai,Andheri Block B,19.0539,72.8929,commercial,0.648,11,19876
-MUM-013,mumbai,Mumbai,Lower Parel Block B,19.0883,72.885,retail,0.356,1,14806
-MUM-014,mumbai,Mumbai,Powai Block B,19.039,72.9331,retail,0.429,7,6770
-MUM-015,mumbai,Mumbai,Thane Block B,19.0938,72.8162,bank,0.286,5,10417
-MUM-016,mumbai,Mumbai,Vashi Block B,19.0528,72.8254,highway,0.492,10,8719
-MUM-017,mumbai,Mumbai,Kurla Block B,19.0368,72.9478,commercial,0.67,12,7238
-MUM-018,mumbai,Mumbai,Dadar Block B,19.0635,72.9336,bank,0.182,4,11767
-MUM-019,mumbai,Mumbai,Borivali Block B,19.0467,72.843,highway,0.48,9,10604
-MUM-020,mumbai,Mumbai,Mulund Block B,19.0451,72.9279,bank,0.228,4,8928
-MUM-021,mumbai,Mumbai,Bandra Block C,19.0541,72.9477,high_value,0.898,11,6373
-MUM-022,mumbai,Mumbai,Andheri Block C,19.1878,72.7541,bank,0.222,4,9785
-MUM-023,mumbai,Mumbai,Lower Parel Block C,19.0761,72.8762,high_value,0.748,15,11685
-MUM-024,mumbai,Mumbai,Powai Block C,19.0589,72.8841,bank,0.178,6,2698
-MUM-025,mumbai,Mumbai,Thane Block C,19.1223,72.9589,retail,0.466,9,7250
-MUM-026,mumbai,Mumbai,Vashi Block C,19.1049,72.8664,retail,0.324,4,5733
-MUM-027,mumbai,Mumbai,Kurla Block C,19.1056,72.8745,bank,0.217,3,8409
-MUM-028,mumbai,Mumbai,Dadar Block C,18.9994,72.9657,retail,0.417,6,10181
-MUM-029,mumbai,Mumbai,Borivali Block C,19.0898,72.7671,highway,0.516,7,15132
-MUM-030,mumbai,Mumbai,Mulund Block C,19.069,72.8786,high_value,0.816,16,19939
-MUM-031,mumbai,Mumbai,Bandra Block D,19.0877,72.9163,high_value,0.878,12,5899
-MUM-032,mumbai,Mumbai,Andheri Block D,19.0754,72.8779,high_value,0.827,17,2411
-MUM-033,mumbai,Mumbai,Lower Parel Block D,19.0602,72.8656,retail,0.424,7,8005
-MUM-034,mumbai,Mumbai,Powai Block D,19.0884,72.8879,bank,0.25,3,4540
-MUM-035,mumbai,Mumbai,Thane Block D,19.0254,72.8286,retail,0.402,5,7082
-MUM-036,mumbai,Mumbai,Vashi Block D,19.1012,72.8921,high_value,0.94,15,11163
-MUM-037,mumbai,Mumbai,Kurla Block D,19.0799,72.865,commercial,0.61,12,20050
-MUM-038,mumbai,Mumbai,Dadar Block D,19.1248,72.8234,highway,0.552,9,6200
-MUM-039,mumbai,Mumbai,Borivali Block D,19.1876,72.9428,retail,0.466,6,9903
-MUM-040,mumbai,Mumbai,Mulund Block D,19.0754,72.8726,high_value,0.817,19,6361
-MUM-041,mumbai,Mumbai,Bandra Block E,19.0857,72.867,bank,0.224,2,11040
-MUM-042,mumbai,Mumbai,Andheri Block E,19.0301,72.8783,retail,0.402,9,8604
-MUM-043,mumbai,Mumbai,Lower Parel Block E,19.0961,72.9426,high_value,0.844,17,12918
-MUM-044,mumbai,Mumbai,Powai Block E,19.0546,72.8892,commercial,0.661,13,13678
-MUM-045,mumbai,Mumbai,Thane Block E,19.0083,72.9068,retail,0.371,3,12091
-MUM-046,mumbai,Mumbai,Vashi Block E,19.0895,72.9343,retail,0.369,7,9876
-MUM-047,mumbai,Mumbai,Kurla Block E,19.0471,72.7374,commercial,0.635,12,3550
-MUM-048,mumbai,Mumbai,Dadar Block E,19.0989,72.8521,retail,0.457,7,3395
-MUM-049,mumbai,Mumbai,Borivali Block E,19.0905,72.9031,bank,0.188,6,14099
-MUM-050,mumbai,Mumbai,Mulund Block E,19.186,73.0031,retail,0.404,5,4266
-BAN-001,bangalore,Bangalore,MG Road,12.9254,77.6725,retail,0.33,6,5328
-BAN-002,bangalore,Bangalore,Indiranagar,12.9725,77.5963,retail,0.384,6,22888
-BAN-003,bangalore,Bangalore,Koramangala,13.0176,77.5244,retail,0.419,4,6881
-BAN-004,bangalore,Bangalore,Whitefield,13.0073,77.6083,bank,0.287,2,7782
-BAN-005,bangalore,Bangalore,Electronic City,12.9572,77.628,high_value,0.873,11,7579
-BAN-006,bangalore,Bangalore,Hebbal,12.938,77.5912,retail,0.455,7,4817
-BAN-007,bangalore,Bangalore,Jayanagar,12.9884,77.6497,bank,0.217,3,13856
-BAN-008,bangalore,Bangalore,HSR Layout,12.9978,77.6492,highway,0.508,6,9725
-BAN-009,bangalore,Bangalore,Marathahalli,12.9232,77.5955,bank,0.253,2,8944
-BAN-010,bangalore,Bangalore,Banashankari,12.9662,77.5834,retail,0.482,6,4567
-BAN-011,bangalore,Bangalore,MG Road Block B,13.0139,77.629,bank,0.237,5,9607
-BAN-012,bangalore,Bangalore,Indiranagar Block B,12.9639,77.4861,retail,0.459,8,4386
-BAN-013,bangalore,Bangalore,Koramangala Block B,12.9973,77.5253,highway,0.487,9,8606
-BAN-014,bangalore,Bangalore,Whitefield Block B,12.9913,77.5953,commercial,0.73,6,5305
-BAN-015,bangalore,Bangalore,Electronic City Block B,12.9487,77.6144,commercial,0.62,6,8820
-BAN-016,bangalore,Bangalore,Hebbal Block B,12.9477,77.5512,retail,0.449,3,6888
-BAN-017,bangalore,Bangalore,Jayanagar Block B,12.939,77.5906,high_value,0.773,9,16692
-BAN-018,bangalore,Bangalore,HSR Layout Block B,12.9255,77.5845,highway,0.53,3,12415
-BAN-019,bangalore,Bangalore,Marathahalli Block B,12.9725,77.5943,commercial,0.67,8,7372
-BAN-020,bangalore,Bangalore,Banashankari Block B,12.9985,77.615,commercial,0.601,9,4666
-BAN-021,bangalore,Bangalore,MG Road Block C,12.9843,77.5568,commercial,0.689,11,5992
-BAN-022,bangalore,Bangalore,Indiranagar Block C,12.9788,77.6018,retail,0.405,2,4158
-BAN-023,bangalore,Bangalore,Koramangala Block C,12.9702,77.589,retail,0.396,8,6066
-BAN-024,bangalore,Bangalore,Whitefield Block C,12.8753,77.4851,retail,0.402,5,8269
-BAN-025,bangalore,Bangalore,Electronic City Block C,12.9732,77.6068,retail,0.385,7,7060
-BAN-026,bangalore,Bangalore,Hebbal Block C,12.9779,77.6726,commercial,0.635,10,15121
-BAN-027,bangalore,Bangalore,Jayanagar Block C,12.9691,77.5901,retail,0.338,9,10532
-BAN-028,bangalore,Bangalore,HSR Layout Block C,12.9796,77.585,high_value,0.852,10,7528
-BAN-029,bangalore,Bangalore,Marathahalli Block C,12.9405,77.5691,commercial,0.566,11,9482
-BAN-030,bangalore,Bangalore,Banashankari Block C,13.0107,77.641,retail,0.484,5,6143
-BAN-031,bangalore,Bangalore,MG Road Block D,12.9207,77.4566,high_value,0.823,12,3599
-BAN-032,bangalore,Bangalore,Indiranagar Block D,12.9756,77.5968,bank,0.221,4,4878
-BAN-033,bangalore,Bangalore,Koramangala Block D,12.9748,77.617,high_value,0.852,9,5937
-BAN-034,bangalore,Bangalore,Whitefield Block D,12.8683,77.5674,retail,0.3,6,9769
-BAN-035,bangalore,Bangalore,Electronic City Block D,12.9439,77.6442,bank,0.347,4,7113
-BAN-036,bangalore,Bangalore,Hebbal Block D,13.0102,77.6103,bank,0.277,6,5113
-BAN-037,bangalore,Bangalore,Jayanagar Block D,12.9833,77.6324,high_value,0.835,14,15630
-BAN-038,bangalore,Bangalore,HSR Layout Block D,13.0087,77.4648,commercial,0.595,6,6917
-BAN-039,bangalore,Bangalore,Marathahalli Block D,13.1031,77.5882,retail,0.461,5,5571
-BAN-040,bangalore,Bangalore,Banashankari Block D,12.9718,77.5876,highway,0.535,7,13073
-BAN-041,bangalore,Bangalore,MG Road Block E,12.9893,77.5988,commercial,0.638,7,8464
-BAN-042,bangalore,Bangalore,Indiranagar Block E,12.9629,77.6191,retail,0.419,6,28183
-BAN-043,bangalore,Bangalore,Koramangala Block E,13.0018,77.5774,bank,0.273,2,6507
-BAN-044,bangalore,Bangalore,Whitefield Block E,13.045,77.5221,highway,0.467,9,13306
-BAN-045,bangalore,Bangalore,Electronic City Block E,12.9943,77.6076,commercial,0.716,6,8310
-BAN-046,bangalore,Bangalore,Hebbal Block E,12.9747,77.588,bank,0.249,3,12196
-BAN-047,bangalore,Bangalore,Jayanagar Block E,12.9144,77.5483,commercial,0.653,3,6728
-BAN-048,bangalore,Bangalore,HSR Layout Block E,12.9728,77.5952,high_value,0.853,9,10560
-BAN-049,bangalore,Bangalore,Marathahalli Block E,12.9994,77.5884,commercial,0.665,2,9336
-BAN-050,bangalore,Bangalore,Banashankari Block E,12.9819,77.6434,retail,0.389,3,17074
-KOL-001,kolkata,Kolkata,Park Street,22.6901,88.4126,high_value,0.829,9,6743
-KOL-002,kolkata,Kolkata,Salt Lake,22.6144,88.3972,high_value,0.858,9,8115
-KOL-003,kolkata,Kolkata,New Market,22.589,88.322,commercial,0.764,9,4807
-KOL-004,kolkata,Kolkata,Ballygunge,22.5925,88.3453,commercial,0.591,7,3291
-KOL-005,kolkata,Kolkata,Dum Dum,22.5999,88.3082,highway,0.491,6,6662
-KOL-006,kolkata,Kolkata,Howrah,22.5687,88.4319,high_value,0.776,10,8881
-KOL-007,kolkata,Kolkata,Gariahat,22.5847,88.3649,bank,0.248,1,3040
-KOL-008,kolkata,Kolkata,Behala,22.5751,88.3598,retail,0.378,9,5206
-KOL-009,kolkata,Kolkata,Lake Gardens,22.5703,88.3332,commercial,0.536,6,9343
-KOL-010,kolkata,Kolkata,Shyambazar,22.638,88.3435,commercial,0.62,8,20191
-KOL-011,kolkata,Kolkata,Park Street Block B,22.5702,88.4515,high_value,0.896,10,16404
-KOL-012,kolkata,Kolkata,Salt Lake Block B,22.6078,88.3343,retail,0.402,7,5559
-KOL-013,kolkata,Kolkata,New Market Block B,22.6071,88.4155,retail,0.405,4,9122
-KOL-014,kolkata,Kolkata,Ballygunge Block B,22.5755,88.3654,high_value,0.783,9,4985
-KOL-015,kolkata,Kolkata,Dum Dum Block B,22.5341,88.4214,retail,0.378,4,9332
-KOL-016,kolkata,Kolkata,Howrah Block B,22.5738,88.3493,high_value,0.9,9,5550
-KOL-017,kolkata,Kolkata,Gariahat Block B,22.5576,88.3477,commercial,0.604,8,11168
-KOL-018,kolkata,Kolkata,Behala Block B,22.5707,88.3635,bank,0.218,5,12886
-KOL-019,kolkata,Kolkata,Lake Gardens Block B,22.6128,88.3584,retail,0.43,6,5287
-KOL-020,kolkata,Kolkata,Shyambazar Block B,22.5116,88.4706,commercial,0.598,9,3031
-KOL-021,kolkata,Kolkata,Park Street Block C,22.5338,88.3807,bank,0.233,2,9002
-KOL-022,kolkata,Kolkata,Salt Lake Block C,22.5636,88.3512,highway,0.492,6,9332
-KOL-023,kolkata,Kolkata,New Market Block C,22.5735,88.3345,highway,0.537,8,4820
-KOL-024,kolkata,Kolkata,Ballygunge Block C,22.4518,88.3259,bank,0.27,4,5850
-KOL-025,kolkata,Kolkata,Dum Dum Block C,22.577,88.3535,retail,0.436,6,25596
-KOL-026,kolkata,Kolkata,Howrah Block C,22.5571,88.363,retail,0.438,7,9804
-KOL-027,kolkata,Kolkata,Gariahat Block C,22.5313,88.3123,commercial,0.649,7,12261
-KOL-028,kolkata,Kolkata,Behala Block C,22.5772,88.3636,retail,0.371,3,10875
-KOL-029,kolkata,Kolkata,Lake Gardens Block C,22.5179,88.3425,retail,0.344,4,9311
-KOL-030,kolkata,Kolkata,Shyambazar Block C,22.6356,88.3661,high_value,0.811,13,11205
-KOL-031,kolkata,Kolkata,Park Street Block D,22.5921,88.3582,commercial,0.609,7,5385
-KOL-032,kolkata,Kolkata,Salt Lake Block D,22.5559,88.2619,retail,0.329,1,3359
-KOL-033,kolkata,Kolkata,New Market Block D,22.5726,88.3638,retail,0.371,7,8871
-KOL-034,kolkata,Kolkata,Ballygunge Block D,22.5277,88.3697,high_value,0.927,9,22093
-KOL-035,kolkata,Kolkata,Dum Dum Block D,22.5348,88.3475,retail,0.441,3,8074
-KOL-036,kolkata,Kolkata,Howrah Block D,22.575,88.3652,commercial,0.685,10,13064
-KOL-037,kolkata,Kolkata,Gariahat Block D,22.5803,88.3302,retail,0.356,4,5315
-KOL-038,kolkata,Kolkata,Behala Block D,22.58,88.4066,retail,0.349,4,20476
-KOL-039,kolkata,Kolkata,Lake Gardens Block D,22.5281,88.3085,high_value,0.835,13,14754
-KOL-040,kolkata,Kolkata,Shyambazar Block D,22.565,88.3588,commercial,0.657,4,3346
-KOL-041,kolkata,Kolkata,Park Street Block E,22.5351,88.4923,commercial,0.64,10,6738
-KOL-042,kolkata,Kolkata,Salt Lake Block E,22.5814,88.3363,retail,0.399,5,19655
-KOL-043,kolkata,Kolkata,New Market Block E,22.5195,88.388,highway,0.445,7,9873
-KOL-044,kolkata,Kolkata,Ballygunge Block E,22.5032,88.2503,high_value,0.845,9,7318
-KOL-045,kolkata,Kolkata,Dum Dum Block E,22.5717,88.3774,bank,0.204,1,6961
-KOL-046,kolkata,Kolkata,Howrah Block E,22.5731,88.3607,retail,0.279,8,12607
-KOL-047,kolkata,Kolkata,Gariahat Block E,22.5144,88.4537,high_value,0.854,11,11512
-KOL-048,kolkata,Kolkata,Behala Block E,22.5952,88.3722,commercial,0.69,8,4327
-KOL-049,kolkata,Kolkata,Lake Gardens Block E,22.5843,88.4015,retail,0.417,5,5408
-KOL-050,kolkata,Kolkata,Shyambazar Block E,22.5791,88.3738,commercial,0.66,7,14390
-HYD-001,hyderabad,Hyderabad,Banjara Hills,17.3786,78.4857,bank,0.258,2,9796
-HYD-002,hyderabad,Hyderabad,Madhapur,17.4135,78.5036,retail,0.422,9,12733
-HYD-003,hyderabad,Hyderabad,Gachibowli,17.3574,78.4937,retail,0.404,4,16294
-HYD-004,hyderabad,Hyderabad,Ameerpet,17.3822,78.4875,highway,0.468,7,5433
-HYD-005,hyderabad,Hyderabad,Kukatpally,17.3959,78.506,highway,0.505,4,6766
-HYD-006,hyderabad,Hyderabad,Secunderabad,17.2394,78.535,highway,0.544,8,7793
-HYD-007,hyderabad,Hyderabad,LB Nagar,17.3493,78.4774,high_value,0.875,14,15595
-HYD-008,hyderabad,Hyderabad,Dilshuknagar,17.3969,78.4839,retail,0.446,4,5801
-HYD-009,hyderabad,Hyderabad,Jubilee Hills,17.3375,78.4603,highway,0.49,8,4404
-HYD-010,hyderabad,Hyderabad,Manikonda,17.3569,78.4035,commercial,0.633,9,6622
-HYD-011,hyderabad,Hyderabad,Banjara Hills Block B,17.4332,78.6018,retail,0.342,5,5608
-HYD-012,hyderabad,Hyderabad,Madhapur Block B,17.4493,78.4253,retail,0.396,6,10159
-HYD-013,hyderabad,Hyderabad,Gachibowli Block B,17.4436,78.4805,retail,0.387,3,8236
-HYD-014,hyderabad,Hyderabad,Ameerpet Block B,17.3181,78.4745,bank,0.26,3,6791
-HYD-015,hyderabad,Hyderabad,Kukatpally Block B,17.425,78.5877,highway,0.518,10,6961
-HYD-016,hyderabad,Hyderabad,Secunderabad Block B,17.3993,78.4557,commercial,0.715,5,8010
-HYD-017,hyderabad,Hyderabad,LB Nagar Block B,17.3798,78.4959,retail,0.379,4,5817
-HYD-018,hyderabad,Hyderabad,Dilshuknagar Block B,17.3846,78.4277,retail,0.45,1,6530
-HYD-019,hyderabad,Hyderabad,Jubilee Hills Block B,17.2348,78.5154,retail,0.36,6,14725
-HYD-020,hyderabad,Hyderabad,Manikonda Block B,17.3943,78.4913,bank,0.279,1,6390
-HYD-021,hyderabad,Hyderabad,Banjara Hills Block C,17.3749,78.5434,retail,0.406,1,13552
-HYD-022,hyderabad,Hyderabad,Madhapur Block C,17.4864,78.4433,highway,0.532,4,14112
-HYD-023,hyderabad,Hyderabad,Gachibowli Block C,17.3768,78.6196,retail,0.408,3,3454
-HYD-024,hyderabad,Hyderabad,Ameerpet Block C,17.4129,78.4534,commercial,0.623,4,7744
-HYD-025,hyderabad,Hyderabad,Kukatpally Block C,17.3765,78.3469,commercial,0.688,8,8937
-HYD-026,hyderabad,Hyderabad,Secunderabad Block C,17.3853,78.4857,bank,0.203,4,13946
-HYD-027,hyderabad,Hyderabad,LB Nagar Block C,17.3935,78.4704,bank,0.218,4,5139
-HYD-028,hyderabad,Hyderabad,Dilshuknagar Block C,17.385,78.4874,retail,0.44,5,3611
-HYD-029,hyderabad,Hyderabad,Jubilee Hills Block C,17.3794,78.5058,retail,0.445,6,12723
-HYD-030,hyderabad,Hyderabad,Manikonda Block C,17.3867,78.4909,commercial,0.654,9,14486
-HYD-031,hyderabad,Hyderabad,Banjara Hills Block D,17.4726,78.5255,retail,0.432,6,11233
-HYD-032,hyderabad,Hyderabad,Madhapur Block D,17.3665,78.4957,retail,0.426,11,16104
-HYD-033,hyderabad,Hyderabad,Gachibowli Block D,17.4094,78.4662,retail,0.487,8,4879
-HYD-034,hyderabad,Hyderabad,Ameerpet Block D,17.3791,78.4862,commercial,0.759,10,7420
-HYD-035,hyderabad,Hyderabad,Kukatpally Block D,17.4317,78.471,retail,0.405,10,7686
-HYD-036,hyderabad,Hyderabad,Secunderabad Block D,17.3629,78.514,high_value,0.829,11,5731
-HYD-037,hyderabad,Hyderabad,LB Nagar Block D,17.4062,78.4827,retail,0.338,6,5181
-HYD-038,hyderabad,Hyderabad,Dilshuknagar Block D,17.3847,78.4867,high_value,0.835,10,5563
-HYD-039,hyderabad,Hyderabad,Jubilee Hills Block D,17.3997,78.4417,retail,0.391,6,5488
-HYD-040,hyderabad,Hyderabad,Manikonda Block D,17.3802,78.4822,commercial,0.704,8,8189
-HYD-041,hyderabad,Hyderabad,Banjara Hills Block E,17.3203,78.4895,bank,0.217,2,4068
-HYD-042,hyderabad,Hyderabad,Madhapur Block E,17.2771,78.5575,retail,0.321,1,12676
-HYD-043,hyderabad,Hyderabad,Gachibowli Block E,17.4533,78.3436,highway,0.469,7,5686
-HYD-044,hyderabad,Hyderabad,Ameerpet Block E,17.3607,78.5095,commercial,0.639,9,4946
-HYD-045,hyderabad,Hyderabad,Kukatpally Block E,17.385,78.4826,high_value,0.842,13,14961
-HYD-046,hyderabad,Hyderabad,Secunderabad Block E,17.3539,78.5252,high_value,0.885,14,9105
-HYD-047,hyderabad,Hyderabad,LB Nagar Block E,17.3009,78.4114,retail,0.363,5,3468
-HYD-048,hyderabad,Hyderabad,Dilshuknagar Block E,17.3392,78.4909,high_value,0.858,10,4847
-HYD-049,hyderabad,Hyderabad,Jubilee Hills Block E,17.3464,78.5477,retail,0.442,6,20335
-HYD-050,hyderabad,Hyderabad,Manikonda Block E,17.3819,78.5069,highway,0.57,5,7150
-AHM-001,ahmedabad,Ahmedabad,CG Road,23.0575,72.4937,bank,0.215,1,3236
-AHM-002,ahmedabad,Ahmedabad,SG Highway,22.9823,72.5392,retail,0.345,6,6598
-AHM-003,ahmedabad,Ahmedabad,Vastrapur,23.0168,72.5743,bank,0.228,1,8306
-AHM-004,ahmedabad,Ahmedabad,Satellite,23.0114,72.5574,high_value,0.766,9,5415
-AHM-005,ahmedabad,Ahmedabad,Paldi,23.0057,72.5343,commercial,0.627,11,7918
-AHM-006,ahmedabad,Ahmedabad,Ashram Road,23.0508,72.5768,bank,0.228,1,7670
-AHM-007,ahmedabad,Ahmedabad,Maninagar,23.0422,72.5756,commercial,0.632,3,7733
-AHM-008,ahmedabad,Ahmedabad,Naroda,23.0513,72.5449,highway,0.495,6,10136
-AHM-009,ahmedabad,Ahmedabad,Bopal,23.0097,72.5836,retail,0.341,4,17790
-AHM-010,ahmedabad,Ahmedabad,Science City Road,23.0344,72.5491,commercial,0.611,7,5940
-AHM-011,ahmedabad,Ahmedabad,CG Road Block B,23.0385,72.578,commercial,0.675,7,13104
-AHM-012,ahmedabad,Ahmedabad,SG Highway Block B,23.0379,72.5914,retail,0.273,1,7023
-AHM-013,ahmedabad,Ahmedabad,Vastrapur Block B,23.1092,72.5678,retail,0.456,8,6477
-AHM-014,ahmedabad,Ahmedabad,Satellite Block B,23.0481,72.5784,retail,0.413,1,10237
-AHM-015,ahmedabad,Ahmedabad,Paldi Block B,22.9409,72.5525,high_value,0.864,8,5809
-AHM-016,ahmedabad,Ahmedabad,Ashram Road Block B,23.1062,72.4829,high_value,0.869,11,7985
-AHM-017,ahmedabad,Ahmedabad,Maninagar Block B,22.9415,72.5806,retail,0.358,1,11157
-AHM-018,ahmedabad,Ahmedabad,Naroda Block B,23.0004,72.5922,retail,0.453,3,9059
-AHM-019,ahmedabad,Ahmedabad,Bopal Block B,23.0437,72.5686,highway,0.575,6,14514
-AHM-020,ahmedabad,Ahmedabad,Science City Road Block B,23.0246,72.5696,bank,0.28,2,1862
-AHM-021,ahmedabad,Ahmedabad,CG Road Block C,22.9479,72.4887,high_value,0.838,13,13042
-AHM-022,ahmedabad,Ahmedabad,SG Highway Block C,23.0322,72.5832,commercial,0.619,9,12471
-AHM-023,ahmedabad,Ahmedabad,Vastrapur Block C,23.051,72.6944,high_value,0.893,8,10483
-AHM-024,ahmedabad,Ahmedabad,Satellite Block C,23.0582,72.62,highway,0.559,7,11546
-AHM-025,ahmedabad,Ahmedabad,Paldi Block C,23.0445,72.5366,high_value,0.849,7,3568
-AHM-026,ahmedabad,Ahmedabad,Ashram Road Block C,23.0385,72.5791,high_value,0.755,6,9015
-AHM-027,ahmedabad,Ahmedabad,Maninagar Block C,23.0476,72.5857,highway,0.504,5,7474
-AHM-028,ahmedabad,Ahmedabad,Naroda Block C,23.0195,72.5827,commercial,0.691,5,7354
-AHM-029,ahmedabad,Ahmedabad,Bopal Block C,23.011,72.5973,commercial,0.651,7,3545
-AHM-030,ahmedabad,Ahmedabad,Science City Road Block C,23.0193,72.5667,bank,0.099,5,8883
-AHM-031,ahmedabad,Ahmedabad,CG Road Block D,22.9881,72.549,high_value,0.889,7,12353
-AHM-032,ahmedabad,Ahmedabad,SG Highway Block D,23.0334,72.5377,retail,0.42,5,6282
-AHM-033,ahmedabad,Ahmedabad,Vastrapur Block D,23.0187,72.6016,commercial,0.603,7,5924
-AHM-034,ahmedabad,Ahmedabad,Satellite Block D,23.0143,72.6252,high_value,0.891,9,5252
-AHM-035,ahmedabad,Ahmedabad,Paldi Block D,23.0207,72.5758,commercial,0.626,8,13544
-AHM-036,ahmedabad,Ahmedabad,Ashram Road Block D,23.0406,72.5555,bank,0.27,1,7695
-AHM-037,ahmedabad,Ahmedabad,Maninagar Block D,23.0627,72.5988,retail,0.334,7,10520
-AHM-038,ahmedabad,Ahmedabad,Naroda Block D,22.9639,72.4616,highway,0.504,3,8943
-AHM-039,ahmedabad,Ahmedabad,Bopal Block D,23.0211,72.5761,highway,0.507,4,9936
-AHM-040,ahmedabad,Ahmedabad,Science City Road Block D,22.9993,72.5713,retail,0.372,4,4401
-AHM-041,ahmedabad,Ahmedabad,CG Road Block E,23.021,72.5731,highway,0.484,8,6645
-AHM-042,ahmedabad,Ahmedabad,SG Highway Block E,23.0081,72.5477,bank,0.284,3,4741
-AHM-043,ahmedabad,Ahmedabad,Vastrapur Block E,23.0114,72.5617,high_value,0.891,12,13871
-AHM-044,ahmedabad,Ahmedabad,Satellite Block E,22.9821,72.6054,commercial,0.634,4,10955
-AHM-045,ahmedabad,Ahmedabad,Paldi Block E,23.0209,72.5734,high_value,0.856,6,3779
-AHM-046,ahmedabad,Ahmedabad,Ashram Road Block E,23.0279,72.5721,retail,0.272,2,7364
-AHM-047,ahmedabad,Ahmedabad,Maninagar Block E,22.9862,72.5636,high_value,0.848,10,22224
-AHM-048,ahmedabad,Ahmedabad,Naroda Block E,22.9995,72.6325,highway,0.522,6,8182
-AHM-049,ahmedabad,Ahmedabad,Bopal Block E,23.023,72.5719,highway,0.51,5,13232
-AHM-050,ahmedabad,Ahmedabad,Science City Road Block E,23.0051,72.5693,commercial,0.658,5,8311
+atm_id,city,city_name,name,lat,lng,type,base_risk,crime_density,daily_volume,affinity
+PUD-001,puducherry,Puducherry,White Town,11.8909,79.8604,retail,0.416,1,9316,0.708
+PUD-002,puducherry,Puducherry,MG Road,12.0129,79.8178,highway,0.471,7,6231,0.183
+PUD-003,puducherry,Puducherry,Lawspet,11.9353,79.8263,retail,0.324,5,6541,0.366
+PUD-004,puducherry,Puducherry,Muthialpet,11.9044,79.8191,commercial,0.778,5,9868,0.046
+PUD-005,puducherry,Puducherry,Reddiarpalayam,11.9379,79.8053,high_value,0.897,7,9372,0.44
+PUD-006,puducherry,Puducherry,Kurumbapet,11.954,79.8205,high_value,0.839,7,9844,0.663
+PUD-007,puducherry,Puducherry,Thattanchavady,11.9346,79.8258,retail,0.444,4,4892,0.271
+PUD-008,puducherry,Puducherry,Nehru Park,11.9469,79.7983,commercial,0.593,3,8666,0.802
+PUD-009,puducherry,Puducherry,Solarpuram,12.0057,79.8415,highway,0.544,6,12672,0.074
+PUD-010,puducherry,Puducherry,Mudaliarpet,11.9396,79.8108,bank,0.175,4,14042,0.064
+PUD-011,puducherry,Puducherry,White Town Block B,11.9379,79.8177,retail,0.415,5,4822,0.713
+PUD-012,puducherry,Puducherry,MG Road Block B,11.943,79.7872,highway,0.669,5,5114,0.428
+PUD-013,puducherry,Puducherry,Lawspet Block B,11.9444,79.8088,high_value,0.902,6,12730,0.249
+PUD-014,puducherry,Puducherry,Muthialpet Block B,11.9116,79.8276,commercial,0.639,6,6545,0.161
+PUD-015,puducherry,Puducherry,Reddiarpalayam Block B,11.9791,79.7902,retail,0.416,4,16089,0.896
+PUD-016,puducherry,Puducherry,Kurumbapet Block B,11.9404,79.811,commercial,0.714,7,7002,0.861
+PUD-017,puducherry,Puducherry,Thattanchavady Block B,11.9596,79.8091,retail,0.386,3,10162,0.323
+PUD-018,puducherry,Puducherry,Nehru Park Block B,11.9113,79.8046,commercial,0.649,6,3509,0.301
+PUD-019,puducherry,Puducherry,Solarpuram Block B,11.9414,79.8092,retail,0.4,2,10289,0.24
+PUD-020,puducherry,Puducherry,Mudaliarpet Block B,11.952,79.8219,bank,0.288,2,4560,0.762
+PUD-021,puducherry,Puducherry,White Town Block C,11.9441,79.8417,commercial,0.72,9,5217,0.835
+PUD-022,puducherry,Puducherry,MG Road Block C,11.9394,79.8131,high_value,0.935,9,12541,0.017
+PUD-023,puducherry,Puducherry,Lawspet Block C,11.9352,79.8078,retail,0.354,5,11050,0.138
+PUD-024,puducherry,Puducherry,Muthialpet Block C,11.94,79.8109,bank,0.232,2,10700,0.66
+PUD-025,puducherry,Puducherry,Reddiarpalayam Block C,11.95,79.7893,retail,0.39,3,3944,0.349
+PUD-026,puducherry,Puducherry,Kurumbapet Block C,11.933,79.7505,bank,0.281,5,14891,0.084
+PUD-027,puducherry,Puducherry,Thattanchavady Block C,11.9719,79.8583,retail,0.339,4,13693,0.224
+PUD-028,puducherry,Puducherry,Nehru Park Block C,11.94,79.8015,commercial,0.688,9,15278,0.849
+PUD-029,puducherry,Puducherry,Solarpuram Block C,11.93,79.7902,high_value,0.811,6,12573,0.631
+PUD-030,puducherry,Puducherry,Mudaliarpet Block C,11.9465,79.7911,retail,0.33,3,7964,0.722
+PUD-031,puducherry,Puducherry,White Town Block D,11.9415,79.8089,retail,0.437,3,6462,0.385
+PUD-032,puducherry,Puducherry,MG Road Block D,11.9473,79.8004,commercial,0.686,8,8486,0.696
+PUD-033,puducherry,Puducherry,Lawspet Block D,11.9393,79.8072,retail,0.403,6,12534,0.702
+PUD-034,puducherry,Puducherry,Muthialpet Block D,11.936,79.8152,highway,0.515,7,9215,0.913
+PUD-035,puducherry,Puducherry,Reddiarpalayam Block D,11.9241,79.807,highway,0.549,7,9101,0.338
+PUD-036,puducherry,Puducherry,Kurumbapet Block D,11.9398,79.8101,retail,0.398,4,6202,0.543
+PUD-037,puducherry,Puducherry,Thattanchavady Block D,11.9365,79.8307,high_value,0.833,7,17680,0.216
+PUD-038,puducherry,Puducherry,Nehru Park Block D,11.94,79.8067,high_value,0.969,9,20367,0.637
+PUD-039,puducherry,Puducherry,Solarpuram Block D,11.9308,79.7357,retail,0.369,6,6488,0.078
+PUD-040,puducherry,Puducherry,Mudaliarpet Block D,12.0126,79.82,highway,0.461,1,18595,0.173
+PUD-041,puducherry,Puducherry,White Town Block E,11.9456,79.8145,retail,0.463,6,9785,0.612
+PUD-042,puducherry,Puducherry,MG Road Block E,11.9353,79.8118,commercial,0.638,10,20660,0.098
+PUD-043,puducherry,Puducherry,Lawspet Block E,11.9255,79.8092,commercial,0.585,2,17527,0.045
+PUD-044,puducherry,Puducherry,Muthialpet Block E,11.9242,79.8262,retail,0.42,6,12770,0.163
+PUD-045,puducherry,Puducherry,Reddiarpalayam Block E,11.965,79.8196,high_value,0.856,10,3137,0.643
+PUD-046,puducherry,Puducherry,Kurumbapet Block E,11.9224,79.8136,bank,0.272,5,7675,0.905
+PUD-047,puducherry,Puducherry,Thattanchavady Block E,11.9422,79.81,high_value,0.86,7,12613,0.023
+PUD-048,puducherry,Puducherry,Nehru Park Block E,11.9449,79.8005,high_value,0.898,7,16752,0.877
+PUD-049,puducherry,Puducherry,Solarpuram Block E,11.9378,79.7667,commercial,0.614,7,3314,0.776
+PUD-050,puducherry,Puducherry,Mudaliarpet Block E,11.9053,79.8661,bank,0.328,1,6504,0.755
+CHE-001,chennai,Chennai,T Nagar,13.1703,80.3387,retail,0.447,4,7189,0.011
+CHE-002,chennai,Chennai,Anna Nagar,13.0864,80.2681,commercial,0.746,11,13802,0.448
+CHE-003,chennai,Chennai,Velachery,13.0777,80.2893,retail,0.433,7,5712,0.55
+CHE-004,chennai,Chennai,Adyar,12.9865,80.3087,commercial,0.681,9,15977,0.101
+CHE-005,chennai,Chennai,Mylapore,13.1319,80.3002,high_value,0.894,13,14431,0.947
+CHE-006,chennai,Chennai,Porur,13.1485,80.2647,commercial,0.548,8,17765,0.906
+CHE-007,chennai,Chennai,Tambaram,13.1072,80.2918,high_value,0.848,11,15299,0.583
+CHE-008,chennai,Chennai,Chromepet,13.1042,80.2653,commercial,0.633,11,10186,0.963
+CHE-009,chennai,Chennai,Nungambakkam,13.2171,80.2813,high_value,0.899,12,10268,0.523
+CHE-010,chennai,Chennai,Kodambakkam,13.0441,80.2289,retail,0.46,6,20091,0.901
+CHE-011,chennai,Chennai,T Nagar Block B,13.0976,80.2752,bank,0.299,3,3918,0.188
+CHE-012,chennai,Chennai,Anna Nagar Block B,13.0627,80.2755,retail,0.304,7,9713,0.814
+CHE-013,chennai,Chennai,Velachery Block B,13.0794,80.2628,bank,0.324,5,11500,0.866
+CHE-014,chennai,Chennai,Adyar Block B,13.0839,80.2711,commercial,0.665,9,4681,0.381
+CHE-015,chennai,Chennai,Mylapore Block B,13.1682,80.2539,highway,0.455,2,7674,0.865
+CHE-016,chennai,Chennai,Porur Block B,13.1346,80.143,bank,0.326,3,9473,0.945
+CHE-017,chennai,Chennai,Tambaram Block B,13.0906,80.2596,retail,0.427,3,13769,0.358
+CHE-018,chennai,Chennai,Chromepet Block B,13.1224,80.306,retail,0.406,9,17599,0.852
+CHE-019,chennai,Chennai,Nungambakkam Block B,13.0459,80.2579,bank,0.237,1,17060,0.213
+CHE-020,chennai,Chennai,Kodambakkam Block B,13.0832,80.2712,commercial,0.563,11,16683,0.437
+CHE-021,chennai,Chennai,T Nagar Block C,13.0993,80.259,retail,0.467,5,13237,0.95
+CHE-022,chennai,Chennai,Anna Nagar Block C,13.1569,80.3716,retail,0.386,6,3525,0.98
+CHE-023,chennai,Chennai,Velachery Block C,13.0639,80.2716,retail,0.396,5,4672,0.346
+CHE-024,chennai,Chennai,Adyar Block C,13.1068,80.2519,retail,0.378,6,6387,0.041
+CHE-025,chennai,Chennai,Mylapore Block C,13.0902,80.2845,commercial,0.64,6,8339,0.69
+CHE-026,chennai,Chennai,Porur Block C,13.1562,80.2897,retail,0.443,1,5942,0.748
+CHE-027,chennai,Chennai,Tambaram Block C,13.0871,80.2811,commercial,0.634,14,5923,0.747
+CHE-028,chennai,Chennai,Chromepet Block C,13.0961,80.2739,retail,0.401,1,13151,0.532
+CHE-029,chennai,Chennai,Nungambakkam Block C,13.1046,80.2886,retail,0.355,4,7380,0.322
+CHE-030,chennai,Chennai,Kodambakkam Block C,13.0872,80.2893,high_value,0.861,12,12775,0.679
+CHE-031,chennai,Chennai,T Nagar Block D,13.0906,80.2383,high_value,0.901,17,6501,0.128
+CHE-032,chennai,Chennai,Anna Nagar Block D,13.0782,80.2921,retail,0.304,9,12973,0.987
+CHE-033,chennai,Chennai,Velachery Block D,13.0726,80.2626,high_value,0.819,11,6694,0.285
+CHE-034,chennai,Chennai,Adyar Block D,13.1323,80.3681,high_value,0.725,11,11410,0.982
+CHE-035,chennai,Chennai,Mylapore Block D,13.1009,80.2866,bank,0.264,4,5642,0.669
+CHE-036,chennai,Chennai,Porur Block D,13.1174,80.2538,retail,0.447,4,5536,0.187
+CHE-037,chennai,Chennai,Tambaram Block D,13.071,80.2947,retail,0.385,5,3781,0.581
+CHE-038,chennai,Chennai,Chromepet Block D,13.1002,80.2969,retail,0.393,7,6609,0.134
+CHE-039,chennai,Chennai,Nungambakkam Block D,13.2069,80.3243,commercial,0.688,8,14089,0.596
+CHE-040,chennai,Chennai,Kodambakkam Block D,13.0581,80.2753,commercial,0.658,11,8473,0.181
+CHE-041,chennai,Chennai,T Nagar Block E,13.141,80.2972,retail,0.406,5,6019,0.164
+CHE-042,chennai,Chennai,Anna Nagar Block E,13.1235,80.3407,retail,0.29,7,9704,0.877
+CHE-043,chennai,Chennai,Velachery Block E,13.0203,80.3221,retail,0.288,4,13708,0.503
+CHE-044,chennai,Chennai,Adyar Block E,13.0948,80.3813,commercial,0.695,8,8499,0.624
+CHE-045,chennai,Chennai,Mylapore Block E,13.1811,80.3619,retail,0.38,4,10453,0.533
+CHE-046,chennai,Chennai,Porur Block E,13.1403,80.2242,commercial,0.595,12,5385,0.744
+CHE-047,chennai,Chennai,Tambaram Block E,13.1216,80.2792,highway,0.541,6,15421,0.15
+CHE-048,chennai,Chennai,Chromepet Block E,13.0906,80.3322,retail,0.469,5,13417,0.543
+CHE-049,chennai,Chennai,Nungambakkam Block E,13.0825,80.2912,commercial,0.692,10,5190,0.947
+CHE-050,chennai,Chennai,Kodambakkam Block E,13.1064,80.3058,retail,0.39,1,8295,0.872
+DEL-001,delhi,Delhi,Connaught Place,28.7518,77.0778,retail,0.422,8,9183,0.607
+DEL-002,delhi,Delhi,Karol Bagh,28.6296,77.1464,bank,0.245,2,11974,0.113
+DEL-003,delhi,Delhi,Lajpat Nagar,28.8184,77.0901,high_value,0.876,20,6038,0.335
+DEL-004,delhi,Delhi,Rohini,28.7042,77.1022,commercial,0.693,12,2539,0.92
+DEL-005,delhi,Delhi,Dwarka,28.6889,77.1276,retail,0.387,4,4616,0.176
+DEL-006,delhi,Delhi,Saket,28.67,77.1029,bank,0.304,4,3221,0.632
+DEL-007,delhi,Delhi,Janakpuri,28.7724,77.1089,commercial,0.642,11,8105,0.595
+DEL-008,delhi,Delhi,Pitampura,28.7836,77.1432,commercial,0.644,12,8756,0.191
+DEL-009,delhi,Delhi,Vasant Kunj,28.7432,77.1129,retail,0.267,10,2866,0.56
+DEL-010,delhi,Delhi,Malviya Nagar,28.7112,77.1144,bank,0.243,2,10550,0.271
+DEL-011,delhi,Delhi,Connaught Place Block B,28.6837,77.0729,high_value,0.811,17,7749,0.222
+DEL-012,delhi,Delhi,Karol Bagh Block B,28.7124,77.1818,high_value,0.855,16,7591,0.179
+DEL-013,delhi,Delhi,Lajpat Nagar Block B,28.6943,77.0865,high_value,0.803,18,9111,0.397
+DEL-014,delhi,Delhi,Rohini Block B,28.697,77.0882,commercial,0.567,13,19581,0.893
+DEL-015,delhi,Delhi,Dwarka Block B,28.7149,77.0752,commercial,0.562,15,11827,0.409
+DEL-016,delhi,Delhi,Saket Block B,28.67,77.0893,commercial,0.699,9,7978,0.8
+DEL-017,delhi,Delhi,Janakpuri Block B,28.7028,77.1032,commercial,0.684,16,5934,0.835
+DEL-018,delhi,Delhi,Pitampura Block B,28.7508,77.0973,commercial,0.569,11,10677,0.554
+DEL-019,delhi,Delhi,Vasant Kunj Block B,28.6395,76.9992,commercial,0.729,15,4905,0.914
+DEL-020,delhi,Delhi,Malviya Nagar Block B,28.6776,77.1194,retail,0.383,8,8948,0.603
+DEL-021,delhi,Delhi,Connaught Place Block C,28.705,77.1378,commercial,0.606,15,10796,0.476
+DEL-022,delhi,Delhi,Karol Bagh Block C,28.6144,76.9329,retail,0.43,4,3791,0.051
+DEL-023,delhi,Delhi,Lajpat Nagar Block C,28.647,77.104,commercial,0.662,11,8865,0.495
+DEL-024,delhi,Delhi,Rohini Block C,28.6906,77.0646,commercial,0.675,12,10575,0.695
+DEL-025,delhi,Delhi,Dwarka Block C,28.6963,77.1658,commercial,0.639,10,13798,0.732
+DEL-026,delhi,Delhi,Saket Block C,28.7276,77.0302,retail,0.377,8,11119,0.489
+DEL-027,delhi,Delhi,Janakpuri Block C,28.7364,77.304,bank,0.257,6,10130,0.971
+DEL-028,delhi,Delhi,Pitampura Block C,28.7421,77.0867,bank,0.227,4,12622,0.829
+DEL-029,delhi,Delhi,Vasant Kunj Block C,28.7596,77.1175,commercial,0.714,10,7111,0.315
+DEL-030,delhi,Delhi,Malviya Nagar Block C,28.6088,77.075,commercial,0.693,12,9334,0.616
+DEL-031,delhi,Delhi,Connaught Place Block D,28.7043,77.1043,bank,0.252,6,14936,0.402
+DEL-032,delhi,Delhi,Karol Bagh Block D,28.6425,77.1114,bank,0.166,3,3363,0.738
+DEL-033,delhi,Delhi,Lajpat Nagar Block D,28.7046,77.1109,commercial,0.597,10,3081,0.68
+DEL-034,delhi,Delhi,Rohini Block D,28.7397,77.3033,highway,0.492,7,5362,0.879
+DEL-035,delhi,Delhi,Dwarka Block D,28.7414,77.0871,retail,0.481,10,3696,0.177
+DEL-036,delhi,Delhi,Saket Block D,28.7065,77.117,highway,0.475,9,7449,0.969
+DEL-037,delhi,Delhi,Janakpuri Block D,28.8272,76.9768,bank,0.191,4,12063,0.154
+DEL-038,delhi,Delhi,Pitampura Block D,28.7105,77.0858,commercial,0.768,14,12950,0.58
+DEL-039,delhi,Delhi,Vasant Kunj Block D,28.8149,77.1843,commercial,0.704,13,5296,0.408
+DEL-040,delhi,Delhi,Malviya Nagar Block D,28.6909,77.118,retail,0.358,8,8069,0.22
+DEL-041,delhi,Delhi,Connaught Place Block E,28.7021,77.0973,bank,0.206,1,14806,0.348
+DEL-042,delhi,Delhi,Karol Bagh Block E,28.6812,77.0487,commercial,0.662,13,9440,0.658
+DEL-043,delhi,Delhi,Lajpat Nagar Block E,28.7791,76.9857,retail,0.443,8,13416,0.753
+DEL-044,delhi,Delhi,Rohini Block E,28.7768,77.2306,bank,0.231,7,5341,0.744
+DEL-045,delhi,Delhi,Dwarka Block E,28.7611,77.2059,highway,0.5,9,12196,0.981
+DEL-046,delhi,Delhi,Saket Block E,28.6913,77.0866,retail,0.475,4,9016,0.107
+DEL-047,delhi,Delhi,Janakpuri Block E,28.7075,77.0468,bank,0.178,7,8846,0.068
+DEL-048,delhi,Delhi,Pitampura Block E,28.6797,77.1863,high_value,0.76,17,13128,0.621
+DEL-049,delhi,Delhi,Vasant Kunj Block E,28.8278,77.1442,bank,0.224,5,7589,0.77
+DEL-050,delhi,Delhi,Malviya Nagar Block E,28.689,77.0638,commercial,0.589,8,7414,0.795
+MUM-001,mumbai,Mumbai,Bandra,19.0711,72.8637,high_value,0.916,17,7250,0.944
+MUM-002,mumbai,Mumbai,Andheri,19.0256,72.9071,commercial,0.695,9,7307,0.23
+MUM-003,mumbai,Mumbai,Lower Parel,19.0764,72.8795,retail,0.383,9,10433,0.186
+MUM-004,mumbai,Mumbai,Powai,19.1335,72.8117,highway,0.523,8,10979,0.626
+MUM-005,mumbai,Mumbai,Thane,19.0773,72.8792,bank,0.275,6,4839,0.125
+MUM-006,mumbai,Mumbai,Vashi,19.0635,72.8467,commercial,0.613,11,8045,0.582
+MUM-007,mumbai,Mumbai,Kurla,19.0652,72.9727,commercial,0.649,11,7431,0.48
+MUM-008,mumbai,Mumbai,Dadar,19.0602,72.8656,retail,0.419,5,10295,0.04
+MUM-009,mumbai,Mumbai,Borivali,19.0698,72.8785,commercial,0.649,16,10534,0.01
+MUM-010,mumbai,Mumbai,Mulund,19.0569,72.9164,high_value,0.837,18,7761,0.079
+MUM-011,mumbai,Mumbai,Bandra Block B,19.0696,72.8828,retail,0.431,9,6331,0.105
+MUM-012,mumbai,Mumbai,Andheri Block B,19.0306,72.8222,high_value,0.941,14,9691,0.871
+MUM-013,mumbai,Mumbai,Lower Parel Block B,19.0555,72.7833,commercial,0.698,11,7339,0.644
+MUM-014,mumbai,Mumbai,Powai Block B,19.0026,72.8647,high_value,0.798,17,6218,0.79
+MUM-015,mumbai,Mumbai,Thane Block B,19.0548,72.843,retail,0.438,5,4610,0.68
+MUM-016,mumbai,Mumbai,Vashi Block B,19.0776,72.8785,commercial,0.705,12,7666,0.727
+MUM-017,mumbai,Mumbai,Kurla Block B,19.0746,72.8445,commercial,0.75,8,7687,0.873
+MUM-018,mumbai,Mumbai,Dadar Block B,19.1012,72.8585,commercial,0.69,15,8862,0.211
+MUM-019,mumbai,Mumbai,Borivali Block B,19.0355,72.836,retail,0.366,8,9527,0.492
+MUM-020,mumbai,Mumbai,Mulund Block B,19.078,73.0002,retail,0.288,6,9114,0.593
+MUM-021,mumbai,Mumbai,Bandra Block C,19.0905,72.9031,bank,0.188,6,14099,0.131
+MUM-022,mumbai,Mumbai,Andheri Block C,19.1096,72.8709,commercial,0.545,10,9201,0.829
+MUM-023,mumbai,Mumbai,Lower Parel Block C,19.0613,72.8849,retail,0.426,5,12376,0.475
+MUM-024,mumbai,Mumbai,Powai Block C,19.1277,72.7963,retail,0.385,9,9797,0.112
+MUM-025,mumbai,Mumbai,Thane Block C,19.0756,72.8812,retail,0.348,6,7368,0.507
+MUM-026,mumbai,Mumbai,Vashi Block C,19.0848,72.8802,bank,0.257,5,10160,0.868
+MUM-027,mumbai,Mumbai,Kurla Block C,19.0366,72.8899,retail,0.42,5,5068,0.673
+MUM-028,mumbai,Mumbai,Dadar Block C,19.0815,72.8766,retail,0.454,8,7465,0.177
+MUM-029,mumbai,Mumbai,Borivali Block C,19.0397,72.7757,bank,0.35,4,13114,0.571
+MUM-030,mumbai,Mumbai,Mulund Block C,19.2245,72.9081,retail,0.346,7,11318,0.659
+MUM-031,mumbai,Mumbai,Bandra Block D,19.0292,72.9167,high_value,0.837,17,9607,0.738
+MUM-032,mumbai,Mumbai,Andheri Block D,19.0972,72.8563,commercial,0.702,14,10774,0.762
+MUM-033,mumbai,Mumbai,Lower Parel Block D,19.0856,72.845,highway,0.449,9,4276,0.695
+MUM-034,mumbai,Mumbai,Powai Block D,19.0502,72.9007,commercial,0.585,8,5999,0.073
+MUM-035,mumbai,Mumbai,Thane Block D,19.0263,72.8377,retail,0.366,2,8346,0.479
+MUM-036,mumbai,Mumbai,Vashi Block D,19.0993,72.8817,commercial,0.722,13,3255,0.534
+MUM-037,mumbai,Mumbai,Kurla Block D,19.0122,72.8233,highway,0.52,8,7372,0.101
+MUM-038,mumbai,Mumbai,Dadar Block D,19.0593,72.8793,commercial,0.699,12,5950,0.539
+MUM-039,mumbai,Mumbai,Borivali Block D,19.056,72.93,retail,0.321,5,7576,0.681
+MUM-040,mumbai,Mumbai,Mulund Block D,19.0936,72.9182,retail,0.408,6,5071,0.257
+MUM-041,mumbai,Mumbai,Bandra Block E,19.1124,72.8686,highway,0.503,7,10259,0.602
+MUM-042,mumbai,Mumbai,Andheri Block E,19.1274,72.7606,commercial,0.675,11,4237,0.411
+MUM-043,mumbai,Mumbai,Lower Parel Block E,19.1457,72.7612,commercial,0.615,13,12105,0.424
+MUM-044,mumbai,Mumbai,Powai Block E,19.0732,72.8725,retail,0.511,6,4363,0.168
+MUM-045,mumbai,Mumbai,Thane Block E,19.0667,72.7592,commercial,0.731,14,3757,0.391
+MUM-046,mumbai,Mumbai,Vashi Block E,19.0438,72.8547,bank,0.271,5,5507,0.404
+MUM-047,mumbai,Mumbai,Kurla Block E,19.0116,72.9107,retail,0.373,7,3599,0.079
+MUM-048,mumbai,Mumbai,Dadar Block E,19.1851,72.9466,commercial,0.595,12,5677,0.355
+MUM-049,mumbai,Mumbai,Borivali Block E,19.1135,72.8962,high_value,0.885,14,13568,0.651
+MUM-050,mumbai,Mumbai,Mulund Block E,19.0543,72.8729,commercial,0.685,11,21445,0.731
+BAN-001,bangalore,Bangalore,MG Road,12.9686,77.5953,retail,0.431,3,5128,0.45
+BAN-002,bangalore,Bangalore,Indiranagar,12.9724,77.5726,retail,0.373,5,4009,0.152
+BAN-003,bangalore,Bangalore,Koramangala,13.1031,77.5882,retail,0.461,5,5571,0.755
+BAN-004,bangalore,Bangalore,Whitefield,13.0327,77.6595,highway,0.446,7,5193,0.36
+BAN-005,bangalore,Bangalore,Electronic City,13.0901,77.6693,retail,0.32,3,23810,0.516
+BAN-006,bangalore,Bangalore,Hebbal,13.0018,77.5774,bank,0.231,1,10218,0.931
+BAN-007,bangalore,Bangalore,Jayanagar,13.0353,77.6532,commercial,0.68,9,6288,0.403
+BAN-008,bangalore,Bangalore,HSR Layout,12.9992,77.649,commercial,0.653,8,8824,0.822
+BAN-009,bangalore,Bangalore,Marathahalli,13.0386,77.6702,bank,0.235,8,5853,0.503
+BAN-010,bangalore,Bangalore,Banashankari,12.9652,77.5995,commercial,0.675,9,8324,0.432
+BAN-011,bangalore,Bangalore,MG Road Block B,12.9582,77.6283,retail,0.36,5,10615,0.65
+BAN-012,bangalore,Bangalore,Indiranagar Block B,12.9734,77.5973,highway,0.466,4,7853,0.995
+BAN-013,bangalore,Bangalore,Koramangala Block B,13.0274,77.6164,bank,0.229,2,6743,0.101
+BAN-014,bangalore,Bangalore,Whitefield Block B,12.9704,77.5915,retail,0.323,3,12787,0.624
+BAN-015,bangalore,Bangalore,Electronic City Block B,12.9441,77.5898,high_value,0.899,11,6288,0.414
+BAN-016,bangalore,Bangalore,Hebbal Block B,13.0028,77.5343,highway,0.499,4,7426,0.481
+BAN-017,bangalore,Bangalore,Jayanagar Block B,12.9866,77.5965,highway,0.444,6,4929,0.548
+BAN-018,bangalore,Bangalore,HSR Layout Block B,12.8818,77.6218,high_value,0.79,11,7942,0.325
+BAN-019,bangalore,Bangalore,Marathahalli Block B,12.969,77.5613,commercial,0.536,7,9343,0.955
+BAN-020,bangalore,Bangalore,Banashankari Block B,12.976,77.5756,retail,0.32,5,6611,0.841
+BAN-021,bangalore,Bangalore,MG Road Block C,13.0849,77.6232,retail,0.461,8,9304,0.614
+BAN-022,bangalore,Bangalore,Indiranagar Block C,13.0052,77.6099,commercial,0.654,10,19169,0.68
+BAN-023,bangalore,Bangalore,Koramangala Block C,12.9759,77.5958,retail,0.465,3,4961,0.775
+BAN-024,bangalore,Bangalore,Whitefield Block C,12.9662,77.5856,commercial,0.664,6,5687,0.764
+BAN-025,bangalore,Bangalore,Electronic City Block C,12.9715,77.5957,high_value,0.916,12,4331,0.121
+BAN-026,bangalore,Bangalore,Hebbal Block C,12.9154,77.5437,retail,0.371,4,8260,0.968
+BAN-027,bangalore,Bangalore,Jayanagar Block C,12.9769,77.5775,bank,0.34,6,11765,0.656
+BAN-028,bangalore,Bangalore,HSR Layout Block C,12.986,77.61,bank,0.22,4,4269,0.432
+BAN-029,bangalore,Bangalore,Marathahalli Block C,12.9273,77.6128,bank,0.233,2,9002,0.646
+BAN-030,bangalore,Bangalore,Banashankari Block C,12.9526,77.6798,bank,0.292,3,5394,0.461
+BAN-031,bangalore,Bangalore,MG Road Block D,13.0074,77.5382,highway,0.525,4,9538,0.937
+BAN-032,bangalore,Bangalore,Indiranagar Block D,12.9803,77.5971,high_value,0.891,11,10817,0.214
+BAN-033,bangalore,Bangalore,Koramangala Block D,12.8793,77.5911,retail,0.454,10,3135,0.565
+BAN-034,bangalore,Bangalore,Whitefield Block D,12.9327,77.4957,retail,0.369,5,10291,0.462
+BAN-035,bangalore,Bangalore,Electronic City Block D,12.9858,77.5955,retail,0.379,7,9231,0.733
+BAN-036,bangalore,Bangalore,Hebbal Block D,12.9638,77.5874,commercial,0.664,5,16770,0.005
+BAN-037,bangalore,Bangalore,Jayanagar Block D,12.9717,77.5927,retail,0.345,2,6456,0.877
+BAN-038,bangalore,Bangalore,HSR Layout Block D,12.9947,77.5941,retail,0.429,3,9598,0.593
+BAN-039,bangalore,Bangalore,Marathahalli Block D,12.9508,77.6119,retail,0.371,7,8871,0.481
+BAN-040,bangalore,Bangalore,Banashankari Block D,12.9695,77.5919,retail,0.493,3,20812,0.603
+BAN-041,bangalore,Bangalore,MG Road Block E,12.9349,77.5191,commercial,0.716,8,14156,0.708
+BAN-042,bangalore,Bangalore,Indiranagar Block E,12.9804,77.5581,retail,0.378,4,5202,0.434
+BAN-043,bangalore,Bangalore,Koramangala Block E,12.9822,77.6014,retail,0.429,5,20555,0.786
+BAN-044,bangalore,Bangalore,Whitefield Block E,12.9911,77.613,highway,0.56,4,3075,0.588
+BAN-045,bangalore,Bangalore,Electronic City Block E,12.9807,77.6159,commercial,0.689,7,3140,0.941
+BAN-046,bangalore,Bangalore,Hebbal Block E,12.97,77.6235,bank,0.232,3,9905,0.803
+BAN-047,bangalore,Bangalore,Jayanagar Block E,12.9396,77.6034,high_value,0.831,11,1928,0.73
+BAN-048,bangalore,Bangalore,HSR Layout Block E,12.9724,77.5857,retail,0.42,5,6083,0.657
+BAN-049,bangalore,Bangalore,Marathahalli Block E,12.9751,77.5936,high_value,0.805,9,9677,0.25
+BAN-050,bangalore,Bangalore,Banashankari Block E,12.9617,77.6674,retail,0.374,4,8046,0.063
+KOL-001,kolkata,Kolkata,Park Street,22.5781,88.3599,retail,0.349,1,9168,0.56
+KOL-002,kolkata,Kolkata,Salt Lake,22.5748,88.3629,retail,0.444,5,5117,0.981
+KOL-003,kolkata,Kolkata,New Market,22.5707,88.4145,commercial,0.771,5,8433,0.35
+KOL-004,kolkata,Kolkata,Ballygunge,22.578,88.369,commercial,0.682,8,6471,0.561
+KOL-005,kolkata,Kolkata,Dum Dum,22.5673,88.363,bank,0.258,2,9796,0.082
+KOL-006,kolkata,Kolkata,Howrah,22.5444,88.3721,commercial,0.628,11,22136,0.412
+KOL-007,kolkata,Kolkata,Gariahat,22.5524,88.3334,high_value,0.853,13,5862,0.786
+KOL-008,kolkata,Kolkata,Behala,22.5766,88.3775,commercial,0.708,8,5518,0.519
+KOL-009,kolkata,Kolkata,Lake Gardens,22.5985,88.4601,bank,0.276,2,9497,0.772
+KOL-010,kolkata,Kolkata,Shyambazar,22.5755,88.3644,retail,0.404,5,12589,0.498
+KOL-011,kolkata,Kolkata,Park Street Block B,22.6097,88.3953,highway,0.472,8,3244,0.793
+KOL-012,kolkata,Kolkata,Salt Lake Block B,22.5335,88.3414,highway,0.538,6,7362,0.533
+KOL-013,kolkata,Kolkata,New Market Block B,22.6012,88.4114,highway,0.479,8,7095,0.984
+KOL-014,kolkata,Kolkata,Ballygunge Block B,22.5789,88.3722,commercial,0.665,9,11854,0.152
+KOL-015,kolkata,Kolkata,Dum Dum Block B,22.5335,88.3806,high_value,0.862,11,10515,0.418
+KOL-016,kolkata,Kolkata,Howrah Block B,22.6209,88.3587,retail,0.341,5,7132,0.013
+KOL-017,kolkata,Kolkata,Gariahat Block B,22.5419,88.3508,retail,0.43,3,9278,0.541
+KOL-018,kolkata,Kolkata,Behala Block B,22.5685,88.3465,retail,0.392,5,15568,0.358
+KOL-019,kolkata,Kolkata,Lake Gardens Block B,22.4951,88.367,commercial,0.608,9,6108,0.348
+KOL-020,kolkata,Kolkata,Shyambazar Block B,22.5147,88.3841,retail,0.324,4,15092,0.841
+KOL-021,kolkata,Kolkata,Park Street Block C,22.4489,88.3883,retail,0.36,5,14725,0.07
+KOL-022,kolkata,Kolkata,Salt Lake Block C,22.6113,88.4461,commercial,0.625,6,11953,0.643
+KOL-023,kolkata,Kolkata,New Market Block C,22.5617,88.3317,commercial,0.584,10,11635,0.665
+KOL-024,kolkata,Kolkata,Ballygunge Block C,22.5658,88.477,retail,0.352,6,8734,0.447
+KOL-025,kolkata,Kolkata,Dum Dum Block C,22.4873,88.3874,retail,0.397,5,7377,0.042
+KOL-026,kolkata,Kolkata,Howrah Block C,22.5656,88.2449,commercial,0.628,6,11793,0.911
+KOL-027,kolkata,Kolkata,Gariahat Block C,22.5744,88.286,high_value,0.824,12,11267,0.113
+KOL-028,kolkata,Kolkata,Behala Block C,22.5628,88.3284,high_value,0.756,10,6987,0.598
+KOL-029,kolkata,Kolkata,Lake Gardens Block C,22.568,88.3802,retail,0.445,5,12723,0.185
+KOL-030,kolkata,Kolkata,Shyambazar Block C,22.5832,88.3701,highway,0.504,6,6415,0.995
+KOL-031,kolkata,Kolkata,Park Street Block D,22.5926,88.3362,high_value,0.908,11,9251,0.829
+KOL-032,kolkata,Kolkata,Salt Lake Block D,22.5996,88.336,retail,0.309,6,5744,0.435
+KOL-033,kolkata,Kolkata,New Market Block D,22.5787,88.3205,bank,0.194,7,14926,0.703
+KOL-034,kolkata,Kolkata,Ballygunge Block D,22.5751,88.398,high_value,0.837,14,2437,0.652
+KOL-035,kolkata,Kolkata,Dum Dum Block D,22.6111,88.3505,retail,0.405,9,7686,0.362
+KOL-036,kolkata,Kolkata,Howrah Block D,22.5706,88.3643,high_value,0.839,10,2881,0.196
+KOL-037,kolkata,Kolkata,Gariahat Block D,22.5615,88.3538,commercial,0.65,7,13936,0.572
+KOL-038,kolkata,Kolkata,Behala Block D,22.5574,88.3626,bank,0.211,2,7352,0.617
+KOL-039,kolkata,Kolkata,Lake Gardens Block D,22.5867,88.3771,retail,0.454,5,6637,0.395
+KOL-040,kolkata,Kolkata,Shyambazar Block D,22.5521,88.3758,bank,0.289,1,17425,0.309
+KOL-041,kolkata,Kolkata,Park Street Block E,22.6288,88.2421,highway,0.469,6,5686,0.384
+KOL-042,kolkata,Kolkata,Salt Lake Block E,22.5531,88.3699,high_value,0.926,11,6339,0.071
+KOL-043,kolkata,Kolkata,New Market Block E,22.5895,88.374,bank,0.308,5,14589,0.01
+KOL-044,kolkata,Kolkata,Ballygunge Block E,22.502,88.2759,retail,0.419,1,11140,0.121
+KOL-045,kolkata,Kolkata,Dum Dum Block E,22.5751,88.362,retail,0.368,1,30916,0.044
+KOL-046,kolkata,Kolkata,Howrah Block E,22.5984,88.3911,commercial,0.693,7,15423,0.846
+KOL-047,kolkata,Kolkata,Gariahat Block E,22.5639,88.3388,retail,0.345,3,7094,0.798
+KOL-048,kolkata,Kolkata,Behala Block E,22.6103,88.2805,bank,0.159,6,5729,0.582
+KOL-049,kolkata,Kolkata,Lake Gardens Block E,22.5447,88.3956,retail,0.474,3,7139,0.143
+KOL-050,kolkata,Kolkata,Shyambazar Block E,22.587,88.351,commercial,0.652,5,7475,0.637
+HYD-001,hyderabad,Hyderabad,Banjara Hills,17.3829,78.4902,retail,0.341,7,3588,0.218
+HYD-002,hyderabad,Hyderabad,Madhapur,17.4173,78.4842,retail,0.398,8,4567,0.028
+HYD-003,hyderabad,Hyderabad,Gachibowli,17.2324,78.4812,commercial,0.632,7,3288,0.9
+HYD-004,hyderabad,Hyderabad,Ameerpet,17.4988,78.5934,commercial,0.662,8,12733,0.827
+HYD-005,hyderabad,Hyderabad,Kukatpally,17.4031,78.4848,bank,0.176,1,10556,0.154
+HYD-006,hyderabad,Hyderabad,Secunderabad,17.3456,78.4722,highway,0.489,3,14970,0.302
+HYD-007,hyderabad,Hyderabad,LB Nagar,17.3843,78.4988,high_value,0.807,9,8354,0.347
+HYD-008,hyderabad,Hyderabad,Dilshuknagar,17.378,78.4826,retail,0.39,6,26031,0.402
+HYD-009,hyderabad,Hyderabad,Jubilee Hills,17.4984,78.4821,retail,0.456,9,6477,0.039
+HYD-010,hyderabad,Hyderabad,Manikonda,17.3436,78.4934,commercial,0.663,6,19624,0.87
+HYD-011,hyderabad,Hyderabad,Banjara Hills Block B,17.4419,78.5508,high_value,0.894,10,7613,0.981
+HYD-012,hyderabad,Hyderabad,Madhapur Block B,17.2791,78.4983,retail,0.328,3,5316,0.203
+HYD-013,hyderabad,Hyderabad,Gachibowli Block B,17.3869,78.4594,retail,0.387,11,14720,0.765
+HYD-014,hyderabad,Hyderabad,Ameerpet Block B,17.2483,78.4154,commercial,0.708,8,7315,0.893
+HYD-015,hyderabad,Hyderabad,Kukatpally Block B,17.4912,78.5327,retail,0.41,10,21558,0.723
+HYD-016,hyderabad,Hyderabad,Secunderabad Block B,17.3823,78.4791,commercial,0.707,8,6211,0.279
+HYD-017,hyderabad,Hyderabad,LB Nagar Block B,17.4223,78.6419,high_value,0.893,11,10483,0.143
+HYD-018,hyderabad,Hyderabad,Dilshuknagar Block B,17.3867,78.4047,retail,0.429,7,10145,0.614
+HYD-019,hyderabad,Hyderabad,Jubilee Hills Block B,17.4153,78.5065,high_value,0.768,8,7364,0.111
+HYD-020,hyderabad,Hyderabad,Manikonda Block B,17.4396,78.3373,high_value,0.852,11,10985,0.3
+HYD-021,hyderabad,Hyderabad,Banjara Hills Block C,17.4179,78.5048,highway,0.504,6,7474,0.295
+HYD-022,hyderabad,Hyderabad,Madhapur Block C,17.3869,78.5051,highway,0.492,5,11503,0.906
+HYD-023,hyderabad,Hyderabad,Gachibowli Block C,17.37,78.5193,commercial,0.651,9,3545,0.648
+HYD-024,hyderabad,Hyderabad,Ameerpet Block C,17.469,78.5725,retail,0.509,8,4250,0.625
+HYD-025,hyderabad,Hyderabad,Kukatpally Block C,17.4402,78.5147,commercial,0.678,10,9120,0.52
+HYD-026,hyderabad,Hyderabad,Secunderabad Block C,17.4348,78.5521,commercial,0.558,12,7990,0.134
+HYD-027,hyderabad,Hyderabad,LB Nagar Block C,17.3829,78.4844,retail,0.401,4,13063,0.063
+HYD-028,hyderabad,Hyderabad,Dilshuknagar Block C,17.3851,78.4865,commercial,0.607,7,14225,0.102
+HYD-029,hyderabad,Hyderabad,Jubilee Hills Block C,17.3742,78.5003,highway,0.467,9,7481,0.91
+HYD-030,hyderabad,Hyderabad,Manikonda Block C,17.2755,78.5982,high_value,0.847,14,21825,0.388
+HYD-031,hyderabad,Hyderabad,Banjara Hills Block D,17.3413,78.4362,high_value,0.809,13,8917,0.761
+HYD-032,hyderabad,Hyderabad,Madhapur Block D,17.4467,78.466,commercial,0.66,9,7028,0.644
+HYD-033,hyderabad,Hyderabad,Gachibowli Block D,17.4078,78.4942,bank,0.251,1,3941,0.369
+HYD-034,hyderabad,Hyderabad,Ameerpet Block D,17.383,78.4889,highway,0.562,6,6904,0.85
+HYD-035,hyderabad,Hyderabad,Kukatpally Block D,17.3985,78.545,retail,0.418,5,13167,0.295
+HYD-036,hyderabad,Hyderabad,Secunderabad Block D,17.4218,78.5314,retail,0.454,8,4087,0.395
+HYD-037,hyderabad,Hyderabad,LB Nagar Block D,17.3823,78.4746,bank,0.179,1,3388,0.835
+HYD-038,hyderabad,Hyderabad,Dilshuknagar Block D,17.4104,78.4892,commercial,0.639,9,2165,0.404
+HYD-039,hyderabad,Hyderabad,Jubilee Hills Block D,17.3376,78.4769,high_value,0.848,13,22224,0.312
+HYD-040,hyderabad,Hyderabad,Manikonda Block D,17.3969,78.4046,retail,0.388,6,8920,0.266
+HYD-041,hyderabad,Hyderabad,Banjara Hills Block E,17.4034,78.4888,highway,0.513,2,13284,0.974
+HYD-042,hyderabad,Hyderabad,Madhapur Block E,17.3857,78.4856,bank,0.284,1,11367,0.458
+HYD-043,hyderabad,Hyderabad,Gachibowli Block E,17.3695,78.4988,high_value,0.81,10,18689,0.474
+HYD-044,hyderabad,Hyderabad,Ameerpet Block E,17.5277,78.5436,bank,0.277,3,8314,0.076
+HYD-045,hyderabad,Hyderabad,Kukatpally Block E,17.3759,78.4974,commercial,0.6,9,9863,0.147
+HYD-046,hyderabad,Hyderabad,Secunderabad Block E,17.4052,78.4342,commercial,0.591,12,12385,0.345
+HYD-047,hyderabad,Hyderabad,LB Nagar Block E,17.4009,78.4772,retail,0.431,6,4700,0.958
+HYD-048,hyderabad,Hyderabad,Dilshuknagar Block E,17.3705,78.4838,retail,0.374,5,9066,0.275
+HYD-049,hyderabad,Hyderabad,Jubilee Hills Block E,17.3965,78.4544,retail,0.396,4,7329,0.209
+HYD-050,hyderabad,Hyderabad,Manikonda Block E,17.4793,78.5188,bank,0.272,1,9755,0.242
+AHM-001,ahmedabad,Ahmedabad,CG Road,23.0312,72.569,bank,0.267,2,6555,0.594
+AHM-002,ahmedabad,Ahmedabad,SG Highway,23.0582,72.5906,bank,0.277,1,6059,0.908
+AHM-003,ahmedabad,Ahmedabad,Vastrapur,23.1321,72.5274,retail,0.338,4,5010,0.641
+AHM-004,ahmedabad,Ahmedabad,Satellite,23.0189,72.5646,retail,0.4,6,17696,0.012
+AHM-005,ahmedabad,Ahmedabad,Paldi,23.0405,72.5725,bank,0.187,4,5722,0.848
+AHM-006,ahmedabad,Ahmedabad,Ashram Road,23.022,72.567,retail,0.399,2,6353,0.662
+AHM-007,ahmedabad,Ahmedabad,Maninagar,23.0327,72.5817,commercial,0.57,4,9170,0.951
+AHM-008,ahmedabad,Ahmedabad,Naroda,23.0065,72.5623,highway,0.52,5,3678,0.359
+AHM-009,ahmedabad,Ahmedabad,Bopal,23.0163,72.5612,commercial,0.652,4,9017,0.282
+AHM-010,ahmedabad,Ahmedabad,Science City Road,23.0564,72.5595,retail,0.427,4,30245,0.759
+AHM-011,ahmedabad,Ahmedabad,CG Road Block B,23.0189,72.5903,bank,0.23,5,6765,0.205
+AHM-012,ahmedabad,Ahmedabad,SG Highway Block B,23.0154,72.5664,commercial,0.632,1,10116,0.071
+AHM-013,ahmedabad,Ahmedabad,Vastrapur Block B,23.1273,72.6241,retail,0.382,7,6378,0.694
+AHM-014,ahmedabad,Ahmedabad,Satellite Block B,23.0283,72.5246,commercial,0.655,9,13715,0.282
+AHM-015,ahmedabad,Ahmedabad,Paldi Block B,23.0211,72.5722,high_value,0.722,10,5620,0.304
+AHM-016,ahmedabad,Ahmedabad,Ashram Road Block B,23.0225,72.5715,retail,0.461,2,12213,0.848
+AHM-017,ahmedabad,Ahmedabad,Maninagar Block B,23.0095,72.5789,commercial,0.679,9,6437,0.902
+AHM-018,ahmedabad,Ahmedabad,Naroda Block B,23.0632,72.4525,highway,0.573,3,3428,0.661
+AHM-019,ahmedabad,Ahmedabad,Bopal Block B,23.0508,72.5879,retail,0.372,5,10766,0.042
+AHM-020,ahmedabad,Ahmedabad,Science City Road Block B,23.0189,72.6121,commercial,0.699,7,12108,0.103
+AHM-021,ahmedabad,Ahmedabad,CG Road Block C,22.9935,72.5687,commercial,0.7,9,12185,0.695
+AHM-022,ahmedabad,Ahmedabad,SG Highway Block C,23.0119,72.4843,commercial,0.623,7,10614,0.345
+AHM-023,ahmedabad,Ahmedabad,Vastrapur Block C,22.9627,72.6804,bank,0.297,4,11123,0.496
+AHM-024,ahmedabad,Ahmedabad,Satellite Block C,23.0172,72.5768,highway,0.464,5,16684,0.025
+AHM-025,ahmedabad,Ahmedabad,Paldi Block C,23.0227,72.571,retail,0.423,4,11933,0.817
+AHM-026,ahmedabad,Ahmedabad,Ashram Road Block C,22.9107,72.5349,high_value,0.941,7,8266,0.863
+AHM-027,ahmedabad,Ahmedabad,Maninagar Block C,23.0508,72.6359,retail,0.386,2,4635,0.871
+AHM-028,ahmedabad,Ahmedabad,Naroda Block C,22.9921,72.5088,commercial,0.706,5,21318,0.833
+AHM-029,ahmedabad,Ahmedabad,Bopal Block C,23.0229,72.5711,retail,0.368,4,4908,0.353
+AHM-030,ahmedabad,Ahmedabad,Science City Road Block C,23.0105,72.5589,retail,0.366,2,7511,0.784
+AHM-031,ahmedabad,Ahmedabad,CG Road Block D,23.0173,72.5959,retail,0.392,3,10620,0.642
+AHM-032,ahmedabad,Ahmedabad,SG Highway Block D,23.0031,72.5323,commercial,0.726,7,6327,0.101
+AHM-033,ahmedabad,Ahmedabad,Vastrapur Block D,23.0202,72.5855,retail,0.404,1,17271,0.705
+AHM-034,ahmedabad,Ahmedabad,Satellite Block D,23.0071,72.5802,commercial,0.609,6,5817,0.483
+AHM-035,ahmedabad,Ahmedabad,Paldi Block D,23.0209,72.5863,retail,0.42,4,7772,0.092
+AHM-036,ahmedabad,Ahmedabad,Ashram Road Block D,22.99,72.5461,retail,0.459,4,13451,0.61
+AHM-037,ahmedabad,Ahmedabad,Maninagar Block D,23.0175,72.5844,retail,0.414,4,18623,0.68
+AHM-038,ahmedabad,Ahmedabad,Naroda Block D,23.022,72.5718,retail,0.384,5,3598,0.958
+AHM-039,ahmedabad,Ahmedabad,Bopal Block D,22.9622,72.6196,commercial,0.643,5,9492,0.434
+AHM-040,ahmedabad,Ahmedabad,Science City Road Block D,23.0212,72.5967,retail,0.401,4,7759,0.613
+AHM-041,ahmedabad,Ahmedabad,CG Road Block E,23.0152,72.562,retail,0.428,5,5714,0.248
+AHM-042,ahmedabad,Ahmedabad,SG Highway Block E,23.0457,72.5818,retail,0.481,2,13340,0.081
+AHM-043,ahmedabad,Ahmedabad,Vastrapur Block E,23.0936,72.5471,highway,0.51,2,16457,0.738
+AHM-044,ahmedabad,Ahmedabad,Satellite Block E,23.0196,72.571,commercial,0.658,8,11887,0.538
+AHM-045,ahmedabad,Ahmedabad,Paldi Block E,23.0203,72.5917,bank,0.282,5,23639,0.248
+AHM-046,ahmedabad,Ahmedabad,Ashram Road Block E,23.0162,72.5476,retail,0.427,2,8885,0.064
+AHM-047,ahmedabad,Ahmedabad,Maninagar Block E,23.0289,72.5577,retail,0.4,3,12047,0.105
+AHM-048,ahmedabad,Ahmedabad,Naroda Block E,23.0245,72.5481,retail,0.365,4,6334,0.16
+AHM-049,ahmedabad,Ahmedabad,Bopal Block E,23.0301,72.5753,retail,0.408,4,5726,0.289
+AHM-050,ahmedabad,Ahmedabad,Science City Road Block E,23.0182,72.5833,retail,0.293,5,10576,0.354

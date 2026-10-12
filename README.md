@@ -73,8 +73,8 @@ ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic A
 ### Model status (synthetic)
 
 Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`) on group-holdout
-synthetic data (n=200000; acc 97.0, P87.3/R33.7/F1 48.7, ROC 0.6668,
-PR-AUC 0.36). See `backend/model/validation_report.json`,
+synthetic data (n=200000; acc 97.1, P90.8/R36.2/F1 51.7, ROC 0.6776,
+PR-AUC 0.386). See `backend/model/validation_report.json`,
 `backend/model/metadata.json`, and the UI Model Card page.
 
 Reported holdout figures are **simulator classification metrics only**
@@ -365,7 +365,7 @@ HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toa
 
 ## Model Limitations (read before citing accuracy)
 
-Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 87.3 / recall 33.7 / F1 48.7 / ROC-AUC 0.67 / PR-AUC 0.36; time and location holdouts score similarly (see `model/validation_report.json`). Synthetic ATM retrieval over 14 holdout city-slices (rank slice ATMs by mean model score; truth = slice ATM with most actual cash-outs): Hit@1 6/14, Hit@3 11/14, Hit@5 11/14 — small-n and synthetic only, not real-world next-ATM accuracy. Per-case retrieval baseline (A1, 431 holdout ring-cases × 15 candidates with planted truth): Hit@1 109/431 (25.3%), Hit@3 175/431 (40.6%), Hit@5 218/431 (50.6%), mean rank 6.89, MRR 0.39 — above random (6.7/20/33%) but weak; A2 adds per-ATM features to move it. High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
+Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 90.8 / recall 36.2 / F1 51.7 / ROC-AUC 0.68 / PR-AUC 0.39; time and location holdouts score similarly (see `model/validation_report.json`). Synthetic ATM retrieval over 14 holdout city-slices (rank slice ATMs by mean model score; truth = slice ATM with most actual cash-outs): Hit@1 7/14, Hit@3 11/14, Hit@5 11/14 — small-n and synthetic only, not real-world next-ATM accuracy. Per-case retrieval baseline (A1, 431 holdout ring-cases × 15 candidates with planted truth): Hit@1 109/431 (25.3%), Hit@3 175/431 (40.6%), Hit@5 218/431 (50.6%), mean rank 6.89, MRR 0.39 — above random (6.7/20/33%) but weak; A2 adds per-ATM features to move it. A2 outcome (honest mixed result): row F1 48.7 → 51.7 and PR-AUC 0.36 → 0.386 improved, but per-case Hit@3 moved 40.6% → 33.1% (429 cases). Same-world ablation proves the features help (+8pp Hit@3 vs zeroed: 25.2% → 33.1%): the drop is world-hardening, not feature harm — the cash-out feedback loop made hard-negative neighbours hotter, and the velocity-dominated model (velocity importance 0.51; new features ~0.015) cannot separate hot neighbours. Retrieval stays geometry-dominated; reported openly, still synthetic-only. High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
 
 The revised generator keeps fraud-ring geography consistent, saves group IDs, and uses the same observable evening-window feature as serving. Its target is a synthetic cash-out event, **not automatically fraudulent cash-out**. Group-disjoint evaluation still measures simulator classification, not real-world location/time effectiveness.
 

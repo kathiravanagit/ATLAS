@@ -24,7 +24,7 @@ from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
     AlertResponse, DashboardStatsResponse
 )
-from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values, load_models
+from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values, load_models, hist_norm, local_hotspot, FEATURE_COLS as ML_FEATURE_COLS
 import ml_engine
 
 # The legacy wrapper remains supported while the ML agent exposes structured
@@ -530,6 +530,20 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     }
 
     ranked = []
+    from sqlalchemy import func as _sa_func
+    # Same two distributional features as training: history counts this
+    # case's observed records per ATM (past relative to now); locality from
+    # the same density this loop uses below (kept identical on purpose).
+    _city_atm_ids = [a.atm_id for a in city_atms]
+    _txn_counts = dict(db.query(TransactionRecord.atm_id, _sa_func.count(TransactionRecord.id)).filter(TransactionRecord.atm_id.in_(_city_atm_ids)).group_by(TransactionRecord.atm_id).all()) if _city_atm_ids else {}
+    _city_hist_max = max(_txn_counts.values(), default=0)
+    _dens = {}
+    for _a in city_atms:
+        _ah = stable_int(_a.atm_id) % 10000
+        _dens[_a.atm_id] = (_a.historical_crime if hasattr(_a, 'historical_crime') and _a.historical_crime else 1 + (_ah % 14))
+    _local_reg = [{"atm_id": _a.atm_id, "lat": _a.latitude, "lng": _a.longitude,
+                   "crime_density": _dens[_a.atm_id]} for _a in city_atms]
+    _local_map = {e["atm_id"]: local_hotspot(e["atm_id"], _local_reg) for e in _local_reg}
     for i, atm in enumerate(city_atms):
         dist_victim = haversine(victim_lat, victim_lng, atm.latitude, atm.longitude)
         dist_suspect = haversine(suspect_lat, suspect_lng, atm.latitude, atm.longitude)
@@ -541,7 +555,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
 
         features = {
             "distance_from_victim_km": round(dist_victim, 2),
-            "historical_crime_density": atm.historical_crime if hasattr(atm, 'historical_crime') and atm.historical_crime else 1 + (atm_hash % 14),
+            "historical_crime_density": _dens[atm.atm_id],
             "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
             "atm_type_score": atm_type_score,
             "suspect_distance_km": round(dist_suspect, 2),
@@ -552,9 +566,11 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "day_of_week": (case_hash + 1) % 7,
             "transaction_velocity": round(min(num_mules / 6, 1.0), 3),
             "proximity_score": round(max(0, 1 - dist_victim / 8), 3),
-            "density_score": round(min((atm.historical_crime if hasattr(atm, 'historical_crime') and atm.historical_crime else 1 + (atm_hash % 14)) / 15, 1.0), 3),
+            "density_score": round(min(_dens[atm.atm_id] / 15, 1.0), 3),
             "suspect_proximity": round(max(0, 1 - dist_suspect / 10), 3),
             "amount_factor": round(min(amount / 150000, 1.0), 3),
+            "atm_cashout_history": hist_norm(_txn_counts.get(atm.atm_id, 0), _city_hist_max),
+            "local_hotspot_density": _local_map[atm.atm_id],
         }
 
         ml_result = _predict_or_503(features, case_id=case_id)
@@ -652,7 +668,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "model_type": "Weighted ensemble of available estimators",
             "models": list(primary["model_output"].get("ensemble", {})),
             "validation_scope": "Synthetic binary-classification benchmark; not location-ranking accuracy",
-            "features_used": 15,
+            "features_used": len(ML_FEATURE_COLS),
             "ensemble_weights": primary["model_output"].get("model_weights", {}),
             "precision": model_meta.get("precision") if model_meta else None,
             "recall": model_meta.get("recall") if model_meta else None,
@@ -955,11 +971,27 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
     synthetic_records = ensure_synthetic_transactions(db, synthetic_case_id, city_id, atms)
     prediction_time = datetime.now()
 
+    # Same two distributional features as training/case path, sourced from
+    # this path's synthetic inputs: density keeps the identical hash formula
+    # used inline below; history counts this case's records.
+    _crime_map = {}
+    for _a in atms:
+        _ah = stable_int(city_id + _a["id"]) % 10000
+        _crime_map[_a["id"]] = 1 + (_ah % 15)
+    _local_reg = [{"atm_id": _a["id"], "lat": _a["lat"], "lng": _a["lng"],
+                   "crime_density": _crime_map[_a["id"]]} for _a in atms]
+    _local_map = {e["atm_id"]: local_hotspot(e["atm_id"], _local_reg) for e in _local_reg}
+    _rec_counts = {}
+    for _r in synthetic_records:
+        if _r.atm_id:
+            _rec_counts[_r.atm_id] = _rec_counts.get(_r.atm_id, 0) + 1
+    _rec_max = max(_rec_counts.values(), default=0)
+
     ranked = []
     for i, atm in enumerate(atms):
         atm_h = stable_int(city_id + atm["id"]) % 10000
         _dist = round(0.5 + (atm_h % 751) / 100.0, 2)
-        _crime = 1 + (atm_h % 15)
+        _crime = _crime_map[atm["id"]]
         _sus_dist = round(1.0 + (atm_h % 1101) / 100.0, 2)
         _r_freq = round(min((2 + (atm_h % 7)) / 8, 0.9), 3)
         _amt = round(15000 + (atm_h % 105001), 2)
@@ -984,6 +1016,8 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "density_score": round(_crime / 15, 3),
             "suspect_proximity": _sus_prox,
             "amount_factor": _amt_factor,
+            "atm_cashout_history": hist_norm(_rec_counts.get(atm["id"], 0), _rec_max),
+            "local_hotspot_density": _local_map[atm["id"]],
         }
 
         ml_result = _predict_or_503(features, case_id=synthetic_case_id)
@@ -1795,6 +1829,9 @@ def detect_anomaly(req: AnomalyRequest, user: dict = Depends(require_permission(
         "density_score": 0.5,
         "suspect_proximity": 0.5,
         "amount_factor": min(req.amount / 150000, 1.0),
+        # No registry context for a probe: no observed history, mid locality.
+        "atm_cashout_history": 0.0,
+        "local_hotspot_density": 0.5,
     }
     result = _predict_or_503(features)
     is_anomaly = result["risk_score"] > 80 or req.amount > 100000 or req.num_mule_accounts >= 5

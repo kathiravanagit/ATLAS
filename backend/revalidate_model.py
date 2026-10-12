@@ -189,16 +189,17 @@ def hit_at_k_metrics(df, splits, rf, xgb, ks=(1, 3, 5)):
     }
 
 
-def build_candidate_features(case_ctx, atm):
+def build_candidate_features(case_ctx, atm, hist_count, hist_max, registry):
     """Serving-formula replica for one candidate ATM.
 
     Inputs are case context (complaint-derived: victim centroid, hour,
-    amount, mule count, weekday) plus candidate ATM attributes only.
+    amount, mule count, weekday) plus candidate ATM attributes plus the
+    precomputed past-month history count and the city registry.
     ``true_atm_id`` is never an input — anything defined from the label
     would make retrieval trivially leaky. ATM attributes come from the
     deterministic generator registry so features match training semantics.
     """
-    from ml_engine import haversine as _haversine
+    from ml_engine import haversine as _haversine, hist_norm, local_hotspot
     dist_victim = _haversine(case_ctx["victim_lat"], case_ctx["victim_lng"],
                              atm["lat"], atm["lng"])
     dist_suspect = _haversine(case_ctx["suspect_lat"], case_ctx["suspect_lng"],
@@ -222,6 +223,8 @@ def build_candidate_features(case_ctx, atm):
         "density_score": round(min(atm["crime_density"] / 15, 1.0), 3),
         "suspect_proximity": round(max(0, 1 - dist_suspect / 10), 3),
         "amount_factor": round(min(amount / 150000, 1.0), 3),
+        "atm_cashout_history": hist_norm(hist_count, hist_max),
+        "local_hotspot_density": local_hotspot(atm["atm_id"], registry),
     }
 
 
@@ -238,6 +241,8 @@ def _case_context(ring_rows, group_id):
         "amount": float(ring_rows["amount"].median()),
         "mules": int(ring_rows["num_mule_accounts"].mode().iloc[0]),
         "day": int(ring_rows["day_of_week"].mode().iloc[0]),
+        "month": int(ring_rows["month"].mode().iloc[0]),
+        "city": str(ring_rows["city"].mode().iloc[0]),
     }
 
 
@@ -250,6 +255,9 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
     so separation comes only from ATM-discriminative signal. Not
     real-world next-ATM accuracy.
     """
+    if not {"atm_id", "city", "cash_out_occurred"}.issubset(df.columns):
+        return {"status": "unavailable",
+                "reason": "Retrieval needs per-row atm_id, city and cash-out labels"}
     holdout_groups = set()
     for name in ("group_holdout", "time_holdout", "location_holdout"):
         holdout_groups |= set(df.iloc[splits[name]].group_id.astype(str))
@@ -259,6 +267,21 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
     # whatever consumed global RNG earlier in this process.
     np.random.seed(42)
     atms = {a["atm_id"]: a for a in _gen.generate_atms()}
+    by_city = {}
+    for a in atms.values():
+        by_city.setdefault(a["city"], []).append(a)
+    # Past-month cash-out counts per ATM (strictly past months only) and
+    # per-city maxima, mirroring the generator's history feature.
+    cash = df[df["cash_out_occurred"] == 1]
+    piv = cash.groupby(["month", "atm_id"]).size().unstack(fill_value=0)
+    cum = piv.cumsum()
+    city_max = cash.groupby("city")["atm_id"].apply(lambda s: int(s.value_counts().max()))
+
+    def _past(month, atm_id):
+        prev = [m for m in cum.index if m < month]
+        if not prev or atm_id not in cum.columns:
+            return 0
+        return int(cum.loc[max(prev), atm_id])
     cases = candidates[candidates["group_id"].isin(holdout_groups)]
     hits = {k: 0 for k in ks}
     ranks, evaluated = [], 0
@@ -267,7 +290,11 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
         if ring.empty:
             continue
         ctx = _case_context(ring, part["group_id"].iloc[0])
-        feats = [build_candidate_features(ctx, atms[c]) for c in part["candidate_atm_id"]]
+        registry = by_city.get(ctx["city"], [])
+        cmax = int(city_max.get(ctx["city"], 0))
+        feats = [build_candidate_features(
+            ctx, atms[c], _past(ctx["month"], c), cmax, registry)
+            for c in part["candidate_atm_id"]]
         proba = ensemble_proba(rf, xgb, pd.DataFrame(feats, columns=FEATURE_COLS))
         order = np.argsort(-np.asarray(proba), kind="stable")
         truth_pos = int(np.where(part["is_true"].to_numpy()[order] == 1)[0][0]) + 1

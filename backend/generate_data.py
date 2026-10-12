@@ -134,6 +134,10 @@ def generate_atms():
                 "base_risk": round(risk_base[atm_type] + np.random.normal(0, 0.05), 3),
                 "crime_density": max(1, min(20, crime_density)),
                 "daily_volume": int(np.random.lognormal(9, 0.5)),
+                # Latent fraud-pull: how attractive this ATM is to rings.
+                # NEVER a model feature (oracle) — the model may only learn
+                # its empirical trace via atm_cashout_history.
+                "affinity": round(float(np.random.uniform(0, 1)), 3),
             })
     return all_atms
 
@@ -159,11 +163,15 @@ def generate_transactions(atms, n_transactions=200000):
     crime_names = list(CRIME_TYPES.keys())
 
     rows = []
+    base_logits = []
+    fraud_flags = []
     fraud_count = 0
     target_fraud = int(n_transactions * 0.015)
 
     # Pre-generate fraud clusters (mule account rings). Rings concentrate on
     # high-crime-density ATMs (hotspots) instead of uniform placement.
+    # (Kept identical to the pre-A2 rule on purpose: the A2 comparison must
+    # measure the new per-ATM features, not a changed placement task.)
     n_fraud_rings = target_fraud // 3
     hotspot_pool = [a for a in atms if a["crime_density"] >= 10] or atms
     fraud_rings = []
@@ -247,6 +255,8 @@ def generate_transactions(atms, n_transactions=200000):
         # Fraud rows: high probability of cash_out=1. Coefficients are
         # deliberately moderate (plus wide noise) so positives and negatives
         # overlap — a separable generator would make every score >90%.
+        # The linear predictor is stored; final labels are drawn in month
+        # order below so per-ATM history reflects strictly past months.
         if is_fraud:
             logit = (
                 -1.0
@@ -262,8 +272,6 @@ def generate_transactions(atms, n_transactions=200000):
                 + 0.25 * (hour >= 17)
                 + np.random.normal(0, 0.9)
             )
-            prob = 1 / (1 + np.exp(-logit))
-            cash_out = 1 if np.random.random() < prob else 0
         else:
             # Much lower base rate for legit transactions
             logit = (
@@ -278,16 +286,8 @@ def generate_transactions(atms, n_transactions=200000):
                 + 0.05 * amount_norm
                 + np.random.normal(0, 0.9)
             )
-            prob = 1 / (1 + np.exp(-logit))
-            cash_out = 1 if np.random.random() < prob else 0
-
-        # Label noise (asymmetric, like real mislabeling): missed fraud is
-        # more common than false fraud reports, so flip 7% of positives but
-        # only 1.5% of negatives. A symmetric rate would drown a ~4% base
-        # rate in noise and the model would learn mostly flips.
-        flip_p = 0.07 if cash_out == 1 else 0.015
-        if np.random.random() < flip_p:
-            cash_out = 1 - cash_out
+        base_logits.append(logit)
+        fraud_flags.append(bool(is_fraud))
 
         txn_type = np.random.choice(["withdrawal", "transfer", "upi", "qr_scan", "pos"],
                                       p=[0.35, 0.25, 0.20, 0.10, 0.10])
@@ -319,11 +319,73 @@ def generate_transactions(atms, n_transactions=200000):
             "density_score": round(density, 3),
             "suspect_proximity": round(suspect_prox, 3),
             "crime_type": crime_type,
-            "cash_out_occurred": cash_out,
             "victim_name": np.random.choice(VICTIM_NAMES),
         })
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    df["_logit_base"] = np.array(base_logits)
+    df["_is_fraud"] = np.array(fraud_flags)
+    _label_cashouts_in_month_order(df, atms)
+    df.drop(columns=["_logit_base", "_is_fraud"], inplace=True)
+    return df
+
+
+def _label_cashouts_in_month_order(df, atms):
+    """Draw final cash-out labels in month order with per-ATM memory.
+
+    History for a row counts only strictly past-month cash-outs at its ATM
+    (same-month rows never see each other), so no future information leaks
+    into any feature. The city maximum used for scaling is a city-wide
+    constant from a base-dynamics pass, not per-row future data.
+    """
+    from ml_engine import hist_norm, local_hotspot
+    base = df["_logit_base"].to_numpy()
+    is_fraud = df["_is_fraud"].to_numpy()
+    months = df["month"].to_numpy()
+    atm_ids = df["atm_id"].to_numpy()
+    cities = df["city"].to_numpy()
+
+    # Pass 0: base dynamics give the city scale for history normalization.
+    prob0 = 1 / (1 + np.exp(-base))
+    y0 = (np.random.random(len(df)) < prob0).astype(int)
+    flip0 = np.where(y0 == 1, 0.07, 0.015)
+    y0 = np.where(np.random.random(len(df)) < flip0, 1 - y0, y0)
+    city_max = {}
+    for city in np.unique(cities):
+        mask = (cities == city)
+        top = pd.Series(atm_ids[mask][y0[mask] == 1]).value_counts()
+        city_max[city] = int(top.max()) if len(top) else 0
+
+    # Static per-ATM locality from the registry (no labels involved).
+    by_city = {}
+    for a in atms:
+        by_city.setdefault(a["city"], []).append(a)
+    local_map = {a["atm_id"]: local_hotspot(a["atm_id"], by_city[a["city"]])
+                 for a in atms}
+
+    cash = np.zeros(len(df), dtype=int)
+    hist_feat = np.zeros(len(df))
+    cum = {}
+    for m in range(1, 13):
+        idx = np.flatnonzero(months == m)
+        if len(idx) == 0:
+            continue
+        raw = np.array([cum.get(atm_ids[i], 0) for i in idx])
+        hn = np.array([hist_norm(int(c), city_max[cities[i]]) for i, c in zip(idx, raw)])
+        local = np.array([local_map[atm_ids[i]] for i in idx])
+        extra = np.where(is_fraud[idx], 0.9 * hn + 0.7 * local, 0.2 * hn + 0.15 * local)
+        prob = 1 / (1 + np.exp(-(base[idx] + extra)))
+        draw = (np.random.random(len(idx)) < prob).astype(int)
+        flip = np.where(draw == 1, 0.07, 0.015)
+        draw = np.where(np.random.random(len(idx)) < flip, 1 - draw, draw)
+        cash[idx] = draw
+        hist_feat[idx] = hn
+        for i, a in zip(idx, atm_ids[idx]):
+            if cash[i]:
+                cum[a] = cum.get(a, 0) + 1
+    df["cash_out_occurred"] = cash
+    df["atm_cashout_history"] = np.round(hist_feat, 3)
+    df["local_hotspot_density"] = np.array([local_map[a] for a in atm_ids])
 
 
 def generate_suspects(atms, n_suspects=200):
@@ -371,6 +433,7 @@ def save_outputs(atms, transactions, suspects, output_dir="data"):
         "amount", "num_mule_accounts", "hour_of_day" if "hour_of_day" in transactions.columns else "hour",
         "day_of_week", "transaction_velocity", "proximity_score", "density_score",
         "suspect_proximity", "amount_factor",
+        "atm_cashout_history", "local_hotspot_density",
     ]
 
     stats = {

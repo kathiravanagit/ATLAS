@@ -1,145 +1,157 @@
 {
-  "generated_at": "2026-10-10T12:16:38.586166",
+  "generated_at": "2026-10-12T20:29:07.945696",
   "total_atms": 400,
   "cities": 8,
   "total_transactions": 200000,
   "fraud_transactions": 3000,
   "legit_transactions": 197000,
   "fraud_rate": 1.5,
-  "cashout_transactions": 7842,
-  "no_cashout_transactions": 192158,
-  "cashout_rate_pct": 3.92,
+  "cashout_transactions": 8390,
+  "no_cashout_transactions": 191610,
+  "cashout_rate_pct": 4.2,
   "target_semantics": "Synthetic cash-out outcome is distinct from injected fraud membership, not an observed future criminal outcome",
   "feature_protocol": "observable-evening-window-v1",
   "total_suspects": 200,
   "amount_stats": {
-    "overall_mean": 17970.11,
-    "overall_median": 13588.67,
-    "fraud_mean": 63862.29,
-    "legit_mean": 17271.25
+    "overall_mean": 17886.2,
+    "overall_median": 13485.18,
+    "fraud_mean": 64028.1,
+    "legit_mean": 17183.53
   },
   "crime_type_distribution": {
-    "UPI Fraud": 852,
-    "Card Cloning": 576,
-    "Phishing": 474,
-    "Investment Fraud": 384,
-    "Identity Theft": 294,
-    "SIM Swap": 234,
+    "UPI Fraud": 855,
+    "Card Cloning": 564,
+    "Phishing": 486,
+    "Investment Fraud": 387,
+    "Identity Theft": 285,
+    "SIM Swap": 237,
     "QR Code Fraud": 186
   },
   "city_distribution": {
-    "delhi": 25450,
-    "chennai": 25102,
-    "bangalore": 25018,
-    "ahmedabad": 25005,
-    "puducherry": 24975,
-    "hyderabad": 24925,
-    "mumbai": 24764,
-    "kolkata": 24761
+    "delhi": 25495,
+    "mumbai": 25261,
+    "bangalore": 24963,
+    "kolkata": 24940,
+    "hyderabad": 24921,
+    "chennai": 24880,
+    "puducherry": 24837,
+    "ahmedabad": 24703
   },
   "hour_distribution": {
-    "0": 75,
-    "1": 99,
-    "2": 104,
-    "3": 81,
-    "4": 89,
-    "17": 353,
-    "18": 537,
-    "19": 618,
-    "20": 530,
-    "21": 387,
-    "22": 127
+    "0": 81,
+    "1": 102,
+    "2": 100,
+    "3": 90,
+    "4": 90,
+    "17": 373,
+    "18": 529,
+    "19": 602,
+    "20": 509,
+    "21": 388,
+    "22": 136
   },
   "feature_stats": {
     "distance_from_victim_km": {
-      "mean": 0.42266335000000005,
-      "std": 0.26735771630442956,
+      "mean": 0.42253119999999994,
+      "std": 0.26800876696491827,
       "min": 0.0,
-      "max": 4.58
+      "max": 4.79
     },
     "historical_crime_density": {
-      "mean": 7.03924,
-      "std": 3.850144716821915,
+      "mean": 6.98069,
+      "std": 3.806395876304491,
       "min": 1.0,
-      "max": 19.0
+      "max": 20.0
     },
     "time_window_match": {
-      "mean": 0.25928,
-      "std": 0.43824062097688915,
+      "mean": 0.259935,
+      "std": 0.4385997692929034,
       "min": 0.0,
       "max": 1.0
     },
     "atm_type_score": {
-      "mean": 0.6668105000000002,
-      "std": 0.21441790262227367,
+      "mean": 0.649683,
+      "std": 0.21489167132104495,
       "min": 0.4,
       "max": 1.0
     },
     "suspect_distance_km": {
-      "mean": 0.7000266500000001,
-      "std": 0.42259443881820796,
+      "mean": 0.7000658000000001,
+      "std": 0.42345119934291264,
       "min": 0.0,
-      "max": 7.32
+      "max": 6.98
     },
     "recent_withdrawal_freq": {
-      "mean": 0.41298,
-      "std": 0.2507635021522671,
+      "mean": 0.4122075,
+      "std": 0.24659183072722604,
       "min": 0.0,
       "max": 1.0
     },
     "amount": {
-      "mean": 17970.11081435,
-      "std": 14396.328923782892,
-      "min": 355.24,
-      "max": 142419.99
+      "mean": 17886.1956393,
+      "std": 14356.23040878331,
+      "min": 337.47,
+      "max": 142946.83
     },
     "num_mule_accounts": {
-      "mean": 1.03389,
-      "std": 0.35110124502829854,
+      "mean": 1.033475,
+      "std": 0.3458251326177895,
       "min": 1.0,
       "max": 8.0
     },
     "hour": {
-      "mean": 11.578765,
-      "std": 6.942226375400779,
+      "mean": 11.579465,
+      "std": 6.92451262242696,
       "min": 0.0,
       "max": 23.0
     },
     "day_of_week": {
-      "mean": 3.004005,
-      "std": 1.9993296242915357,
+      "mean": 2.99045,
+      "std": 1.997868552956819,
       "min": 0.0,
       "max": 6.0
     },
     "transaction_velocity": {
-      "mean": 0.17243986,
-      "std": 0.054999912892044575,
+      "mean": 0.172387385,
+      "std": 0.05439572972521682,
       "min": 0.167,
       "max": 1.0
     },
     "proximity_score": {
-      "mean": 0.94716731,
-      "std": 0.033419417434348064,
-      "min": 0.428,
+      "mean": 0.9471824799999999,
+      "std": 0.03350139434063473,
+      "min": 0.401,
       "max": 1.0
     },
     "density_score": {
-      "mean": 0.469303795,
-      "std": 0.2566589469562151,
+      "mean": 0.46536504500000003,
+      "std": 0.25372400528231903,
       "min": 0.067,
-      "max": 1.267
+      "max": 1.333
     },
     "suspect_proximity": {
-      "mean": 0.929997335,
-      "std": 0.042259443881820784,
-      "min": 0.268,
+      "mean": 0.9299934200000001,
+      "std": 0.04234511993429125,
+      "min": 0.302,
       "max": 1.0
     },
     "amount_factor": {
-      "mean": 0.1197836,
-      "std": 0.09593928294900929,
+      "mean": 0.11922442500000001,
+      "std": 0.09567324257735858,
       "min": 0.002,
-      "max": 0.949
+      "max": 0.953
+    },
+    "atm_cashout_history": {
+      "mean": 0.20185040499999998,
+      "std": 0.18056673469403042,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "local_hotspot_density": {
+      "mean": 0.463931405,
+      "std": 0.152372523069794,
+      "min": 0.187,
+      "max": 0.88
     }
   }
 }

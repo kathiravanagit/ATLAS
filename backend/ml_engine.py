@@ -26,8 +26,60 @@ FEATURE_COLS = [
     "atm_type_score", "suspect_distance_km", "recent_withdrawal_freq",
     "amount", "num_mule_accounts", "hour", "day_of_week",
     "transaction_velocity", "proximity_score", "density_score",
-    "suspect_proximity", "amount_factor"
+    "suspect_proximity", "amount_factor",
+    "atm_cashout_history", "local_hotspot_density",
 ]
+
+
+def hist_norm(count: int, city_max: int) -> float:
+    """Historical cash-out volume scaled by the city maximum (0..1).
+
+    Training uses strictly past-month cumulative counts; serving uses
+    transaction_records observed so far. Same helper both sides so the
+    scale cannot drift between train and serve.
+    """
+    if city_max <= 0:
+        return 0.0
+    return round(min(max(count, 0) / city_max, 1.0), 3)
+
+
+def _field(item, *names, default=None):
+    for name in names:
+        if isinstance(item, dict):
+            if name in item and item[name] is not None:
+                return item[name]
+        elif getattr(item, name, None) is not None:
+            return getattr(item, name)
+    return default
+
+
+def local_hotspot(atm_id: str, registry: list) -> float:
+    """Mean crime density of the 5 nearest same-city ATMs, scaled 0..1.
+
+    Static registry geometry — identical inputs everywhere, so train,
+    serve and eval cannot disagree. Registry entries may be dicts
+    (``atm_id``/``lat``/``lng``/``crime_density``) or ORM rows
+    (``atm_id``/``latitude``/``longitude``/``historical_crime``).
+    """
+    import math
+    me = next((a for a in registry
+               if _field(a, "atm_id", "id") == atm_id), None)
+    if me is None:
+        return 0.0
+    me_lat, me_lng = _field(me, "lat", "latitude"), _field(me, "lng", "longitude")
+
+    def _density(a):
+        return _field(a, "crime_density", "historical_crime", default=0) or 0
+
+    def _dist(a):
+        lat1, lat2 = math.radians(me_lat), math.radians(_field(a, "lat", "latitude"))
+        dlat, dlng = lat2 - lat1, math.radians(_field(a, "lng", "longitude") - me_lng)
+        h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
+        return 2 * 6371 * math.asin(math.sqrt(max(h, 0)))
+    peers = sorted((a for a in registry if a is not me), key=_dist)[:5]
+    if not peers:
+        return round(min(_density(me) / 15, 1.0), 3)
+    return round(min(sum(_density(a) for a in peers) / (5 * 15), 1.0), 3)
 
 FEATURE_NAMES_CN = {
     "distance_from_victim_km": "Victim Distance",

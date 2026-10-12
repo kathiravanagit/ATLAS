@@ -430,6 +430,17 @@ def test_candidate_hit_at_k_reported_with_honest_scope():
     assert "not real-world" in hit["note"].lower()
 
 
+def test_candidate_hit_at_k_unavailable_without_atm_labels():
+    import pandas as pd
+    from revalidate_model import candidate_hit_at_k
+    df = pd.DataFrame({"group_id": ["G-1"], "city": ["chennai"],
+                       "cash_out_occurred": [1]})
+    out = candidate_hit_at_k(df, pd.DataFrame(), {"group_holdout": [0],
+                             "time_holdout": [], "location_holdout": []},
+                             None, None)
+    assert out["status"] == "unavailable"
+
+
 def test_candidate_features_carry_no_label():
     import generate_data
     from revalidate_model import build_candidate_features
@@ -439,9 +450,12 @@ def test_candidate_features_carry_no_label():
     ctx = {"victim_lat": 11.94, "victim_lng": 79.81, "suspect_lat": 11.95,
            "suspect_lng": 79.82, "hour": 19, "amount": 50000.0,
            "mules": 3, "day": 2}
-    feats = build_candidate_features(ctx, atm)
+    registry = [atms[a] for a in sorted(atms) if a.startswith("PUD")]
+    feats = build_candidate_features(ctx, atm, 4, 20, registry)
     assert set(feats) == set(ml.FEATURE_COLS)
     assert "true_atm_id" not in feats and "is_true" not in feats
+    assert feats["atm_cashout_history"] == 0.2
+    assert 0.0 <= feats["local_hotspot_density"] <= 1.0
 
 
 def test_future_metrics_and_checked_in_claims_are_unavailable():

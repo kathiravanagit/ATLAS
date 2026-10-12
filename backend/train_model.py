@@ -172,7 +172,8 @@ FEATURE_COLS = [
     "atm_type_score", "suspect_distance_km", "recent_withdrawal_freq",
     "amount", "num_mule_accounts", "hour", "day_of_week",
     "transaction_velocity", "proximity_score", "density_score",
-    "suspect_proximity", "amount_factor"
+    "suspect_proximity", "amount_factor",
+    "atm_cashout_history", "local_hotspot_density",
 ]
 
 
