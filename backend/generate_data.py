@@ -420,7 +420,68 @@ def save_outputs(atms, transactions, suspects, output_dir="data"):
     return stats
 
 
+def generate_candidate_lists(df, atms, n_hard=6, n_easy=8, seed=42):
+    """Per-case ATM candidate lists with a ground-truth cash-out ATM.
+
+    One case per injected fraud ring: the ring's ATM is true_atm_id,
+    candidates are the true ATM plus hard (nearest same-city) and easy
+    (random farther same-city) negatives. Same-city candidates mirror the
+    serving ranker, which scores one city's ATMs per case. Deterministic
+    under ``seed``; stable case/candidate IDs for closed-loop evaluation.
+    Row-level training data is untouched.
+    """
+    rng = np.random.RandomState(seed)
+    by_id = {a["atm_id"]: a for a in atms}
+    by_city = {}
+    for a in atms:
+        by_city.setdefault(a["city"], []).append(a)
+    rings = df[df["group_id"].str.startswith("RING")]
+    true_atm = rings.groupby("group_id").agg(
+        atm_id=("atm_id", "first"), city=("city", "first"))
+    assert (rings.groupby("group_id")["atm_id"].nunique() == 1).all()
+
+    rows = []
+    for group_id, row in true_atm.iterrows():
+        city, truth = row["city"], row["atm_id"]
+        peers = [a for a in by_city[city] if a["atm_id"] != truth]
+        peers.sort(key=lambda a: haversine(by_id[truth]["lat"], by_id[truth]["lng"],
+                                           a["lat"], a["lng"]))
+        hard = peers[:n_hard]
+        rest = peers[n_hard:]
+        easy = [rest[i] for i in rng.choice(len(rest), size=min(n_easy, len(rest)),
+                                            replace=False)] if rest else []
+        case_id = f"EVAL-{group_id}"
+        rows.append({"case_id": case_id, "group_id": group_id, "city": city,
+                     "true_atm_id": truth, "candidate_atm_id": truth,
+                     "is_true": 1, "difficulty": "true"})
+        for a in hard:
+            rows.append({"case_id": case_id, "group_id": group_id, "city": city,
+                         "true_atm_id": truth, "candidate_atm_id": a["atm_id"],
+                         "is_true": 0, "difficulty": "hard"})
+        for a in easy:
+            rows.append({"case_id": case_id, "group_id": group_id, "city": city,
+                         "true_atm_id": truth, "candidate_atm_id": a["atm_id"],
+                         "is_true": 0, "difficulty": "easy"})
+    out = pd.DataFrame(rows)
+    assert (out.groupby("case_id")["is_true"].sum() == 1).all()
+    return out
+
+
 if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "candidates":
+        # Offline retrieval-evaluation artifact only. Reads the committed
+        # transactions CSV and deterministic ATMs; never regenerates rows.
+        print("ATLAS candidate-list builder (retrieval eval only)")
+        atms = generate_atms()
+        df = pd.read_csv("data/transactions_200k.csv",
+                         usecols=["group_id", "atm_id", "city"])
+        candidates = generate_candidate_lists(df, atms)
+        os.makedirs("data", exist_ok=True)
+        candidates.to_csv("data/candidates_eval.csv", index=False)
+        print(f"  cases: {candidates['case_id'].nunique()}, "
+              f"rows: {len(candidates)} -> data/candidates_eval.csv")
+        sys.exit(0)
     print("=" * 60)
     print("ATLAS Synthetic Data Generator v2")
     print("400 ATMs x 8 cities | 200k synthetic rows | 1.5% injected fraud membership")

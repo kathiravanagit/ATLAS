@@ -398803,5 +398803,23 @@
       }
     ],
     "note": "synthetic ATM-retrieval check mirroring the heatmap ranking; small-n city slices, not real-world next-ATM accuracy"
+  },
+  "candidate_hit_at_k": {
+    "status": "available_synthetic_only",
+    "method": "per holdout ring-case, rank 15 candidate ATMs by ensemble probability over serving-formula features; truth = planted ring ATM",
+    "n_cases": 431,
+    "hits": {
+      "top_1": "109/431",
+      "top_3": "175/431",
+      "top_5": "218/431"
+    },
+    "hit_rate": {
+      "top_1": 0.2529,
+      "top_3": 0.406,
+      "top_5": 0.5058
+    },
+    "mean_rank": 6.89,
+    "mrr": 0.3904,
+    "note": "synthetic per-case retrieval with planted ground truth; measures the serving ranker on synthetic cases, not real-world next-ATM accuracy"
   }
 }

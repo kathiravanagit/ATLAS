@@ -23,6 +23,7 @@ from ml_engine import load_models, FEATURE_COLS, RF_PATH, XGB_PATH, METADATA_PAT
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data", "transactions_200k.csv")
+CANDIDATES_PATH = os.path.join(BASE_DIR, "data", "candidates_eval.csv")
 REPORT_PATH = os.path.join(BASE_DIR, "model", "validation_report.json")
 
 
@@ -188,6 +189,106 @@ def hit_at_k_metrics(df, splits, rf, xgb, ks=(1, 3, 5)):
     }
 
 
+def build_candidate_features(case_ctx, atm):
+    """Serving-formula replica for one candidate ATM.
+
+    Inputs are case context (complaint-derived: victim centroid, hour,
+    amount, mule count, weekday) plus candidate ATM attributes only.
+    ``true_atm_id`` is never an input — anything defined from the label
+    would make retrieval trivially leaky. ATM attributes come from the
+    deterministic generator registry so features match training semantics.
+    """
+    from ml_engine import haversine as _haversine
+    dist_victim = _haversine(case_ctx["victim_lat"], case_ctx["victim_lng"],
+                             atm["lat"], atm["lng"])
+    dist_suspect = _haversine(case_ctx["suspect_lat"], case_ctx["suspect_lng"],
+                              atm["lat"], atm["lng"])
+    type_map = {"high_value": 1.0, "commercial": 0.8, "bank": 0.7,
+                "highway": 0.6, "retail": 0.4}
+    hour, mules, amount = case_ctx["hour"], case_ctx["mules"], case_ctx["amount"]
+    return {
+        "distance_from_victim_km": round(dist_victim, 2),
+        "historical_crime_density": atm["crime_density"],
+        "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
+        "atm_type_score": type_map.get(atm.get("type"), 0.5),
+        "suspect_distance_km": round(dist_suspect, 2),
+        "recent_withdrawal_freq": round(min(mules / 8, 0.9), 3),
+        "amount": round(amount, 2),
+        "num_mule_accounts": mules,
+        "hour": hour,
+        "day_of_week": case_ctx["day"],
+        "transaction_velocity": round(min(mules / 6, 1.0), 3),
+        "proximity_score": round(max(0, 1 - dist_victim / 8), 3),
+        "density_score": round(min(atm["crime_density"] / 15, 1.0), 3),
+        "suspect_proximity": round(max(0, 1 - dist_suspect / 10), 3),
+        "amount_factor": round(min(amount / 150000, 1.0), 3),
+    }
+
+
+def _case_context(ring_rows, group_id):
+    import zlib
+    vlat, vlng = float(ring_rows["victim_lat"].mean()), float(ring_rows["victim_lng"].mean())
+    seed = zlib.crc32(group_id.encode())
+    slat = vlat + ((seed % 160 - 80) / 10000.0)
+    slng = vlng + (((seed // 160) % 160 - 80) / 10000.0)
+    return {
+        "victim_lat": vlat, "victim_lng": vlng,
+        "suspect_lat": slat, "suspect_lng": slng,
+        "hour": int(ring_rows["hour"].mode().iloc[0]),
+        "amount": float(ring_rows["amount"].median()),
+        "mules": int(ring_rows["num_mule_accounts"].mode().iloc[0]),
+        "day": int(ring_rows["day_of_week"].mode().iloc[0]),
+    }
+
+
+def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
+    """Per-case ATM retrieval with planted ground truth (synthetic only).
+
+    For holdout ring-groups, score each case's candidate ATMs with the
+    fitted ensemble and locate the true cash-out ATM. Retrieval analogue
+    of the serving ranker; small print: candidates share one case context,
+    so separation comes only from ATM-discriminative signal. Not
+    real-world next-ATM accuracy.
+    """
+    holdout_groups = set()
+    for name in ("group_holdout", "time_holdout", "location_holdout"):
+        holdout_groups |= set(df.iloc[splits[name]].group_id.astype(str))
+    import generate_data as _gen
+    # generate_atms() is deterministic only as the first consumer of a
+    # seed-42 stream: reseed explicitly so report output cannot depend on
+    # whatever consumed global RNG earlier in this process.
+    np.random.seed(42)
+    atms = {a["atm_id"]: a for a in _gen.generate_atms()}
+    cases = candidates[candidates["group_id"].isin(holdout_groups)]
+    hits = {k: 0 for k in ks}
+    ranks, evaluated = [], 0
+    for case_id, part in cases.groupby("case_id"):
+        ring = df[df["group_id"] == part["group_id"].iloc[0]]
+        if ring.empty:
+            continue
+        ctx = _case_context(ring, part["group_id"].iloc[0])
+        feats = [build_candidate_features(ctx, atms[c]) for c in part["candidate_atm_id"]]
+        proba = ensemble_proba(rf, xgb, pd.DataFrame(feats, columns=FEATURE_COLS))
+        order = np.argsort(-np.asarray(proba), kind="stable")
+        truth_pos = int(np.where(part["is_true"].to_numpy()[order] == 1)[0][0]) + 1
+        evaluated += 1
+        ranks.append(truth_pos)
+        for k in ks:
+            if truth_pos <= k:
+                hits[k] += 1
+    import statistics as _stats
+    return {
+        "status": "available_synthetic_only" if evaluated else "unavailable",
+        "method": "per holdout ring-case, rank 15 candidate ATMs by ensemble probability over serving-formula features; truth = planted ring ATM",
+        "n_cases": evaluated,
+        "hits": {f"top_{k}": f"{hits[k]}/{evaluated}" for k in ks},
+        "hit_rate": {f"top_{k}": (round(hits[k] / evaluated, 4) if evaluated else None) for k in ks},
+        "mean_rank": round(float(_stats.mean(ranks)), 2) if ranks else None,
+        "mrr": round(float(_stats.mean([1.0 / r for r in ranks])), 4) if ranks else None,
+        "note": "synthetic per-case retrieval with planted ground truth; measures the serving ranker on synthetic cases, not real-world next-ATM accuracy",
+    }
+
+
 def unavailable_report(reason):
     unavailable = {"status": "unavailable", "reason": reason}
     return {
@@ -198,6 +299,7 @@ def unavailable_report(reason):
         "baseline_comparison": dict(unavailable),
         "calibration": dict(unavailable), "threshold_sweep": dict(unavailable),
         "synthetic_hit_at_k": dict(unavailable),
+        "candidate_hit_at_k": dict(unavailable),
         "previous_prefix_diagnostic": {
             "status": "withdrawn",
             "selection": "first 20000 rows in file order, NOT a random sample",
@@ -262,6 +364,12 @@ def build_validation_report(df, metadata, rf, xgb, artifact_paths=None):
         report["calibration"][name] = calibration(proba, y)
         report["threshold_sweep"][name] = threshold_sweep(y, proba)
     report["synthetic_hit_at_k"] = hit_at_k_metrics(df, splits, rf, xgb)
+    if os.path.exists(CANDIDATES_PATH):
+        candidates = pd.read_csv(CANDIDATES_PATH)
+        report["candidate_hit_at_k"] = candidate_hit_at_k(df, candidates, splits, rf, xgb)
+    else:
+        report["candidate_hit_at_k"] = {"status": "unavailable",
+                                        "reason": "data/candidates_eval.csv not built"}
     return report
 
 

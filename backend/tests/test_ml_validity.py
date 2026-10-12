@@ -405,6 +405,45 @@ def test_synthetic_hit_at_k_reported_with_honest_scope():
     assert "not real-world" in hit["note"].lower()
 
 
+def test_candidate_lists_have_one_truth_and_stable_ids():
+    path = Path(ml.MODEL_DIR).parent / "data" / "candidates_eval.csv"
+    candidates = pd.read_csv(path)
+    assert {"case_id", "group_id", "city", "true_atm_id", "candidate_atm_id",
+            "is_true", "difficulty"} <= set(candidates.columns)
+    assert (candidates.groupby("case_id")["is_true"].sum() == 1).all()
+    assert set(candidates["difficulty"]) == {"true", "hard", "easy"}
+    assert candidates["case_id"].nunique() >= 100
+    assert not candidates.isna().any().any()
+
+
+def test_candidate_hit_at_k_reported_with_honest_scope():
+    model_dir = Path(ml.MODEL_DIR)
+    report = json.loads((model_dir / "validation_report.json").read_text())
+    hit = report["candidate_hit_at_k"]
+    assert hit["status"] == "available_synthetic_only"
+    assert hit["n_cases"] >= 100
+    for key in ("top_1", "top_3", "top_5"):
+        assert 0.0 <= hit["hit_rate"][key] <= 1.0
+    assert 0.0 <= hit["mrr"] <= 1.0
+    assert 1.0 <= hit["mean_rank"] <= 15.0
+    assert "synthetic" in hit["note"].lower()
+    assert "not real-world" in hit["note"].lower()
+
+
+def test_candidate_features_carry_no_label():
+    import generate_data
+    from revalidate_model import build_candidate_features
+    np.random.seed(42)
+    atms = {a["atm_id"]: a for a in generate_data.generate_atms()}
+    atm = atms["PUD-001"]
+    ctx = {"victim_lat": 11.94, "victim_lng": 79.81, "suspect_lat": 11.95,
+           "suspect_lng": 79.82, "hour": 19, "amount": 50000.0,
+           "mules": 3, "day": 2}
+    feats = build_candidate_features(ctx, atm)
+    assert set(feats) == set(ml.FEATURE_COLS)
+    assert "true_atm_id" not in feats and "is_true" not in feats
+
+
 def test_future_metrics_and_checked_in_claims_are_unavailable():
     future = training.future_outcome_metrics()
     assert future["status"] == "unavailable"
