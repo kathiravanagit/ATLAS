@@ -103,6 +103,34 @@ _rf_model = None
 _xgb_model = None
 _metadata = None
 _dataset_stats = None
+_ranker_model = None
+_ranker_missing = False
+
+# ATM-varying only: anything constant across a case's candidates cannot
+# separate them, so case-level signals stay out of the ranker.
+RANKER_FEATURES = [
+    "distance_from_victim_km", "historical_crime_density", "atm_type_score",
+    "suspect_distance_km", "proximity_score", "density_score",
+    "suspect_proximity", "atm_cashout_history", "local_hotspot_density",
+]
+RANKER_PATH = os.path.join(MODEL_DIR, "ranker.pkl")
+
+
+def get_ranker():
+    """A2.1 pointwise ranker, or None when absent/unusable. Never raises."""
+    global _ranker_model, _ranker_missing
+    if _ranker_model is not None:
+        return _ranker_model
+    if _ranker_missing or not os.path.exists(RANKER_PATH):
+        return None
+    try:
+        _ranker_model = joblib.load(RANKER_PATH)
+        return _ranker_model
+    except Exception:
+        _ranker_missing = True
+        return None
+_ranker_model = None
+_ranker_missing = False
 _shap_explainer = None
 _shap_background = None
 _shap_cache: dict[str, dict] = {}  # model + background + ordered input, never case ID

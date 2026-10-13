@@ -376,6 +376,33 @@ def _predict_or_503(features: dict, case_id: str = "") -> dict:
         raise HTTPException(status_code=503, detail="Prediction model unavailable; no risk estimate was produced") from exc
 
 
+def _apply_rank_order(ranked):
+    """Order candidates by the A2.1 ranker when present, else row-score order.
+
+    Rank (not any raw score) is the source of truth downstream; risk_score
+    keeps row-model semantics for thresholds and alerts. Never raises:
+    without a usable ranker artifact the previous row-score order applies.
+    """
+    try:
+        from ml_engine import get_ranker, RANKER_FEATURES
+        import pandas as _pd
+        ranker = get_ranker()
+        if ranker is None:
+            raise ValueError("no ranker artifact")
+        X = _pd.DataFrame(
+            [[loc.get("prediction_features", {}).get(c, 0) for c in RANKER_FEATURES]
+             for loc in ranked], columns=RANKER_FEATURES)
+        scores = ranker.predict_proba(X)[:, 1]
+        for loc, s in zip(ranked, scores):
+            loc["ranker_score"] = round(float(s), 4)
+        ranked.sort(key=lambda x: x["ranker_score"], reverse=True)
+    except Exception:
+        ranked.sort(key=lambda x: x["risk_score"], reverse=True)
+    for i, r in enumerate(ranked):
+        r["rank"] = i + 1
+    return ranked
+
+
 def _persist_prediction(db, result):
     try:
         pred = db.query(Prediction).filter(Prediction.case_id == result["case_id"]).first()
@@ -604,9 +631,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "confidence": confidence,
         })
 
-    ranked.sort(key=lambda x: x["risk_score"], reverse=True)
-    for i, r in enumerate(ranked):
-        r["rank"] = i + 1
+    _apply_rank_order(ranked)
 
     primary = ranked[0]
 
@@ -1048,9 +1073,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "confidence": ml_result["confidence"],
         })
 
-    ranked.sort(key=lambda x: x["risk_score"], reverse=True)
-    for i, r in enumerate(ranked):
-        r["rank"] = i + 1
+    _apply_rank_order(ranked)
 
     primary = ranked[0] if ranked else None
     num_mules = len({record.to_account for record in synthetic_records})

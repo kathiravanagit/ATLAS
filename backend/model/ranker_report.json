@@ -1,0 +1,17 @@
+{
+  "status": "available_synthetic_only",
+  "n_cases": 429,
+  "hits": {
+    "top_1": "297/429",
+    "top_3": "389/429",
+    "top_5": "411/429"
+  },
+  "hit_rate": {
+    "top_1": 0.6923,
+    "top_3": 0.9068,
+    "top_5": 0.958
+  },
+  "mean_rank": 1.68,
+  "mrr": 0.807,
+  "note": "A2.1 ranker (ATM-varying features) on holdout candidate lists. Synthetic retrieval, not real-world accuracy."
+}

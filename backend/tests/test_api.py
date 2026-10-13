@@ -452,6 +452,34 @@ def test_mule_network(client, admin_token):
     assert "edges" in data
 
 
+def test_ranking_prefers_ranker_when_present(client, admin_token):
+    import ml_engine
+    if ml_engine.get_ranker() is None:
+        pytest.skip("ranker artifact absent")
+    resp = client.get("/api/predictions/CASE-002", headers=auth_header(admin_token))
+    assert resp.status_code == 200, resp.text
+    ranked = resp.json()["ranked_locations"]
+    assert [r["rank"] for r in ranked] == list(range(1, len(ranked) + 1))
+    assert all("ranker_score" in r for r in ranked)
+    scores = [r["ranker_score"] for r in ranked]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_ranking_falls_back_without_ranker(client, admin_token, monkeypatch):
+    import ml_engine
+    import main as main_module
+    monkeypatch.setattr(ml_engine, "get_ranker", lambda: None)
+    main_module._city_prediction_cache.clear()
+    main_module._predictions_cache.clear()
+    resp = client.get("/api/predictions/CASE-003", headers=auth_header(admin_token))
+    assert resp.status_code == 200, resp.text
+    ranked = resp.json()["ranked_locations"]
+    assert [r["rank"] for r in ranked] == list(range(1, len(ranked) + 1))
+    assert all("ranker_score" not in r for r in ranked)
+    risks = [r["risk_score"] for r in ranked]
+    assert risks == sorted(risks, reverse=True)
+
+
 def test_detect_anomaly(client, admin_token):
     resp = client.post("/api/model/detect-anomaly", json={
         "amount": 50000, "num_mule_accounts": 3, "hour_of_day": 19, "transaction_velocity": 0.7

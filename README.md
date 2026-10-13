@@ -96,6 +96,8 @@ The model is decision support — every high-risk case needs human review.
 
 **Scope of "100%":** with fully synthetic but end-to-end data, ATLAS implements 100% of the deliverable modules (ranking engine, heatmap, LEA console with alerts + evidence, notifications). It does not claim 100% operational national impact, which requires authorised real data and official channels — honest alignment is ~85–90% of the problem statement.
 
+**Ranker (A2.1, serving):** candidate ranking uses a dedicated pointwise ranker (`backend/model/ranker.pkl`, ATM-varying features only; holdout Hit@3 90.7%, report in `ranker_report.json`) while the row ensemble keeps case-risk/alerts and the F1 story. Serving falls back to row-score order when the artifact is absent. Synthetic retrieval only — not real-world validity.
+
 ---
 
 ## Why blockchain?
