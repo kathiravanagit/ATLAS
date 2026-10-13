@@ -103,7 +103,8 @@ def validate():
     for name in ("group_holdout", "time_holdout", "location_holdout"):
         holdout |= set(prov[name]["group_ids"])
     train_groups = set(prov["train"]["group_ids"])
-    assert not (holdout & train_groups), "train/holdout ring overlap"
+    if holdout & train_groups:
+        raise ValueError("train/holdout ring overlap")
     ranker = joblib.load(RANKER_PATH)
     X, y, _, case_ids = build_ranker_rows(df, candidates, holdout)
     proba = ranker.predict_proba(X)[:, 1]
