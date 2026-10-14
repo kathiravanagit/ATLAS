@@ -27,7 +27,7 @@ const FLOW = {
   case_id: 'CC-2026-0145',
   steps: ['Complaint filed', 'Mule accounts found'],
   prediction: {
-    primary_location: { atm_id: 'PNY-005', location_name: 'Kurumbapet', risk_score: 88, expected_window: '19:00-21:00' },
+    primary_location: { atm_id: 'PNY-005', location_name: 'Kurumbapet', risk_score: 88, rank: 2, rank_total: 12, risk_area: 'priority', expected_window: '19:00-21:00' },
   },
 }
 
@@ -40,7 +40,7 @@ describe('ScenarioRunner', () => {
     await waitFor(() => expect(screen.getByText('Fast UPI Layering')).toBeDefined())
     fireEvent.click(screen.getByText('Fast UPI Layering'))
     await waitFor(() => expect(screen.getByText('Complaint filed')).toBeDefined())
-    expect(screen.getByText(/PNY-005/).textContent).toContain('88')
+    expect(screen.getByText(/PNY-005/).textContent).toContain('Rank #2 of 12')
     expect(mockAuthFetch).toHaveBeenCalledTimes(2)
     expect(mockAuthFetch).toHaveBeenCalledWith('/api/scenarios/fast_upi_layering')
   })

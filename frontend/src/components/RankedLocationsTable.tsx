@@ -1,4 +1,5 @@
 import { PredictionLocation, RiskFilter, TimeFilter } from '../types';
+import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { MapPin, Clock, AlertTriangle, ChevronDown, Search } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
@@ -22,6 +23,12 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
       loc.location_name.toLowerCase().includes(search.toLowerCase());
     return matchesRisk && matchesTime && matchesSearch;
   }), [locations, riskFilter, timeFilter, search]);
+
+  const rows = filtered.map((loc) => {
+    const total = filtered.length;
+    const area = riskArea(loc.rank, total, loc.risk_area);
+    return { loc, total, area };
+  });
 
   return (
     <div className="card overflow-hidden">
@@ -80,10 +87,10 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
         <table className="w-full text-lg">
           <thead>
             <tr className="text-xs text-[#6B7280] uppercase border-b border-[#D1D5DB]">
-              <th className="text-left px-4 py-2 font-medium">Rank</th>
+              <th className="text-left px-4 py-2 font-medium">Zone · Rank</th>
               <th className="text-left px-4 py-2 font-medium">ATM ID</th>
               <th className="text-left px-4 py-2 font-medium">Location</th>
-              <th className="text-center px-4 py-2 font-medium">Risk Score</th>
+              <th className="text-center px-4 py-2 font-medium" title={SCORE_TOOLTIP}>Display</th>
               <th className="text-left px-4 py-2 font-medium">Window</th>
               <th className="text-left px-4 py-2 font-medium">Distance</th>
               <th className="text-left px-4 py-2 font-medium">Status</th>
@@ -104,7 +111,10 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                 </td>
               </tr>
             ) : (
-              filtered.map((loc) => (
+              filtered.map((loc) => {
+                const total = filtered.length;
+                const area = riskArea(loc.rank, total, loc.risk_area);
+                return (
                 <tr
                   key={loc.atm_id}
                   onClick={() => onSelect(loc)}
@@ -112,17 +122,18 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                   onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(loc); } }}
                   className="border-b border-[#D1D5DB] last:border-0 hover:bg-[#EFF6FF] transition-colors duration-150 cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-base text-[#6B7280] font-mono">#{loc.rank}</td>
+                  <td className="px-4 py-3 text-base text-[#1F2937] font-medium" title={SCORE_TOOLTIP}>{areaPrimary(area, loc.rank, total)}</td>
                   <td className="px-4 py-3 text-base font-mono font-medium text-[#1F2937]">{loc.atm_id}</td>
                   <td className="px-4 py-3 text-base text-[#4B5563]">{loc.location_name}</td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center" title={SCORE_TOOLTIP}>
                     <span className={`text-lg font-bold ${
-                      loc.risk_score > 70 ? "text-[#B91C1C]" :
-                      loc.risk_score > 45 ? "text-[#B45309]" :
+                      area === "priority" ? "text-[#B91C1C]" :
+                      area === "watch" ? "text-[#B45309]" :
                       "text-[#6B7280]"
                     }`}>
-                      {loc.risk_score}%
+                      {loc.display_score ?? '—'}
                     </span>
+                    <div className="text-[10px] text-[#6B7280]">{areaSecondary(area, loc.display_score, loc.risk_score)}</div>
                   </td>
                   <td className="px-4 py-3 text-base text-[#4B5563]">{loc.expected_window}</td>
                   <td className="px-4 py-3 text-base text-[#4B5563]">{loc.distance}</td>
@@ -139,9 +150,11 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                      {loc.reason}
                    </td>
                  </tr>
-               ))
-             )}
-           </tbody>
+               );
+             })
+           )
+           }
+          </tbody>
          </table>
        </div>
      </div>

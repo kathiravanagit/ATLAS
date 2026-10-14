@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Play, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import { useApiData } from '../lib/useApiData';
 import { authFetch } from '../lib/auth';
+import { areaPrimary, riskArea } from '../lib/riskAreas';
 
 interface ScenarioSummary { id: string; name: string; description: string }
 interface ScenarioFlow {
@@ -9,7 +10,7 @@ interface ScenarioFlow {
   steps?: string[];
   prediction?: {
     status?: string;
-    primary_location?: { atm_id?: string; location_name?: string; risk_score?: number; expected_window?: string } | null;
+    primary_location?: { atm_id?: string; location_name?: string; risk_score?: number; rank?: number; rank_total?: number; risk_area?: string; display_score?: number; expected_window?: string } | null;
   } | null;
 }
 
@@ -65,7 +66,12 @@ export default function ScenarioRunner() {
                 <p className="mt-3 text-sm text-gray-700 flex items-center gap-1.5">
                   <MapPin size={14} />
                   {flow.prediction?.primary_location?.atm_id ?? 'No prediction'} —
-                  risk {flow.prediction?.primary_location?.risk_score ?? 'unmeasured'}
+{(() => {
+                    const pl = flow.prediction?.primary_location;
+                    if (pl?.rank == null) return <>rank unmeasured</>;
+                    const t = pl.rank_total ?? pl.rank;
+                    return <>{areaPrimary(riskArea(pl.rank, t, pl.risk_area), pl.rank, t)} (relative order, not a probability)</>;
+                  })()}
                   {flow.prediction?.primary_location?.expected_window ? ` · ${flow.prediction.primary_location.expected_window}` : ''}
                   {flow.case_id ? <span className="font-mono text-xs">({flow.case_id})</span> : null}
                 </p>

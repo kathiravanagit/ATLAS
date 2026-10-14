@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMetric, isMeasured } from '../lib/metrics';
+import { SCORE_TOOLTIP } from '../lib/riskAreas';
 import { authFetch } from '../lib/auth';
 
 type Explanation = {
@@ -63,7 +64,7 @@ export default function ExplainabilityPanel({ caseId, atmId, demoMode = false, r
         : !data ? <p className="mt-3 text-sm" role="status">Loading selected ATM explanation…</p>
         : <>
           <p className="mt-3 text-sm font-medium">{data.shap_available ? 'SHAP explanation' : 'Importance fallback — not SHAP'} · {data.shap_method}</p>
-          <p className="mt-2 text-sm">Base value: <span className="font-mono">{data.base_value ?? 'Unavailable'}</span> · Risk score: <span className="font-mono">{data.risk_score}%</span></p>
+          <p className="mt-2 text-sm" title={SCORE_TOOLTIP}>Base value: <span className="font-mono">{data.base_value ?? 'Unavailable'}</span> · Model score: <span className="font-mono">{data.risk_score}</span> (uncalibrated internals, not a probability)</p>
           {data.base_value == null && <p className="mt-2 text-sm text-amber-800">No base value supplied; an additive explanation cannot be reconstructed.</p>}
           <p className="mt-2 text-sm text-gray-700">Explained model: {data.explained_model ?? 'Unavailable'} · Units: {data.explanation_units ?? 'Unavailable'}</p>
           {isMeasured(data.explanation_probability) && <p className="mt-2 text-sm">Explained probability: {formatMetric(data.explanation_probability, 6)} · score scale: {formatMetric(data.explanation_probability * 100, 2)}</p>}

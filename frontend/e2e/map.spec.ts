@@ -24,8 +24,8 @@ test.describe('Map Page', () => {
   });
 
   test('shows risk filter tabs', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Critical' })).toBeVisible({ timeout: 30000 });
-    await expect(page.getByRole('button', { name: 'Elevated' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Normal' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Priority' })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: 'Watch' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Background' })).toBeVisible();
   });
 });

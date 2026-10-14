@@ -43,6 +43,7 @@ export interface ModelCard extends Scores {
   feature_columns?: string[] | null; positive_ratio?: Metric;
   dataset?: string | null; cities?: Metric; atms?: Metric;
   top_k_accuracy?: { top_1_hit_rate?: Metric; top_3_hit_rate?: Metric; top_5_hit_rate?: Metric } | null;
+  ranker?: { status?: string | null; hit_rate?: { top_1?: Metric; top_3?: Metric; top_5?: Metric } | null; mean_rank?: Metric; mrr?: Metric; n_cases?: Metric; scope?: string | null } | null;
   feature_importances?: Record<string, Metric> | { feature: string; importance: Metric }[] | null;
   roc_curve?: ModelMetrics['roc_curve'];
 }

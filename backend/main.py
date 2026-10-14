@@ -403,6 +403,43 @@ def _apply_rank_order(ranked):
     return ranked
 
 
+def _apply_rank_areas(ranked):
+    """Rank areas + display score (presentation only, never model output).
+
+    Bands by rank (Priority <=3, Watch 4..10, Background >=11); for short
+    lists (M < 10) bands scale proportionally: top 30% Priority, next 40%
+    Watch, rest Background, at least one Priority row. display_score is a
+    DISPLAY-ONLY min-max stretch of raw risk_score within this list (rank
+    fallback when the spread is zero) labelled for visualization only —
+    never a calibrated or real-world probability. Raw risk_score is kept
+    untouched for thresholds and alerts.
+    """
+    total = len(ranked)
+    if total >= 10:
+        p_end, w_end = 3, 10
+    else:
+        import math
+        p_end = max(1, math.ceil(total * 0.3))
+        w_end = max(p_end, min(10, math.ceil(total * 0.7)))
+    raw = [float(loc.get("risk_score", 0) or 0) for loc in ranked]
+    lo, hi = min(raw, default=0.0), max(raw, default=0.0)
+    spread = hi - lo
+    for loc in ranked:
+        rank = loc.get("rank", 0)
+        if rank <= p_end:
+            loc["risk_area"] = "priority"
+        elif rank <= w_end:
+            loc["risk_area"] = "watch"
+        else:
+            loc["risk_area"] = "background"
+        loc["rank_total"] = total
+        if spread > 0:
+            loc["display_score"] = round((float(loc.get("risk_score", 0) or 0) - lo) / spread * 100, 1)
+        else:
+            loc["display_score"] = round(100 * (total - rank + 1) / total, 1) if total else 0.0
+    return ranked
+
+
 def _persist_prediction(db, result):
     try:
         pred = db.query(Prediction).filter(Prediction.case_id == result["case_id"]).first()
@@ -632,6 +669,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         })
 
     _apply_rank_order(ranked)
+    _apply_rank_areas(ranked)
 
     primary = ranked[0]
 
@@ -856,6 +894,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
                 "case_id": case_id,
                 "message": alert_msg,
                 "risk_level": "High",
+                "risk_area": primary.get("risk_area"),
                 "risk_score": primary.get("risk_score"),
                 "atm_id": primary.get("atm_id"),
                 "location": primary.get("location_name"),
@@ -1074,6 +1113,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         })
 
     _apply_rank_order(ranked)
+    _apply_rank_areas(ranked)
 
     primary = ranked[0] if ranked else None
     num_mules = len({record.to_account for record in synthetic_records})
@@ -1379,6 +1419,7 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
                     "case_id": tx.case_id,
                     "message": alert_msg,
                     "risk_level": "High",
+                    "risk_area": primary.get("risk_area"),
                     "risk_score": primary["risk_score"],
                     "atm_id": primary["atm_id"],
                     "location": primary["location_name"],
@@ -1772,8 +1813,34 @@ def model_card(user: dict = Depends(require_permission("read"))):
         "dataset": meta.get("dataset"),
         "cities": meta.get("cities"),
         "atms": meta.get("atms"),
+        "ranker": _ranker_card_block(),
         **_validation_protocol_block(meta),
     }
+
+
+def _ranker_card_block() -> dict:
+    """A2.1 ranker summary for the model card (synthetic holdout only)."""
+    try:
+        report_path = os.path.join(os.path.dirname(__file__), "model", "ranker_report.json")
+        with open(report_path, encoding="utf-8") as handle:
+            report = json.load(handle)
+        meta_path = os.path.join(os.path.dirname(__file__), "model", "ranker_metadata.json")
+        try:
+            with open(meta_path, encoding="utf-8") as handle:
+                meta = json.load(handle)
+        except (OSError, ValueError):
+            meta = {}
+        return {
+            "status": report.get("status"),
+            "hit_rate": report.get("hit_rate"),
+            "mean_rank": report.get("mean_rank"),
+            "mrr": report.get("mrr"),
+            "n_cases": report.get("n_cases"),
+            "features": meta.get("features"),
+            "scope": "synthetic holdout only · not real-world validation",
+        }
+    except (OSError, ValueError):
+        return {"status": "unavailable"}
 
 
 def _validation_protocol_block(meta: dict) -> dict:

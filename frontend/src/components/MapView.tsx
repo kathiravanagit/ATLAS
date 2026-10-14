@@ -1,5 +1,5 @@
-import { percent } from '../lib/metrics';
-import { PredictionLocation } from '../types';
+import { PredictionLocation, RiskArea } from '../types';
+import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP, AREA_LABEL } from '../lib/riskAreas';
 import React, { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -17,23 +17,32 @@ interface MapViewProps {
   cityCenter?: [number, number];
 }
 
-function riskColor(score: number): string {
-  if (score > 70) return '#ef4444';
-  if (score > 45) return '#f59e0b';
+function areaColor(area: RiskArea): string {
+  if (area === 'priority') return '#ef4444';
+  if (area === 'watch') return '#f59e0b';
   return '#3b82f6';
 }
 
-function riskLabel(score: number): string {
-  if (score > 70) return 'Critical';
-  if (score > 45) return 'Elevated';
-  return 'Normal';
+const AREA_WEIGHT: Record<RiskArea, number> = {
+  priority: 1.0,
+  watch: 0.55,
+  background: 0.2,
+};
+
+function locArea(loc: PredictionLocation, total: number): RiskArea {
+  return riskArea(loc.rank, total, loc.risk_area);
 }
 
-function createPinIcon(score: number, isSelected: boolean): L.DivIcon {
-  const color = riskColor(score);
+function locTotal(loc: PredictionLocation, total: number): number {
+  return loc.rank_total ?? total;
+}
+
+function createPinIcon(area: RiskArea, rank: number, isSelected: boolean): L.DivIcon {
+  const color = areaColor(area);
   const size = isSelected ? 40 : 34;
   const stroke = isSelected ? '#ffffff' : color;
   const strokeW = isSelected ? 3 : 2;
+  const code = area === 'priority' ? 'PRI' : area === 'watch' ? 'WAT' : 'BKG';
 
   return L.divIcon({
     className: 'leaflet-custom-pin',
@@ -46,10 +55,10 @@ function createPinIcon(score: number, isSelected: boolean): L.DivIcon {
         <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - strokeW}" fill="#18181b" stroke="${stroke}" stroke-width="${strokeW}"/>
         <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - strokeW - 4}" fill="${color}" opacity="0.15"/>
         <text x="${size / 2}" y="${size / 2 - 1}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">
-          ${Math.round(score)}
+          ${rank}
         </text>
         <text x="${size / 2}" y="${size / 2 + 9}" text-anchor="middle" fill="${color}" font-size="6" font-weight="600" font-family="sans-serif" letter-spacing="0.5">
-          ${score > 70 ? 'CRIT' : score > 45 ? 'ELEV' : 'NORM'}
+          ${code}
         </text>
       </svg>
     `,
@@ -85,7 +94,7 @@ function RiskHeatLayer({ locations, enabled }: { locations: PredictionLocation[]
     const points: L.HeatLatLngTuple[] = locations.map((loc) => [
       loc.latitude,
       loc.longitude,
-      Math.max(0.15, loc.risk_score / 100),
+      AREA_WEIGHT[locArea(loc, locations.length)],
     ]);
     const layer = L.heatLayer(points, {
       radius: 42,
@@ -137,7 +146,7 @@ function ZoomControls({ onRecenter }: { onRecenter: () => void }) {
   );
 }
 
-type RiskFilterType = 'all' | 'critical' | 'elevated' | 'normal';
+type RiskFilterType = 'all' | 'priority' | 'watch' | 'background';
 type TimeFilterType = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';
 
 export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter }: MapViewProps) {
@@ -151,28 +160,30 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   const center: [number, number] = useMemo(() => {
     if (selectedLocation) return [selectedLocation.latitude, selectedLocation.longitude];
     if (locations.length > 0) {
-      const highest = locations.reduce((max, loc) => loc.risk_score > max.risk_score ? loc : max, locations[0]);
-      return [highest.latitude, highest.longitude];
+      const top = locations.reduce((best, loc) => loc.rank < best.rank ? loc : best, locations[0]);
+      return [top.latitude, top.longitude];
     }
     return cityCenter || [11.9416, 79.8083];
   }, [selectedLocation, locations, cityCenter]);
 
   const filtered = useMemo(() => locations.filter(loc => {
     const matchRisk = riskFilter === 'all' ||
-      (riskFilter === 'critical' && loc.risk_score > 70) ||
-      (riskFilter === 'elevated' && loc.risk_score > 45 && loc.risk_score <= 70) ||
-      (riskFilter === 'normal' && loc.risk_score <= 45);
+      locArea(loc, locations.length) === riskFilter;
     const matchTime = timeFilter === 'all' || loc.expected_window.includes(timeFilter.split('-')[0].slice(0, 2));
     return matchRisk && matchTime;
   }), [locations, riskFilter, timeFilter]);
 
   const stats = useMemo(() => ({
     total: filtered.length,
-    critical: filtered.filter(l => l.risk_score > 70).length,
-    elevated: filtered.filter(l => l.risk_score > 45 && l.risk_score <= 70).length,
-    normal: filtered.filter(l => l.risk_score <= 45).length,
-    avgRisk: filtered.length > 0 ? Math.round(filtered.reduce((s, l) => s + l.risk_score, 0) / filtered.length) : null,
-  }), [filtered]);
+    priority: filtered.filter(l => locArea(l, locations.length) === 'priority').length,
+    watch: filtered.filter(l => locArea(l, locations.length) === 'watch').length,
+    background: filtered.filter(l => locArea(l, locations.length) === 'background').length,
+  }), [filtered, locations]);
+
+  const selectedArea: RiskArea = selectedLocation
+    ? locArea(selectedLocation, locations.length) : 'background';
+  const selectedTotal = selectedLocation
+    ? locTotal(selectedLocation, locations.length) : 0;
 
   return (
     <div className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D1D5DB]">
@@ -199,7 +210,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
         <RiskHeatLayer locations={filtered} enabled={showHeatmap} />
 
-        {filtered.filter(loc => loc.risk_score > 70).map((loc) => (
+        {filtered.filter(loc => locArea(loc, locations.length) === 'priority').map((loc) => (
           <Circle
             key={`critical-zone-${loc.atm_id}`}
             center={[loc.latitude, loc.longitude]}
@@ -212,7 +223,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
           <Marker
             key={loc.atm_id}
             position={[loc.latitude, loc.longitude]}
-            icon={createPinIcon(loc.risk_score, selectedLocation?.atm_id === loc.atm_id)}
+            icon={createPinIcon(locArea(loc, locations.length), loc.rank, selectedLocation?.atm_id === loc.atm_id)}
             eventHandlers={{
               click: (e) => {
                 L.DomEvent.stopPropagation(e.originalEvent);
@@ -223,11 +234,11 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             }}
           >
             <Popup>
-              <div style={{ color: '#18181b', fontSize: '12px', padding: '4px', minWidth: '150px' }}>
+              <div style={{ color: '#18181b', fontSize: '12px', padding: '4px', minWidth: '150px' }} title={SCORE_TOOLTIP}>
                 <strong style={{ fontSize: '14px' }}>{loc.atm_id}</strong><br />
                 <span>{loc.location_name}</span><br />
-                <span style={{ fontWeight: 'bold', color: riskColor(loc.risk_score) }}>
-                  Risk: {loc.risk_score}%
+                <span style={{ fontWeight: 'bold', color: areaColor(locArea(loc, locations.length)) }}>
+                  {areaPrimary(locArea(loc, locations.length), loc.rank, locTotal(loc, locations.length))}
                 </span><br />
                 <span>Window: {loc.expected_window}</span>
               </div>
@@ -235,8 +246,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
           </Marker>
         ))}
         <ZoomControls onRecenter={() => {
-          const highest = locations.reduce((max, loc) => loc.risk_score > max.risk_score ? loc : max, locations[0]);
-          if (highest) onSelectLocation(highest);
+          const top = locations.reduce((best, loc) => loc.rank < best.rank ? loc : best, locations[0]);
+          if (top) onSelectLocation(top);
         }} />
       </MapContainer>
 
@@ -254,23 +265,23 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 {showFilters ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
               </button>
             </div>
-            <p className="text-sm text-[#4B5563]">
-              {stats.total} locations | {stats.critical} critical
+            <p className="text-sm text-[#4B5563]" title={SCORE_TOOLTIP}>
+              {stats.total} locations | {stats.priority} priority · {stats.watch} watch · {stats.background} background
             </p>
           </div>
 
           {/* Filter Toggle */}
           <div className="px-4 pt-3">
             <div className="flex items-center gap-1 bg-white rounded-lg p-0.5 border border-[#D1D5DB]">
-              {(['all', 'critical', 'elevated', 'normal'] as const).map(f => (
+              {(['all', 'priority', 'watch', 'background'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setRiskFilter(f)}
                   className={`flex-1 py-1.5 text-[10px] rounded-md transition-all ${
                     riskFilter === f
-                      ? f === 'critical' ? 'bg-[#ef4444]/15 text-[#ef4444]' :
-                        f === 'elevated' ? 'bg-[#f59e0b]/15 text-[#f59e0b]' :
-                        f === 'normal' ? 'bg-[#3b82f6]/15 text-[#3b82f6]' :
+                      ? f === 'priority' ? 'bg-[#ef4444]/15 text-[#ef4444]' :
+                        f === 'watch' ? 'bg-[#f59e0b]/15 text-[#f59e0b]' :
+                        f === 'background' ? 'bg-[#3b82f6]/15 text-[#3b82f6]' :
                         'bg-[#F3F4F6] text-[#1F2937]'
                       : 'text-[#6B7280] hover:text-[#1F2937]'
                   }`}
@@ -320,23 +331,23 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               </div>
 
               {/* Risk Legend */}
-              <div className="pt-2 border-t border-[#D1D5DB]">
-                <div className="text-[10px] text-[#6B7280] uppercase mb-2">Risk Levels</div>
+              <div className="pt-2 border-t border-[#D1D5DB]" title={SCORE_TOOLTIP}>
+                <div className="text-[10px] text-[#6B7280] uppercase mb-2">Rank Zones</div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
-                    <span className="text-[10px] text-[#374151]">Critical ({'>'}70%)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.critical}</span>
+                    <span className="text-[10px] text-[#374151]">Priority (top ranks)</span>
+                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.priority}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-                    <span className="text-[10px] text-[#374151]">Elevated (45-70%)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.elevated}</span>
+                    <span className="text-[10px] text-[#374151]">Watch (mid ranks)</span>
+                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.watch}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
-                    <span className="text-[10px] text-[#374151]">Normal ({'<'}45%)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.normal}</span>
+                    <span className="text-[10px] text-[#374151]">Background (rest)</span>
+                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.background}</span>
                   </div>
                 </div>
               </div>
@@ -344,7 +355,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               {/* Heatmap explanation */}
               <div className="pt-2 border-t border-[#D1D5DB]">
                 <div className="text-[10px] text-[#6B7280]">Heatmap intensity</div>
-                <div className="text-[10px] text-[#6B7280] mt-0.5">Blue = lower risk · red = concentrated high risk</div>
+                <div className="text-[10px] text-[#6B7280] mt-0.5">Blue = background · amber = watch · red = priority zone</div>
               </div>
             </div>
           )}
@@ -360,7 +371,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 <div className="flex items-center gap-2">
                   <div
                     className="w-2.5 h-2.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: riskColor(selectedLocation.risk_score) }}
+                    style={{ backgroundColor: areaColor(selectedArea) }}
                   />
                   <span className="font-mono font-bold text-[#1F2937] text-base">{selectedLocation.atm_id}</span>
                 </div>
@@ -375,32 +386,38 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             </div>
 
             <div className="p-4 space-y-3">
-              {/* Risk Score */}
-              <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+              {/* Rank Zone */}
+              <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">Risk Score</span>
+                  <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">Rank Zone</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    selectedLocation.risk_score > 70 ? 'bg-[#ef4444]/10 text-[#ef4444]' :
-                    selectedLocation.risk_score > 45 ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
+                    selectedArea === 'priority' ? 'bg-[#ef4444]/10 text-[#ef4444]' :
+                    selectedArea === 'watch' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
                     'bg-[#3b82f6]/10 text-[#3b82f6]'
                   }`}>
-                    {riskLabel(selectedLocation.risk_score)}
+                    {AREA_LABEL[selectedArea]}
                   </span>
                 </div>
                 <div className={`text-3xl font-bold ${
-                  selectedLocation.risk_score > 70 ? 'text-[#ef4444]' :
-                  selectedLocation.risk_score > 45 ? 'text-[#f59e0b]' :
+                  selectedArea === 'priority' ? 'text-[#ef4444]' :
+                  selectedArea === 'watch' ? 'text-[#f59e0b]' :
                   'text-[#3b82f6]'
                 }`}>
-                  {selectedLocation.risk_score}%
+                  #{selectedLocation.rank} <span className="text-base font-medium text-[#6B7280]">of {selectedTotal}</span>
+                </div>
+                <div className="text-[11px] text-[#4B5563] mt-1">
+                  {areaPrimary(selectedArea, selectedLocation.rank, selectedTotal)}
+                </div>
+                <div className="text-[10px] text-[#6B7280] mt-0.5">
+                  {areaSecondary(selectedArea, selectedLocation.display_score, selectedLocation.risk_score)}
                 </div>
                 {/* Progress bar */}
                 <div className="mt-2 h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
-                      width: `${selectedLocation.risk_score}%`,
-                      background: `linear-gradient(90deg, ${riskColor(selectedLocation.risk_score)}, ${riskColor(selectedLocation.risk_score)}aa)`,
+                      width: `${selectedLocation.display_score ?? 0}%`,
+                      background: `linear-gradient(90deg, ${areaColor(selectedArea)}, ${areaColor(selectedArea)}aa)`,
                     }}
                   />
                 </div>
@@ -435,7 +452,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
               {/* Rank */}
               <div className="flex items-center justify-between text-[10px] text-[#6B7280]">
-                <span>Rank #{selectedLocation.rank} of {locations.length}</span>
+                <span>{areaPrimary(selectedArea, selectedLocation.rank, selectedTotal)}</span>
                 <span className="font-mono">{selectedLocation.status}</span>
               </div>
             </div>
@@ -450,14 +467,13 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             <div className="w-2 h-2 rounded-full bg-[#1D4ED8]" />
             <span className="text-xs font-medium text-[#374151]">Synthetic predictions</span>
           </div>
-          <div className="text-[10px] text-[#6B7280]">
+          <div className="text-[10px] text-[#6B7280]" title={SCORE_TOOLTIP}>
             <span className="text-[#1F2937] font-medium">{stats.total}</span> locations
           </div>
           <div className="text-[10px] text-[#6B7280]">
-            <span className="text-[#ef4444] font-medium">{stats.critical}</span> critical
-          </div>
-          <div className="text-[10px] text-[#6B7280]">
-            Avg risk <span className="text-[#1F2937] font-medium">{percent(stats.avgRisk)}</span>
+            <span className="text-[#ef4444] font-medium">{stats.priority}</span> priority ·{' '}
+            <span className="text-[#f59e0b] font-medium">{stats.watch}</span> watch ·{' '}
+            <span className="text-[#3b82f6] font-medium">{stats.background}</span> background
           </div>
         </div>
       </div>

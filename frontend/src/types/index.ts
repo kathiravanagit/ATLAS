@@ -11,6 +11,8 @@ export interface Case {
   description?: string;
 }
 
+export type RiskArea = 'priority' | 'watch' | 'background';
+
 export interface PredictionLocation {
   rank: number;
   atm_id: string;
@@ -24,6 +26,10 @@ export interface PredictionLocation {
   longitude: number;
   lat?: number;
   lng?: number;
+  risk_area?: RiskArea;
+  rank_total?: number;
+  display_score?: number;
+  ranker_score?: number;
 }
 
 export interface Prediction {

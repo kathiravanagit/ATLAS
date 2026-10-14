@@ -3,6 +3,7 @@ import { Case, Prediction, EvidenceItem } from '../types';
 import { User, Phone, FileText, MapPin, Clock, AlertTriangle, ChevronRight, ExternalLink, Shield, Activity, GitBranch, History, CheckCircle, Circle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import ResolutionModal from './ResolutionModal';
 import { authFetch, getUser, isDemoRoute } from '../lib/auth';
+import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { can } from '../lib/roles';
 
 interface CaseDetailProps {
@@ -86,6 +87,8 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
     : MOCK_CASES[caseId]) || { victim_name: "Unknown", contact: "N/A", description: "No details available" };
   const evidence = Object.entries(prediction.evidence);
   const p = prediction.primary_location;
+  const caseTotal = prediction.ranked_locations?.length ?? p.rank_total ?? p.rank;
+  const caseArea = riskArea(p.rank, caseTotal, p.risk_area);
 
   const handleDecrypt = async () => {
     // No client-side PIN: PII reveal is gated on officer role + a recorded
@@ -269,10 +272,11 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Risk Score</div>
-              <div className="text-2xl font-bold text-[#ef4444]">{Math.round(p.risk_score)}%</div>
-              <div className="text-[11px] text-[#6B7280]">Model score — not a probability</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
+              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Priority Rank</div>
+              <div className="text-2xl font-bold text-[#1F2937]">#{p.rank} <span className="text-base font-medium text-[#6B7280]">of {caseTotal}</span></div>
+              <div className="text-[11px] text-[#1F2937] font-medium">{areaPrimary(caseArea, p.rank, caseTotal)}</div>
+              <div className="text-[11px] text-[#6B7280]">{areaSecondary(caseArea, p.display_score, p.risk_score)}</div>
             </div>
             <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
               <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>

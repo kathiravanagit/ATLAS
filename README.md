@@ -98,6 +98,8 @@ The model is decision support — every high-risk case needs human review.
 
 **Ranker (A2.1, serving):** candidate ranking uses a dedicated pointwise ranker (`backend/model/ranker.pkl`, ATM-varying features only; holdout Hit@3 90.7%, report in `ranker_report.json`) while the row ensemble keeps case-risk/alerts and the F1 story. Serving falls back to row-score order when the artifact is absent. Synthetic retrieval only — not real-world validity.
 
+**Presentation (Part B):** the console ranks first and shows percentages never. Each candidate carries rank + area (Priority ≤3, Watch 4–10, Background ≥11; proportional bands for short lists) + a display-only list-normalized score. Raw model scores stay stored for thresholds but are never presented as probabilities; every score surface carries the uncalibrated-on-synthetic tooltip.
+
 ---
 
 ## Why blockchain?

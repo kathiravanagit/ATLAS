@@ -480,6 +480,51 @@ def test_ranking_falls_back_without_ranker(client, admin_token, monkeypatch):
     assert risks == sorted(risks, reverse=True)
 
 
+def test_rank_areas_bands_and_display_spread():
+    import main as main_module
+    locs = [{"rank": i + 1, "risk_score": s}
+            for i, s in enumerate([94.9, 92.1, 88.0, 87.9, 87.5, 86.0, 85.1, 84.0, 83.2, 82.0, 81.5, 80.0])]
+    main_module._apply_rank_areas(locs)
+    areas = [loc["risk_area"] for loc in locs]
+    assert areas[:3] == ["priority"] * 3
+    assert areas[3:10] == ["watch"] * 7
+    assert areas[10:] == ["background"] * 2
+    assert all(loc["rank_total"] == 12 for loc in locs)
+    displays = [loc["display_score"] for loc in locs]
+    assert displays[0] == 100.0 and displays[-1] == 0.0
+    assert displays == sorted(displays, reverse=True)
+    assert max(displays) - min(displays) > 50  # spread, not a wall of 90%
+
+
+def test_rank_areas_scale_small_lists_and_flat_scores():
+    import main as main_module
+    locs = [{"rank": i + 1, "risk_score": 80.0} for i in range(5)]
+    main_module._apply_rank_areas(locs)
+    assert [loc["risk_area"] for loc in locs] == ["priority", "priority", "watch", "watch", "background"]
+    assert [loc["display_score"] for loc in locs] == [100.0, 80.0, 60.0, 40.0, 20.0]
+
+
+def test_prediction_locations_carry_area_fields(client, admin_token):
+    resp = client.get("/api/predictions/CASE-002", headers=auth_header(admin_token))
+    assert resp.status_code == 200, resp.text
+    ranked = resp.json()["ranked_locations"]
+    assert len(ranked) >= 3
+    for loc in ranked:
+        assert loc["risk_area"] in ("priority", "watch", "background")
+        assert loc["rank_total"] == len(ranked)
+        assert 0.0 <= loc["display_score"] <= 100.0
+        assert "risk_score" in loc  # raw kept for thresholds
+    assert ranked[0]["risk_area"] == "priority"
+
+
+def test_model_card_reports_ranker_scope(client, admin_token):
+    resp = client.get("/api/model/card", headers=auth_header(admin_token))
+    assert resp.status_code == 200, resp.text
+    ranker = resp.json()["ranker"]
+    assert ranker["status"] == "available_synthetic_only"
+    assert "synthetic holdout only" in ranker["scope"]
+
+
 def test_detect_anomaly(client, admin_token):
     resp = client.post("/api/model/detect-anomaly", json={
         "amount": 50000, "num_mule_accounts": 3, "hour_of_day": 19, "transaction_velocity": 0.7

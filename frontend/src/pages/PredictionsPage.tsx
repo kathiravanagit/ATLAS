@@ -5,6 +5,7 @@ import PredictionCard from '../components/PredictionCard';
 import RiskTrendChart from '../components/RiskTrendChart';
 import RankedLocationsTable from '../components/RankedLocationsTable';
 import { authFetch } from '../lib/auth';
+import { SCORE_TOOLTIP } from '../lib/riskAreas';
 import { CRIME_TYPE_DISTRIBUTION } from '../data/fallbackData';
 import ExplainabilityPanel from '../components/ExplainabilityPanel';
 import { Zap, RefreshCw, Activity, Shield } from 'lucide-react';
@@ -112,7 +113,7 @@ export default function PredictionsPage() {
         </div>
         <div className="text-sm text-[#4B5563] mt-1">{dataMode === 'demo' ? 'Disabled in local demo. No API mutation or invented risk changes.' : 'Synthetic transaction submitted to the API; not a real banking transfer.'}</div>
         {simResult && !simResult.error && (
-          <div className="text-[10px] text-[#22c55e]">✓ Risk updated: {simResult.updated_prediction.primary_location.atm_id} → {simResult.updated_prediction.primary_location.risk_score}%</div>
+          <div className="text-[10px] text-[#22c55e]" title={SCORE_TOOLTIP}>✓ Rank updated: {simResult.updated_prediction.primary_location.atm_id} → rank #{simResult.updated_prediction.primary_location.rank} (relative order, not a probability)</div>
         )}
         {simError && (
           <div className="text-[10px] text-[#ef4444] mt-1">{simError}</div>

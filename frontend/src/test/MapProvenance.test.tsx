@@ -12,12 +12,13 @@ vi.mock('react-leaflet', () => ({
 }));
 
 describe('map provenance', () => {
-  it('labels synthetic snapshots and leaves an empty average unavailable, not zero', () => {
+  it('labels synthetic snapshots and counts zones without probability averages', () => {
     const { container } = render(<MapView locations={[]} selectedLocation={null} onSelectLocation={vi.fn()} />);
     expect(screen.getByText('Synthetic predictions')).toBeDefined();
     expect(screen.queryByText('LIVE', { exact: true })).toBeNull();
-    expect(container.textContent).toContain('Avg risk Unavailable');
-    expect(container.textContent).not.toMatch(/Avg risk 0%|Updated:|NaN/);
+    expect(container.textContent).toContain('0 locations');
+    expect(container.textContent).toContain('priority');
+    expect(container.textContent).not.toMatch(/Avg risk|Critical \(>|Elevated \(45|Normal \(</);
     expect(screen.getByText(/not live operational data/)).toBeDefined();
   });
 });

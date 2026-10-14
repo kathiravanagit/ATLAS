@@ -1,7 +1,7 @@
 import { Prediction, PredictionLocation, RiskFilter, TimeFilter } from '../types';
+import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { MapPin, Clock, Target, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Shield, Activity, GitBranch, History, Download } from 'lucide-react';
 import { useState } from 'react';
-import AnimatedNumber from './AnimatedNumber';
 
 interface PredictionCardProps {
   prediction: Prediction;
@@ -18,6 +18,13 @@ const evidenceIcons: Record<string, React.ReactNode> = {
 
 function downloadReport(prediction: Prediction) {
   const p = prediction.primary_location;
+  const total = prediction.ranked_locations?.length ?? p.rank_total ?? p.rank;
+  const area = riskArea(p.rank, total, p.risk_area);
+  const rankedLines = prediction.ranked_locations.map((loc) => {
+    const locTotal = prediction.ranked_locations.length;
+    const locArea = riskArea(loc.rank, locTotal, loc.risk_area);
+    return `  ${areaPrimary(locArea, loc.rank, locTotal)} — ${loc.atm_id} (${loc.location_name}, Distance: ${loc.distance})`;
+  });
   const lines = [
     `INTELLIGENCE REPORT — CASH-OUT PREDICTION`,
     `Generated: ${new Date().toISOString()}`,
@@ -27,7 +34,8 @@ function downloadReport(prediction: Prediction) {
     `PREDICTED CASH-OUT LOCATION`,
     `  ATM ID: ${p.atm_id}`,
     `  Location: ${p.location_name}`,
-    `  Risk Score: ${p.risk_score}%`,
+    `  ${areaPrimary(area, p.rank, total)}`,
+    `  ${areaSecondary(area, p.display_score, p.risk_score)}`,
     `  Time Window: ${p.expected_window}`,
     `  Distance from center: ${p.distance}`,
     `  Coordinates: ${p.latitude}, ${p.longitude}`,
@@ -38,9 +46,7 @@ function downloadReport(prediction: Prediction) {
     ),
     ``,
     `RANKED LOCATIONS`,
-    ...prediction.ranked_locations.map((loc, i) =>
-      `  ${i + 1}. ${loc.atm_id} — ${loc.location_name} (Risk: ${loc.risk_score}%, Distance: ${loc.distance})`
-    ),
+    ...rankedLines,
     ``,
     `RISK TREND (Last 6 Hours)`,
     ...prediction.risk_trend.map((value, i) =>
@@ -63,6 +69,8 @@ function downloadReport(prediction: Prediction) {
 
 export default function PredictionCard({ prediction, onShowEvidence }: PredictionCardProps) {
   const p = prediction.primary_location;
+  const total = prediction.ranked_locations?.length ?? p.rank_total ?? p.rank;
+  const area = riskArea(p.rank, total, p.risk_area);
   const [showEvidence, setShowEvidence] = useState(false);
   const evidence = Object.entries(prediction.evidence);
 
@@ -89,15 +97,18 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-xs text-[#4B5563] uppercase tracking-wider mb-1">Risk Index</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
+            <div className="text-xs text-[#4B5563] uppercase tracking-wider mb-1">Priority Rank</div>
             <div className={`text-2xl font-bold ${
-              p.risk_score > 70 ? "text-[#B91C1C]" : p.risk_score > 45 ? "text-[#B45309]" : "text-[#6B7280]"
+              area === "priority" ? "text-[#B91C1C]" : area === "watch" ? "text-[#B45309]" : "text-[#6B7280]"
             }`}>
-              <AnimatedNumber value={p.risk_score} suffix="%" />
+              #{p.rank} <span className="text-base font-medium text-[#6B7280]">of {total}</span>
             </div>
             <div className="text-xs text-[#4B5563] mt-0.5">
-              {p.risk_score > 70 ? "Critical" : p.risk_score > 45 ? "Elevated" : "Normal"} · Not a calibrated probability
+              {areaPrimary(area, p.rank, total)}
+            </div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">
+              {areaSecondary(area, p.display_score, p.risk_score)}
             </div>
           </div>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">

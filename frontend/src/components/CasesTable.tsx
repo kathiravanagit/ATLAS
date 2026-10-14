@@ -1,6 +1,7 @@
 import { Case } from '../types';
 import { Eye, CheckCircle, Circle, AlertTriangle, Search, ChevronDown, ChevronUp, UserPlus, ShieldAlert, FileSearch, X, FolderOpen } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { areaPrimary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { authFetch, isDemoRoute } from '../lib/auth';
 import { can } from '../lib/roles';
 
@@ -319,9 +320,14 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               <div className="text-[11px] text-[#6B7280] uppercase">Primary Location</div>
               <div className="text-sm font-medium text-[#1F2937]">{expandedData[expandedCase].primary_location?.atm_id} &mdash; {expandedData[expandedCase].primary_location?.location_name}</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase">Risk Score</div>
-              <div className="text-sm font-medium text-[#B91C1C]">{expandedData[expandedCase].primary_location?.risk_score}%</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
+              <div className="text-[11px] text-[#6B7280] uppercase">Priority Rank</div>
+              {(() => {
+                const pl = expandedData[expandedCase].primary_location;
+                if (!pl) return <div className="text-sm font-medium text-[#1F2937]">—</div>;
+                const t = expandedData[expandedCase].ranked_locations?.length ?? pl.rank_total ?? pl.rank;
+                return <div className="text-sm font-medium text-[#1F2937]">{areaPrimary(riskArea(pl.rank, t, pl.risk_area), pl.rank, t)}</div>;
+              })()}
             </div>
             <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
               <div className="text-[11px] text-[#6B7280] uppercase">Time Window</div>
@@ -333,10 +339,10 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-[#D1D5DB] text-[#6B7280]">
-                    <th scope="col" className="text-left px-3 py-2">Rank</th>
+                    <th scope="col" className="text-left px-3 py-2">Zone · Rank</th>
                     <th scope="col" className="text-left px-3 py-2">ATM ID</th>
                     <th scope="col" className="text-left px-3 py-2">Location</th>
-                    <th scope="col" className="text-right px-3 py-2">Risk Score</th>
+                    <th scope="col" className="text-right px-3 py-2" title={SCORE_TOOLTIP}>Display</th>
                     <th scope="col" className="text-left px-3 py-2">Window</th>
                     <th scope="col" className="text-left px-3 py-2">Status</th>
                   </tr>
@@ -344,10 +350,10 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                 <tbody>
                   {expandedData[expandedCase].ranked_locations.slice(0, 5).map((loc: any) => (
                     <tr key={loc.rank} className="border-b border-[#D1D5DB] last:border-0">
-                      <td className="px-3 py-2 font-mono">#{loc.rank}</td>
+                      <td className="px-3 py-2 font-mono" title={SCORE_TOOLTIP}>{areaPrimary(riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area), loc.rank, expandedData[expandedCase].ranked_locations.length)}</td>
                       <td className="px-3 py-2 font-mono font-medium">{loc.atm_id}</td>
                       <td className="px-3 py-2 text-[#4B5563]">{loc.location_name}</td>
-                      <td className="px-3 py-2 text-right font-mono font-medium" style={{ color: loc.risk_score > 70 ? '#B91C1C' : loc.risk_score > 45 ? '#B45309' : '#6B7280' }}>{loc.risk_score}%</td>
+                      <td className="px-3 py-2 text-right font-mono font-medium" style={{ color: riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'priority' ? '#B91C1C' : riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'watch' ? '#B45309' : '#6B7280' }} title={SCORE_TOOLTIP}>{loc.display_score ?? '—'}</td>
                       <td className="px-3 py-2 text-[#4B5563]">{loc.expected_window}</td>
                       <td className="px-3 py-2">
                         <span className={`text-[11px] px-1 py-0.5 rounded ${loc.status === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : loc.status === 'Medium' ? 'bg-[#B45309]/10 text-[#B45309]' : 'bg-[#6B7280]/10 text-[#6B7280]'}`}>{loc.status}</span>
