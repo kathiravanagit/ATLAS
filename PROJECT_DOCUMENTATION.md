@@ -185,6 +185,23 @@ No. Selected sensitive ORM fields and evidence previews are encrypted on runtime
 
 No. PostgreSQL/PostGIS integration, deployed TLS/WebSockets, delivery/retry behavior, concurrent writers, penetration testing and authorised real-data validation remain separate requirements. The current goal is a reproducible synthetic investigation prototype.
 
+## Pitch & jury Q&A: common mis-statements and accurate phrasing
+
+Cheat sheet for the demo. The right-hand column is what the repository actually does; the left is the tempting overstatement that does not survive a technical panel. Every "say this" below is verifiable in the code or artifacts named.
+
+| Topic | Avoid saying | Say this (defensible) |
+|---|---|---|
+| **Ranking algorithm** | "We use LambdaMART / LightGBM learning-to-rank." | **Pointwise Random Forest ranker (A2.1)** (`train_ranker.py`, `ranker.pkl`) that scores and orders each case's ATM candidates; the RandomForest+XGBoost row ensemble keeps case risk and alerts. |
+| **Blockchain & evidence PDF** | "Court-admissible chain of custody / legal evidence." | **Tamper-evident prototype ledger**: SHA-256 hash chain + Merkle root + local proof-of-work blocks (`evidence_chain.py`, `blockchain.py`). Exports carry a prototype disclaimer and audit hashes. Not a government blockchain and not a legal-admissibility claim. |
+| **Time window** | "ML forecasting of time-to-cashout." | `expected_window` is a **fixed hourly bucket** derived from the case's mean transaction hour (`_expected_window` in `main.py`); it is illustrative, not a learned forecast. Temporal modelling needs real outcome logs. |
+| **System roles** | "I4C Admin, State Police, Bank Nodal, Field Officer." | Four enforced roles — **`admin`, `inspector`, `analyst`, `bank_officer`** — via JWT claims and route guards (`auth.py`). |
+| **Data ingestion** | "Drop-in NCRP / CFCFRMS replacement, zero code changes." | **Synthetic evaluation fixtures** modelling Indian banking topologies. Ingesting real NCRP/CFCFRMS feeds would need schema mapping and the known `PUD`/`PNY` ATM-registry unification — future work, not built. |
+| **Alert tiers** | "P1 Critical vs P2 High." | **Priority / Watch / Background** tiers derived from ordinal risk rank (Part B presentation). |
+| **Confidence / probability** | "The model is 94% confident this ATM will be hit." | **Ordinal rank + a display-only score, not a calibrated probability.** Percentages are deliberately not shown because uncalibrated probabilities create false operational certainty in law enforcement. |
+| **Interventions** | "ATLAS automatically triggers bank freezes / 1930 holds." | **Decision support only**: prioritised intelligence surfaced to human operators (inspectors, bank officers). Automated 1930/CFCFRMS hooks and geofenced velocity limiting are roadmap, not implemented. |
+
+Related: the ledger tables (`evidence_blocks`, `blockchain_blocks`) and the runtime notification tables (`notification_jobs`, `idempotency_keys`) are live components, not dead schema — the latter populate on the first real HIGH alert. No fake delivery rows are ever seeded.
+
 ## Submission boundary
 
 Submit the integrated workflow and honest evidence, not feature-count or unvalidated accuracy claims. Real-world effectiveness, investigator usability and differentiation need independent assessment. The local improvements strengthen implementation correctness; they do not guarantee SIH selection.
