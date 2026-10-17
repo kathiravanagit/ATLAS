@@ -167,7 +167,7 @@ No. All records are authorised synthetic demonstration fixtures. External integr
 
 **How accurate is the next-ATM prediction?**
 
-Not established on real data. On synthetic holdouts the model retrieves the top actual cash-out ATM within its top 3 in 11 of 14 city-slices (Hit@1 6/14, Hit@5 11/14 — small-n, synthetic only, see `synthetic_hit_at_k` in `validation_report.json`). Actual next-location/time metrics require case-grouped future outcomes. Older unsupported metrics stay withdrawn.
+Not established on real data. On synthetic holdouts the model retrieves the top actual cash-out ATM within its top 3 in 11 of 14 city-slices (Hit@1 7/14, Hit@5 11/14 — small-n, synthetic only, see `synthetic_hit_at_k` in `validation_report.json`). Actual next-location/time metrics require case-grouped future outcomes. Older unsupported metrics stay withdrawn.
 
 **What does "100%" mean here?**
 

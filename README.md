@@ -79,7 +79,7 @@ PR-AUC 0.386). See `backend/model/validation_report.json`,
 
 Reported holdout figures are **simulator classification metrics only**
 (not real-world cash-out location accuracy). Synthetic ATM retrieval over
-14 holdout city-slices: Hit@1 6/14, Hit@3 11/14, Hit@5 11/14
+14 holdout city-slices: Hit@1 7/14, Hit@3 11/14, Hit@5 11/14
 (`synthetic_hit_at_k` in `validation_report.json` — small-n, synthetic only).
 Future-window coverage remains unavailable without observed outcomes
 and authorised data.
@@ -374,6 +374,8 @@ HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toa
 Retrained 2026-10-10 (`rf-xgb-synthetic-v6-20261010`, 200k grouped-synthetic rows): group holdout precision 90.8 / recall 36.2 / F1 51.7 / ROC-AUC 0.68 / PR-AUC 0.39; time and location holdouts score similarly (see `model/validation_report.json`). Synthetic ATM retrieval over 14 holdout city-slices (rank slice ATMs by mean model score; truth = slice ATM with most actual cash-outs): Hit@1 7/14, Hit@3 11/14, Hit@5 11/14 — small-n and synthetic only, not real-world next-ATM accuracy. Per-case retrieval baseline (A1, 431 holdout ring-cases × 15 candidates with planted truth): Hit@1 109/431 (25.3%), Hit@3 175/431 (40.6%), Hit@5 218/431 (50.6%), mean rank 6.89, MRR 0.39 — above random (6.7/20/33%) but weak; A2 adds per-ATM features to move it. A2 outcome (honest mixed result): row F1 48.7 → 51.7 and PR-AUC 0.36 → 0.386 improved, but per-case Hit@3 moved 40.6% → 33.1% (429 cases). Same-world ablation proves the features help (+8pp Hit@3 vs zeroed: 25.2% → 33.1%): the drop is world-hardening, not feature harm — the cash-out feedback loop made hard-negative neighbours hotter, and the velocity-dominated model (velocity importance 0.51; new features ~0.015) cannot separate hot neighbours. Retrieval stays geometry-dominated; reported openly, still synthetic-only. High precision at the cost of recall is deliberate (avoid alert fatigue on a minority class). The model is **decision support, not an enforcement decision** — every flagged case requires human review, and none of this validates against real data.
 
 The revised generator keeps fraud-ring geography consistent, saves group IDs, and uses the same observable evening-window feature as serving. Its target is a synthetic cash-out event, **not automatically fraudulent cash-out**. Group-disjoint evaluation still measures simulator classification, not real-world location/time effectiveness.
+
+Serving retrieval is handled by the separate **A2.1 pointwise ranker** (`backend/model/ranker.pkl`, 9 ATM-varying features) in front of the row ensemble: synthetic holdout Hit@1 69.23% / Hit@3 90.68% / Hit@5 95.80%, mean rank 1.68, MRR 0.807 (`ranker_report.json`, 429 holdout cases, 571 training cases). This is synthetic retrieval only and is reported separately from the row-ensemble candidate Hit@K and the 14-city-slice numbers above — the three are not interchangeable. The row ensemble still drives case risk and alerts.
 
 To explicitly regenerate and retrain (these commands replace generated datasets/model artifacts; back up anything you want to retain):
 
