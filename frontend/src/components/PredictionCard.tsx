@@ -50,7 +50,7 @@ function downloadReport(prediction: Prediction) {
     ``,
     `RISK TREND (Last 6 Hours)`,
     ...prediction.risk_trend.map((value, i) =>
-      `  ${18 + i}:00 — Risk: ${value}%`
+      `  ${18 + i}:00 — Risk: ${value}`
     ),
     ``,
     `---`,

@@ -157,7 +157,7 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
                   <div className="text-right">
                     <div className="text-xs text-[#6B7280]">Risk Score</div>
                     <div className={`text-lg font-bold ${riskScore > 70 ? 'text-[#ef4444]' : riskScore > 45 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`}>
-                      {riskScore}%
+                      {riskScore}
                     </div>
                   </div>
                 </div>

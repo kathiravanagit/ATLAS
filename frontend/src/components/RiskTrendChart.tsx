@@ -85,7 +85,7 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
                 fontSize: '12px'
               }}
               labelStyle={{ color: '#6B7280' }}
-              formatter={(value: number) => [`${value}%`, 'Risk Score']}
+              formatter={(value: number) => [`${value}`, 'Risk Score']}
             />
             <Area
               type="monotone"

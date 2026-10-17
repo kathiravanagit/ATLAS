@@ -105,8 +105,8 @@ function DashboardMockupSVG() {
       {[
         { x: 16, label: 'Active Cases', value: '23', color: '#1D4ED8' },
         { x: 160, label: 'Alerts Today', value: '14', color: '#B45309' },
-        { x: 304, label: 'Avg Lead Time', value: '4.2h', color: '#15803D' },
-        { x: 448, label: 'Risk Score', value: '76%', color: '#B91C1C' },
+        { x: 304, label: 'High-Risk Locations', value: '5', color: '#B91C1C' },
+        { x: 448, label: 'Risk Score', value: '76', color: '#B91C1C' },
       ].map((card, i) => (
         <g key={i}>
           <rect x={card.x} y="48" width="132" height="60" rx="6" fill="white" stroke="#E5E7EB" strokeWidth="0.8" />
@@ -137,11 +137,11 @@ function DashboardMockupSVG() {
       <rect x="372" y="120" width="212" height="244" rx="6" fill="white" stroke="#E5E7EB" strokeWidth="0.8" />
       <text x="384" y="140" fill="#1F2937" fontSize="8" fontFamily="Noto Sans" fontWeight="600">Ranked Locations</text>
       {[
-        { rank: '1', atm: 'ATM-027, White Town', risk: '92%', color: '#B91C1C', barW: 92 },
-        { rank: '2', atm: 'ATM-014, MG Road', risk: '78%', color: '#B45309', barW: 78 },
-        { rank: '3', atm: 'ATM-031, Lawspet', risk: '64%', color: '#1D4ED8', barW: 64 },
-        { rank: '4', atm: 'ATM-008, Kannicoil', risk: '51%', color: '#6B7280', barW: 51 },
-        { rank: '5', atm: 'ATM-019, Nellithope', risk: '38%', color: '#9CA3AF', barW: 38 },
+        { rank: '1', atm: 'ATM-027, White Town', risk: '92', color: '#B91C1C', barW: 92 },
+        { rank: '2', atm: 'ATM-014, MG Road', risk: '78', color: '#B45309', barW: 78 },
+        { rank: '3', atm: 'ATM-031, Lawspet', risk: '64', color: '#1D4ED8', barW: 64 },
+        { rank: '4', atm: 'ATM-008, Kannicoil', risk: '51', color: '#6B7280', barW: 51 },
+        { rank: '5', atm: 'ATM-019, Nellithope', risk: '38', color: '#9CA3AF', barW: 38 },
       ].map((row, i) => (
         <g key={i}>
           <text x="384" y={162 + i * 38} fill="#1F2937" fontSize="7" fontFamily="Noto Sans" fontWeight="500">{row.rank}. {row.atm}</text>
