@@ -1,6 +1,6 @@
 {
   "status": "available_synthetic_only",
-  "n_cases": 429,
+  "n_holdout_cases": 429,
   "hits": {
     "top_1": "297/429",
     "top_3": "389/429",

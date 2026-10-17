@@ -523,6 +523,8 @@ def test_model_card_reports_ranker_scope(client, admin_token):
     ranker = resp.json()["ranker"]
     assert ranker["status"] == "available_synthetic_only"
     assert "synthetic holdout only" in ranker["scope"]
+    assert ranker["n_holdout_cases"] and ranker["n_training_cases"]
+    assert ranker["n_holdout_cases"] < ranker["n_training_cases"]
 
 
 def test_detect_anomaly(client, admin_token):

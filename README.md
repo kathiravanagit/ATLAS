@@ -96,7 +96,9 @@ The model is decision support — every high-risk case needs human review.
 
 **Scope of "100%":** with fully synthetic but end-to-end data, ATLAS implements 100% of the deliverable modules (ranking engine, heatmap, LEA console with alerts + evidence, notifications). It does not claim 100% operational national impact, which requires authorised real data and official channels — honest alignment is ~85–90% of the problem statement.
 
-**Ranker (A2.1, serving):** candidate ranking uses a dedicated pointwise ranker (`backend/model/ranker.pkl`, ATM-varying features only; holdout Hit@3 90.7%, report in `ranker_report.json`) while the row ensemble keeps case-risk/alerts and the F1 story. Serving falls back to row-score order when the artifact is absent. Synthetic retrieval only — not real-world validity.
+**Ranker (A2.1, serving):** candidate ordering uses a dedicated pointwise ranker (`backend/model/ranker.pkl`, 9 ATM-varying features; row-score fallback when the artifact is absent). Synthetic Hit@K on the holdout candidate lists (429 cases, `ranker_report.json`): Hit@1 69.23%, Hit@3 90.68%, Hit@5 95.80%, mean rank 1.68, MRR 0.807 — this is a synthetic retrieval signal, not classification accuracy and not real-world accuracy. The row ensemble keeps case risk/alerts and the F1 story; its own candidate Hit@K (~33.1% Hit@3) and the 14-city-slice Hit@K are separate, weaker, and not interchangeable with it.
+
+**Judge one-liner:** the A2.1 ranker orders each case's candidates at serving time, the row ensemble drives case risk and alerts, and both are synthetic-only — no real-world probability is claimed anywhere.
 
 **Presentation (Part B):** the console ranks first and shows percentages never. Each candidate carries rank + area (Priority ≤3, Watch 4–10, Background ≥11; proportional bands for short lists) + a display-only list-normalized score. Raw model scores stay stored for thresholds but are never presented as probabilities; every score surface carries the uncalibrated-on-synthetic tooltip.
 

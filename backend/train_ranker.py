@@ -75,13 +75,17 @@ def main():
     import joblib
     joblib.dump(ranker, RANKER_PATH)
     meta = {
-        "model": "random-forest pointwise ranker (A2.1, evaluation only)",
+        "model": "random-forest pointwise ranker (A2.1, serving-time candidate ordering)",
+        "serving_role": "orders each case's candidate ATMs by ranker score when "
+                        "ranker.pkl loads; falls back to row-score order when the "
+                        "artifact is absent",
         "features": RANK_FEATURES,
         "n_rows": int(len(X)),
-        "n_cases": int(n_cases),
+        "n_training_cases": int(n_cases),
         "params": {"n_estimators": 300, "min_samples_leaf": 5,
                    "class_weight": "balanced", "random_state": 42},
-        "scope": "synthetic candidate retrieval; not serving traffic",
+        "validation_scope": "synthetic holdout only",
+        "real_world_validation": False,
     }
     json.dump(meta, open(RANKER_META, "w"), indent=2)
     print(f"saved {RANKER_PATH} + ranker_metadata.json")
@@ -121,7 +125,7 @@ def validate():
     n = len(ranks)
     report = {
         "status": "available_synthetic_only",
-        "n_cases": n,
+        "n_holdout_cases": n,
         "hits": {f"top_{k}": f"{hits[k]}/{n}" for k in hits},
         "hit_rate": {f"top_{k}": round(hits[k] / n, 4) for k in hits},
         "mean_rank": round(float(_s.mean(ranks)), 2),

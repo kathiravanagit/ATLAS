@@ -1835,8 +1835,10 @@ def _ranker_card_block() -> dict:
             "hit_rate": report.get("hit_rate"),
             "mean_rank": report.get("mean_rank"),
             "mrr": report.get("mrr"),
-            "n_cases": report.get("n_cases"),
+            "n_holdout_cases": report.get("n_holdout_cases"),
+            "n_training_cases": meta.get("n_training_cases"),
             "features": meta.get("features"),
+            "serving_role": meta.get("serving_role"),
             "scope": "synthetic holdout only · not real-world validation",
         }
     except (OSError, ValueError):

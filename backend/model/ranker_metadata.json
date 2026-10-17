@@ -1,5 +1,6 @@
 {
-  "model": "random-forest pointwise ranker (A2.1, evaluation only)",
+  "model": "random-forest pointwise ranker (A2.1, serving-time candidate ordering)",
+  "serving_role": "orders each case's candidate ATMs by ranker score when ranker.pkl loads; falls back to row-score order when the artifact is absent",
   "features": [
     "distance_from_victim_km",
     "historical_crime_density",
@@ -12,12 +13,13 @@
     "local_hotspot_density"
   ],
   "n_rows": 8565,
-  "n_cases": 571,
+  "n_training_cases": 571,
   "params": {
     "n_estimators": 300,
     "min_samples_leaf": 5,
     "class_weight": "balanced",
     "random_state": 42
   },
-  "scope": "synthetic candidate retrieval; not serving traffic"
+  "validation_scope": "synthetic holdout only",
+  "real_world_validation": false
 }
