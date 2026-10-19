@@ -243,6 +243,24 @@ class TestBlockchainAPI:
         resp = client.post("/api/blockchain/mine", headers={**auth_header(analyst_token), **csrf})
         assert resp.status_code == 403
 
+    def test_mine_endpoint_rejects_bank_officer(self, client, bank_officer_token):
+        csrf = get_csrf_header(client, bank_officer_token)
+        resp = client.post("/api/blockchain/mine", headers={**auth_header(bank_officer_token), **csrf})
+        assert resp.status_code == 403
+
+    def test_inspector_can_read_chain(self, client, inspector_token):
+        # Mirrors the frontend map: blockchain.operate -> inspector + admin.
+        resp = client.get("/api/blockchain/chain", headers=auth_header(inspector_token))
+        assert resp.status_code == 200
+        assert resp.json()["chain"][0]["index"] == 0  # genesis
+
+    def test_inspector_can_mine_and_run_consensus(self, client, inspector_token):
+        csrf = get_csrf_header(client, inspector_token)
+        resp = client.post("/api/blockchain/mine", headers={**auth_header(inspector_token), **csrf})
+        assert resp.status_code == 200
+        resp = client.post("/api/blockchain/consensus", headers={**auth_header(inspector_token), **csrf})
+        assert resp.status_code == 200
+
     def test_mine_endpoint_requires_csrf(self, client, admin_token):
         resp = client.post("/api/blockchain/mine", headers=auth_header(admin_token))
         assert resp.status_code == 403

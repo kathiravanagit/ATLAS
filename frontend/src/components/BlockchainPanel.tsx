@@ -60,11 +60,14 @@ export default function BlockchainPanel() {
 
   const load = useCallback(async () => {
     try {
+      // The ledger endpoint allows exactly the roles that may operate the chain
+      // (backend: require_role("admin", "inspector")). Skip the request entirely
+      // for other roles rather than firing one that is guaranteed to 403.
       const [chainRes, statusRes] = await Promise.all([
-        authFetch('/api/blockchain/chain'),
+        can('blockchain.operate') ? authFetch('/api/blockchain/chain') : null,
         authFetch('/api/blockchain/status'),
       ]);
-      if (chainRes.ok) {
+      if (chainRes?.ok) {
         const data = await chainRes.json();
         setBlocks(data.chain ?? []);
         setValidation(data.validation);

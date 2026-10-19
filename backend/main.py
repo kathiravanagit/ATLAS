@@ -2597,7 +2597,7 @@ def blockchain_status(user: dict = Depends(require_permission("read"))):
 
 
 @app.get("/api/blockchain/chain")
-def blockchain_chain(user: dict = Depends(require_role("admin")), limit: int = Query(default=50, le=200)):
+def blockchain_chain(user: dict = Depends(require_role("admin", "inspector")), limit: int = Query(default=50, le=200)):
     bc = get_blockchain()
     chain = bc.get_chain()
     return {
@@ -2620,7 +2620,7 @@ def blockchain_validate(user: dict = Depends(require_permission("read"))):
 
 @app.post("/api/blockchain/mine")
 def blockchain_mine(
-    user: dict = Depends(require_role("admin")),
+    user: dict = Depends(require_role("admin", "inspector")),
     csrf: None = Depends(require_csrf),
     miner: str = Query(default="node-cybercell-mumbai"),
 ):
@@ -2630,7 +2630,7 @@ def blockchain_mine(
 
 @app.post("/api/blockchain/consensus")
 def blockchain_consensus(
-    user: dict = Depends(require_role("admin")),
+    user: dict = Depends(require_role("admin", "inspector")),
     csrf: None = Depends(require_csrf),
 ):
     return get_network().consensus()
