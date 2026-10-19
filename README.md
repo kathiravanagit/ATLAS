@@ -6,7 +6,7 @@
 
 ## Smart India Hackathon 2026 — Problem Statement 26184
 
-![ATLAS system architecture: data to ML, geospatial ranking, SHAP, alerts, blockchain evidence, and dashboard](assets/atlas-architecture.svg)
+![ATLAS system architecture: data to ML, geospatial ranking, SHAP, alerts, blockchain evidence, and dashboard](assets/atlas-architecture.png)
 
 ### Product tour
 
