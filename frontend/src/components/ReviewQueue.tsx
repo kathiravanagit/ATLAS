@@ -4,6 +4,9 @@ import { ClipboardCheck, CheckCircle, XCircle, AlertTriangle, Clock, User, Messa
 import { authFetch } from '@/lib/auth';
 import { can } from '@/lib/roles';
 
+/** Mirrors the backend guard in main.py: `len(reason.strip()) < 10` -> 422. */
+const MIN_REASON_LENGTH = 10;
+
 interface ReviewItem {
   case_id: string;
   crime_type: string;
@@ -32,7 +35,10 @@ export default function ReviewQueue() {
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [actionForm, setActionForm] = useState<{ action: string; reason: string }>({ action: 'approve', reason: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'Critical' | 'High' | 'Medium'>('all');
+
+  const reasonTooShort = actionForm.reason.trim().length < MIN_REASON_LENGTH;
 
   const loadData = useCallback(() => {
     Promise.all([
@@ -47,23 +53,33 @@ export default function ReviewQueue() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleReview = async (caseId: string) => {
-    if (!actionForm.reason.trim()) return;
+    const reason = actionForm.reason.trim();
+    if (reason.length < MIN_REASON_LENGTH) {
+      setActionError(`Reason must be at least ${MIN_REASON_LENGTH} characters`);
+      return;
+    }
     setSubmitting(true);
+    setActionError(null);
     try {
       const res = await authFetch(`/api/review/${caseId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: actionForm.action,
-          reason: actionForm.reason,
-          reviewer_id: 'INS-001',
+          reason,
         }),
       });
       if (res.ok) {
         setSelectedCase(null);
         setActionForm({ action: 'approve', reason: '' });
         loadData();
+      } else {
+        const payload = await res.json().catch(() => null);
+        const detail = payload && typeof payload.detail === 'string' ? payload.detail : null;
+        setActionError(detail ?? `Review failed (HTTP ${res.status})`);
       }
+    } catch {
+      setActionError('Review failed — could not reach the server');
     } finally {
       setSubmitting(false);
     }
@@ -128,7 +144,10 @@ export default function ReviewQueue() {
             className={`bg-[#F8F9FA] rounded-lg border p-3 cursor-pointer transition-colors ${
               selectedCase === item.case_id ? 'border-[#f59e0b]' : 'border-[#D1D5DB] hover:border-[#9CA3AF]'
             }`}
-            onClick={() => setSelectedCase(selectedCase === item.case_id ? null : item.case_id)}
+            onClick={() => {
+              setSelectedCase(selectedCase === item.case_id ? null : item.case_id);
+              setActionError(null);
+            }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -183,21 +202,35 @@ export default function ReviewQueue() {
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    value={actionForm.reason}
-                    onChange={e => setActionForm(prev => ({ ...prev, reason: e.target.value }))}
-                    className="flex-1 px-2 py-1.5 bg-[#F8F9FA] border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#71717a]"
-                    placeholder="Reason for review decision..."
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleReview(item.case_id)}
-                    disabled={submitting || !actionForm.reason.trim()}
-                    className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-[10px] font-medium rounded hover:bg-[#d97706] disabled:opacity-50 transition-colors"
-                  >
-                    {submitting ? 'Saving...' : 'Submit'}
-                  </button>
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      value={actionForm.reason}
+                      onChange={e => {
+                        setActionForm(prev => ({ ...prev, reason: e.target.value }));
+                        setActionError(null);
+                      }}
+                      minLength={MIN_REASON_LENGTH}
+                      className="flex-1 px-2 py-1.5 bg-[#F8F9FA] border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#71717a]"
+                      placeholder="Reason for review decision..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleReview(item.case_id)}
+                      disabled={submitting || reasonTooShort}
+                      className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-[10px] font-medium rounded hover:bg-[#d97706] disabled:opacity-50 transition-colors"
+                    >
+                      {submitting ? 'Saving...' : 'Submit'}
+                    </button>
+                  </div>
+                  {actionError ? (
+                    <p role="alert" className="mt-1 text-[10px] text-[#B91C1C]">{actionError}</p>
+                  ) : reasonTooShort ? (
+                    <p className="mt-1 text-[10px] text-[#B45309]">
+                      Reason must be at least {MIN_REASON_LENGTH} characters
+                      {actionForm.reason.trim() ? ` (${actionForm.reason.trim().length}/${MIN_REASON_LENGTH})` : ''}
+                    </p>
+                  ) : null}
                 </div>
               </motion.div>
                 ) : (
