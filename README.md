@@ -21,7 +21,7 @@ The console is organised around the complete investigation loop:
 | Blockchain evidence | hash-chain integrity, PoW status, Merkle proof, and validation state |
 | Heatmap | intensity is weighted by risk score; critical zones are outlined in red |
 
-The screenshots and video are historical prototype captures using synthetic data, not real operational records. They predate the local reliability fixes; the current UI withdraws unsupported metrics and distinguishes API-connected synthetic records from operational data.
+The screenshots are current prototype captures using synthetic data; the demo video is an earlier capture. Neither is a real operational record. The console distinguishes API-connected synthetic records from operational data and does not surface unsupported metrics (no probability scores, no measured lead time).
 
 ### Prototype Interface
 
@@ -125,6 +125,8 @@ The evaluation pipeline establishes group-disjoint city/time exclusions **before
 | **Rate Limiting** | Selected SlowAPI route limits, per-IP auth limits, WebSocket concurrency caps; demo mode relaxes controls |
 | **Network Security** | CSP/security headers and explicit CORS; TLS requires configured certificate/key or an authorised reverse proxy |
 | **Request Logging** | Method, path, status code, response time with color-coded severity |
+
+> **Demo posture (not production hardening).** `DEMO_MODE` deliberately relaxes several of the controls above — secret and encryption-key guards, dispatch, and selected rate limits — so the synthetic dataset can be loaded and explored locally. The bundled demo configuration is a convenience for evaluation, not a hardened production posture.
 
 ---
 

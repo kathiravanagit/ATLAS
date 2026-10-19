@@ -563,9 +563,11 @@ class TestPredictionAlerts:
             city="Puducherry",
         )
         assert "ATLAS ALERT" in body
-        assert "CASE-001" in body and "87" in body
+        assert "CASE-001" in body and "Risk: HIGH" in body
         assert "PNY-003" in body and "Puducherry" in body
         assert "18:00-20:00" in body
+        # Uncalibrated model scores must not be surfaced as risk percentages.
+        assert "%" not in body
         assert subject == "ATLAS HIGH RISK — CASE-001 — Puducherry"
 
     def test_repeat_prediction_dedupes_jobs_but_single_open_alert(self, client, admin_token):

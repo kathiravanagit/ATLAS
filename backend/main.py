@@ -813,7 +813,7 @@ def _high_risk_message(case_id: str, primary: dict, city: str = "") -> tuple:
     body = (
         "ATLAS ALERT\n"
         f"Case: {case_id}\n"
-        f"Risk: HIGH ({primary.get('risk_score')}%)\n"
+        "Risk: HIGH\n"
         f"Location: {location}\n"
         f"Window: {primary.get('expected_window')}\n"
         "Action: Open ATLAS console to review ranked ATMs."
