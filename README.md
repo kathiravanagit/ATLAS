@@ -404,9 +404,9 @@ Actual next-ATM Hit@K, geographic error, and future-window coverage need case-gr
 
 ## Local validation and remaining limits
 
-- Full isolated backend suite: **295 passed, 2 skipped** (run `python -m pytest tests/` for the current total; fresh Windows CPython 3.13 installs from `backend/requirements.txt` pass the same suite).
+- Full isolated backend suite: **299 passed, 2 skipped** (run `python -m pytest tests/` for the current total; fresh Windows CPython 3.13 installs from `backend/requirements.txt` pass the same suite).
 - Fresh dependency installation, `pip check`, SHAP import, and bundled estimator loading passed. Windows/Linux wheel resolution passed; Linux runtime was not exercised locally.
-- Frontend: **93 unit tests passed** (run `npm test` for the current total), lint and production build passed; **32 browser tests passed, 1 skipped** (Postgres integration skip), including an isolated real-FastAPI-handler investigation flow.
+- Frontend: **96 unit tests passed** (run `npm test` for the current total), lint and production build passed; **32 browser tests passed, 1 skipped** (Postgres integration skip), including an isolated real-FastAPI-handler investigation flow.
 - Real-handler browser integration uses TestClient transport and a temporary database; it is not a deployed HTTP/WebSocket/TLS test. No SMS/email delivery occurred.
 - Skips: Windows symlink privilege and unconfigured PostgreSQL/PostGIS integration. Existing XGBoost pickle-format warnings remain.
 - No legacy-data encryption backfill, further retraining beyond the committed 2026-10-10 artifacts, production deployment, real-data validation, or distributed-concurrency guarantee is claimed. Blockchain nodes are local simulations.
