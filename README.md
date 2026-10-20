@@ -126,7 +126,7 @@ The evaluation pipeline establishes group-disjoint city/time exclusions **before
 | **Network Security** | CSP/security headers and explicit CORS; TLS requires configured certificate/key or an authorised reverse proxy |
 | **Request Logging** | Method, path, status code, response time with color-coded severity |
 
-> **Demo posture (not production hardening).** `DEMO_MODE` deliberately relaxes several of the controls above — secret and encryption-key guards, dispatch, and selected rate limits — so the synthetic dataset can be loaded and explored locally. The bundled demo configuration is a convenience for evaluation, not a hardened production posture.
+> **Demo posture (not production hardening).** `DEMO_MODE` deliberately relaxes several controls — signing-secret and encryption-key guards, authentication rate limits, the cookie `Secure` default, auto-registration, and demo seeding — and it exposes `/docs` plus the demo-credential endpoint. Alert dispatch is **not** governed by `DEMO_MODE`; it is controlled separately by the `ALERTS_*` settings. The bundled demo configuration is a convenience for evaluation, not a hardened production posture.
 
 ---
 
@@ -312,6 +312,12 @@ sih-prototype/
 
 ---
 
+## Further documentation
+
+[`PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md) covers the implemented architecture, the evaluation protocol and its limitations, setup and configuration, the single connected demo investigation, and prepared answers for judges. [`SECURITY.md`](SECURITY.md) states the prototype's security scope and how to report an issue.
+
+---
+
 ## Testing
 
 ```bash
@@ -334,6 +340,8 @@ ATLAS_REAL_BACKEND_E2E=1 ATLAS_TEST_PYTHON=../.venv/Scripts/python.exe npx playw
 # Remaining legacy browser tests require a separately running synthetic backend
 npx playwright test
 ```
+
+> **Backend test environment.** The suite expects dispatch credentials to be absent so provider calls fail soft instead of reaching the network: leave `TEXTBEE_API_KEY` and the `SMTP_*` variables unset or empty. Do **not** disable dispatch with `ALERTS_SMS_ENABLED=false` / `ALERTS_EMAIL_ENABLED=false` — five tests assert the queued-dispatch contract and fail.
 
 ---
 

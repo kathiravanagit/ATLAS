@@ -62,6 +62,12 @@ ALERTS_SMS_MAX_PER_DAY = _env_int("ALERTS_SMS_MAX_PER_DAY", 2)
 ALERTS_EMAIL_MAX_PER_DAY = _env_int("ALERTS_EMAIL_MAX_PER_DAY", 2)
 ALERTS_COOLDOWN_MINUTES = _env_int("ALERTS_COOLDOWN_MINUTES", 45)
 
+# Risk bands: the single source of truth for the High/Medium presentation
+# thresholds. Scores are uncalibrated model outputs on a 0-100 scale, not
+# probabilities, and a band is exclusive at its boundary (score must exceed it).
+HIGH_RISK_THRESHOLD = 70
+MEDIUM_RISK_THRESHOLD = 45
+
 
 def _invalidate_prediction_caches():
     _city_prediction_cache.clear()
@@ -641,10 +647,10 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         score = ml_result["risk_score"]
         confidence = ml_result["confidence"]
 
-        if score > 70:
+        if score > HIGH_RISK_THRESHOLD:
             level = "high"
             status = "High"
-        elif score > 45:
+        elif score > MEDIUM_RISK_THRESHOLD:
             level = "medium"
             status = "Medium"
         else:
@@ -720,7 +726,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     result = {
         "case_id": case_id,
         "city": city["name"],
-        "status": "HIGH PRIORITY" if primary["risk_score"] > 70 else "MEDIUM PRIORITY",
+        "status": "HIGH PRIORITY" if primary["risk_score"] > HIGH_RISK_THRESHOLD else "MEDIUM PRIORITY",
         "primary_location": primary,
         "ranked_locations": ranked,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]],
@@ -833,7 +839,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
     No audit entry — automatic predictions must not spam the audit trail
     (only officer actions are logged there).
     """
-    if not primary or primary.get("risk_score", 0) <= 70:
+    if not primary or primary.get("risk_score", 0) <= HIGH_RISK_THRESHOLD:
         return None
     alert_msg, email_subject = _high_risk_message(case_id, primary, city)
     # Alert.location is EncryptedText: SQL LIKE would match ciphertext, so
@@ -1106,7 +1112,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "expected_window": _win,
             "distance": f"{_dist} km",
             "reason": "Historical pattern match" if score > 60 else "Low activity area",
-            "status": "High" if score > 70 else ("Medium" if score > 45 else "Watch"),
+            "status": "High" if score > HIGH_RISK_THRESHOLD else ("Medium" if score > MEDIUM_RISK_THRESHOLD else "Watch"),
             "latitude": atm["lat"],
             "longitude": atm["lng"],
             "confidence": ml_result["confidence"],
@@ -1173,7 +1179,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "model_accuracy": get_metadata().get("accuracy") if get_metadata() else None,
         "case_id": synthetic_case_id,
         "model_info": primary["model_info"] if primary else {},
-        "status": "HIGH PRIORITY" if primary and primary["risk_score"] > 70 else "MEDIUM PRIORITY",
+        "status": "HIGH PRIORITY" if primary and primary["risk_score"] > HIGH_RISK_THRESHOLD else "MEDIUM PRIORITY",
         "primary_location": primary,
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]] if primary else [],
         "evidence": _label_simulated_evidence(evidence),
@@ -1193,7 +1199,7 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
     active = cases.filter(Case.status == "active").count()
     unacknowledged = db.query(Alert).join(Case).filter(visibility_filter(user), Alert.acknowledged == False).count()
     resolved_amount = db.query(func.coalesce(func.sum(Case.amount), 0)).filter(visibility_filter(user), Case.status == "resolved").scalar()
-    high_risk_locs = db.query(RankedLocation).join(Prediction).join(Case).filter(visibility_filter(user), RankedLocation.risk_score >= 70).count()
+    high_risk_locs = db.query(RankedLocation).join(Prediction).join(Case).filter(visibility_filter(user), RankedLocation.risk_score > HIGH_RISK_THRESHOLD).count()
     # Resolved-case value: a real total of case records, not a prevented-fraud claim.
     prevented = int(resolved_amount or 0)
     # High-risk accounts: distinct destination accounts in transaction records
@@ -1202,7 +1208,7 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
         cid for (cid,) in db.query(Case.case_id)
         .join(Prediction, Prediction.case_id == Case.case_id)
         .join(RankedLocation, RankedLocation.prediction_id == Prediction.id)
-        .filter(visibility_filter(user), RankedLocation.risk_score >= 70)
+        .filter(visibility_filter(user), RankedLocation.risk_score > HIGH_RISK_THRESHOLD)
         .distinct().all()
     ]
     if high_risk_case_ids:

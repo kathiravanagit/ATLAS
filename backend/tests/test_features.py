@@ -717,6 +717,28 @@ class TestManualNotify:
             db.close()
         assert self._job_counts() == before
 
+    # The broadcast tail calls get_event_loop() outside a running loop here;
+    # in a real request there always is one.
+    @pytest.mark.filterwarnings("ignore:There is no current event loop:DeprecationWarning")
+    def test_alert_threshold_is_exclusive(self, client):
+        """A score exactly on the band boundary is not High."""
+        import main as main_module
+        db = TestingSessionLocal()
+        try:
+            base = {"location_name": "T. Nagar", "expected_window": "18:00-20:00"}
+            at_boundary = main_module._raise_high_risk_alert(
+                db, "CASE-001",
+                {"atm_id": "ATM-CH-001", "risk_score": main_module.HIGH_RISK_THRESHOLD, **base},
+            )
+            above_boundary = main_module._raise_high_risk_alert(
+                db, "CASE-001",
+                {"atm_id": "ATM-CH-002", "risk_score": main_module.HIGH_RISK_THRESHOLD + 1, **base},
+            )
+            assert at_boundary is None
+            assert above_boundary is not None
+        finally:
+            db.close()
+
 
 class TestSmsDispatcher:
     """SMS provider: TextBee gateway, GSM sanitize, offline-safe."""
