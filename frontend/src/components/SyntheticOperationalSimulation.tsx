@@ -2,7 +2,7 @@ const SIMULATION_METRICS = [
   { label: 'Alert lead time', value: 'Not measured', detail: 'Requires timestamped alerts and observed cash-out outcomes.' },
   { label: 'Officer review time', value: 'Not measured', detail: 'Requires recorded review durations from a defined evaluation.' },
   { label: 'Alert volume', value: 'Not measured', detail: 'Requires a defined observation period and recorded alert counts.' },
-  { label: 'Top-K hit rate', value: 'Unavailable', detail: 'Requires labelled cash-out locations and a reproducible ranking evaluation.' },
+  { label: 'Top-K hit rate', value: 'Not measured', detail: 'Synthetic holdout only - see the Model Card. No operational cash-out labels.' },
 ];
 
 export default function SyntheticOperationalSimulation() {

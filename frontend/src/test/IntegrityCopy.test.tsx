@@ -13,10 +13,10 @@ vi.mock('../lib/roles', () => ({ can: () => false }));
 describe('prototype integrity copy', () => {
   it('simulation metrics require evidence rather than claiming a measured fixture benchmark', () => {
     const { container } = render(<SyntheticOperationalSimulation />);
-    expect(screen.getAllByText('Not measured')).toHaveLength(3);
-    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    expect(screen.getAllByText('Not measured')).toHaveLength(4);
     expect(container.textContent).toContain('No operational benchmark has been measured or verified');
-    expect(container.textContent).toContain('Requires labelled cash-out locations');
+    expect(container.textContent).toContain('Synthetic holdout only - see the Model Card');
+    expect(container.textContent).toContain('No operational cash-out labels');
     expect(container.textContent).not.toMatch(/42\s*min|8\s*min|18\s*\/\s*day|72%|Reproducible fixture run/);
   });
 
