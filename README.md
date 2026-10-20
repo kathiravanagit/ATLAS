@@ -50,9 +50,9 @@ Explore the ATLAS investigation workflow, from risk intelligence and map-based p
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/yuoHutx33vc"><strong>▶ Watch the ATLAS Demo Video</strong></a>
+  <a href="https://youtu.be/I3XtNE0IFHA"><strong>▶ Watch the ATLAS Demo Video</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://youtu.be/yuoHutx33vc">YouTube</a>
+  <a href="https://youtu.be/I3XtNE0IFHA">YouTube</a>
 </p>
 
 ### What This Is
