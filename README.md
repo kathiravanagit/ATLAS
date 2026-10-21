@@ -44,8 +44,8 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 Explore the ATLAS investigation workflow, from risk intelligence and map-based predictions to alert triage and linked-account analysis.
 
 <p align="center">
-  <a href="https://youtu.be/yuoHutx33vc">
-    <img src="https://img.youtube.com/vi/yuoHutx33vc/maxresdefault.jpg" alt="Watch the ATLAS demonstration video" width="860">
+  <a href="https://youtu.be/I3XtNE0IFHA">
+    <img src="https://img.youtube.com/vi/I3XtNE0IFHA/maxresdefault.jpg" alt="Watch the ATLAS demonstration video" width="860">
   </a>
 </p>
 
