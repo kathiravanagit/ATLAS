@@ -811,6 +811,18 @@ def _dispatch_guard(db: Session, kind: str) -> tuple:
         return False, f"guard error: {exc}"
 
 
+def _transaction_alert_message(amount: float, primary: dict) -> str:
+    """Transaction-path alert body.
+
+    Scores are uncalibrated model ranks, so the band is named and no percentage
+    is printed (same rule as _high_risk_message).
+    """
+    return (
+        f"HIGH-RISK: New transaction of ₹{amount:,.0f} detected. "
+        f"Top predicted cash-out at {primary['atm_id']} ({primary['location_name']}) — Risk: HIGH"
+    )
+
+
 def _high_risk_message(case_id: str, primary: dict, city: str = "") -> tuple:
     """Dynamic HIGH-risk notification body + email subject from prediction fields."""
     location = f"{primary.get('atm_id')}, {primary.get('location_name')}"
@@ -1375,8 +1387,8 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
             status_code=503,
             detail="Prediction service not initialized (no ATM reference data). Transaction recorded but no alert generated.",
         )
-    if primary["risk_score"] > 70:
-        alert_msg = f"HIGH-RISK: New transaction of ₹{tx.amount:,.0f} detected. Top predicted cash-out at {primary['atm_id']} ({primary['location_name']}) — Risk Score {primary['risk_score']}%"
+    if primary["risk_score"] > HIGH_RISK_THRESHOLD:
+        alert_msg = _transaction_alert_message(tx.amount, primary)
         alert = Alert(
             alert_id=f"ALT-{uuid.uuid4().hex[:8].upper()}",
             case_id=tx.case_id,

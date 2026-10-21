@@ -570,6 +570,15 @@ class TestPredictionAlerts:
         assert "%" not in body
         assert subject == "ATLAS HIGH RISK — CASE-001 — Puducherry"
 
+    def test_transaction_alert_message_has_no_percentage(self):
+        import main as main_module
+        body = main_module._transaction_alert_message(
+            25000, {"atm_id": "PNY-008", "location_name": "Nehru Park Branch"})
+        assert "25,000" in body
+        assert "PNY-008" in body and "Risk: HIGH" in body
+        # Uncalibrated ranks must never be printed as probabilities.
+        assert "%" not in body
+
     def test_repeat_prediction_dedupes_jobs_but_single_open_alert(self, client, admin_token):
         import main as main_module
         main_module._city_prediction_cache.pop("puducherry", None)
