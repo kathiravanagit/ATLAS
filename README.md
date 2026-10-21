@@ -45,7 +45,7 @@ Explore the ATLAS investigation workflow, from risk intelligence and map-based p
 
 <p align="center">
   <a href="https://youtu.be/I3XtNE0IFHA" title="Watch the ATLAS demo video on YouTube">
-    <img src="assets/demo-video-thumbnail.jpg" alt="ATLAS risk map with predicted cash-out locations — demo video preview" width="860">
+    <img src="assets/demo-video-thumbnail.jpg" alt="ATLAS cover — demo video" width="860">
   </a>
 </p>
 
