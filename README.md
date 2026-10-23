@@ -39,6 +39,14 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 | --- |
 | ![ATLAS linked account analysis](assets/atlas-linked-account-analysis-detail.png) |
 
+### Notification Channels
+
+High-risk alerts leave the console on two prototype channels — SMTP email and SMS through a TextBee device gateway. Both carry the case, the risk band, the predicted location, and the expected window; the uncalibrated model score is never presented as a probability. Delivery is a demo integration, not a government SMS or email service.
+
+| Email alert | SMS alert |
+| --- | --- |
+| <img src="assets/email-sample.png" alt="ATLAS high-risk email alert for case CC-2026-0125" width="520"> | <img src="assets/sms-sample.jpg" alt="ATLAS high-risk SMS alert for case CC-2026-0125" width="220"> |
+
 ### Demo Video
 
 Explore the ATLAS investigation workflow, from risk intelligence and map-based predictions to alert triage and linked-account analysis.
