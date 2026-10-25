@@ -52,15 +52,15 @@ High-risk alerts leave the console on two prototype channels — SMTP email and 
 Explore the ATLAS investigation workflow, from risk intelligence and map-based predictions to alert triage and linked-account analysis.
 
 <p align="center">
-  <a href="https://youtu.be/I3XtNE0IFHA" title="Watch the ATLAS demo video on YouTube">
+  <a href="https://youtu.be/U8lLSBxaIck" title="Watch the ATLAS demo video on YouTube">
     <img src="assets/demo-video-thumbnail.jpg" alt="ATLAS cover — demo video" width="860">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/I3XtNE0IFHA"><strong>▶ Watch the ATLAS Demo Video</strong></a>
+  <a href="https://youtu.be/U8lLSBxaIck"><strong>▶ Watch the ATLAS Demo Video</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://youtu.be/I3XtNE0IFHA">YouTube</a>
+  <a href="https://youtu.be/U8lLSBxaIck">YouTube</a>
 </p>
 
 ### What This Is
