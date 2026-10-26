@@ -171,7 +171,7 @@ Not established on real data. On synthetic holdouts the model retrieves the top 
 
 **What does "100%" mean here?**
 
-100% of the deliverable modules on synthetic end-to-end data (ranking engine, heatmap, LEA console with alerts + evidence, notifications) — not 100% operational national impact, which needs authorised real data and official channels. Honest alignment is ~85–90% of the problem statement.
+100% of the deliverable modules on synthetic end-to-end data (ranking engine, heatmap, LEA console with alerts + evidence, notifications) — not 100% operational national impact, which needs authorised real data and official channels.
 
 **What does the blockchain prove?**
 

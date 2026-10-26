@@ -2798,7 +2798,7 @@ SCENARIOS = {
         "steps": [
             "Complaint filed via cybercrime.gov.in",
             "ML engine identifies 6 linked mule accounts",
-            "Risk prediction: ATM-005 (Kurumbapet Highway) — 88% risk",
+            "Risk prediction: ATM-005 (Kurumbapet Highway) — HIGH",
             "Temporal pattern: 19:00-21:00 evening cash-out window",
             "Alert broadcast to all connected officers",
         ],
@@ -2811,7 +2811,7 @@ SCENARIOS = {
         "steps": [
             "SIM swap detected via telecom integration",
             "3 bank accounts compromised via intercepted OTPs",
-            "ML engine flags ATM-027 (White Town) — 85% risk",
+            "ML engine flags ATM-027 (White Town) — HIGH",
             "Geographic clustering within 2km radius",
             "QRT dispatched to monitor predicted ATMs",
         ],
@@ -2825,7 +2825,7 @@ SCENARIOS = {
             "Card details skimmed at ATM-014 (MG Road)",
             "Two rapid withdrawals of ₹15,000 and ₹20,200",
             "ML identifies temporal proximity pattern",
-            "Risk score: 85% at MG Road Commercial",
+            "Risk: HIGH at MG Road Commercial",
             "Bank nodal officer notified for card freeze",
         ],
     },

@@ -379,7 +379,7 @@ export const FALLBACK_ALERTS: Alert[] = [
   { alert_id: "ALT-011", case_id: "CC-2026-0128", message: "WATCH: Case CC-2026-0128 — new account linkage detected.", risk_level: "Watch", location: "ATM-009, Muthialpet Bazaar", time_window: "19:00-21:00", timestamp: "13:15:00", acknowledged: true, acknowledged_at: "13:22:30" },
   { alert_id: "ALT-012", case_id: "CC-2026-0127", message: "MEDIUM-RISK: Card cloning across multiple ATMs detected.", risk_level: "Medium", location: "ATM-014, MG Road Commercial", time_window: "18:00-20:00", timestamp: "13:00:00", acknowledged: true, acknowledged_at: "13:10:15" },
   { alert_id: "ALT-013", case_id: "CC-2026-0125", message: "HIGH-RISK: SIM swap fraud. ₹78,000 at risk.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:45:00", acknowledged: true, acknowledged_at: "12:55:30" },
-  { alert_id: "ALT-014", case_id: "CC-2026-0147", message: "UPDATE: Case CC-2026-0147 — risk score increased from 85% to 92%.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:30:00", acknowledged: true, acknowledged_at: "12:40:15" },
+  { alert_id: "ALT-014", case_id: "CC-2026-0147", message: "UPDATE: Case CC-2026-0147 — new transaction signal; review priority raised.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:30:00", acknowledged: true, acknowledged_at: "12:40:15" },
 ];
 
 // ─── Crime Type Distribution (for charts) ───────────────────────────────────

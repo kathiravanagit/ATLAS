@@ -191,7 +191,7 @@ def seed_data(force=False):
             ("ALT-011", "CC-2026-0128", "WATCH: Case CC-2026-0128 - new account linkage detected.", "Watch", "PNY-004, Muthialpet Bazaar", "19:00-21:00", True),
             ("ALT-012", "CC-2026-0127", "MEDIUM-RISK: Card cloning across multiple ATMs detected.", "Medium", "PNY-002, MG Road Commercial", "18:00-20:00", True),
             ("ALT-013", "CC-2026-0125", "HIGH-RISK: SIM swap fraud. Rs.78,000 at risk.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
-            ("ALT-014", "CC-2026-0147", "UPDATE: Case CC-2026-0147 - risk score increased from 85% to 92%.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
+            ("ALT-014", "CC-2026-0147", "UPDATE: Case CC-2026-0147 - new transaction signal; review priority raised.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
         ]
 
         alerts = []
@@ -296,10 +296,10 @@ def seed_data(force=False):
             ("API Error", "Rate limit exceeded for IP 103.25.x.x on /api/predictions/CC-2026-0147 (429)", "error"),
             ("API Error", "WebSocket connection failed: invalid ticket for session INS-003", "error"),
             ("API Error", "POST /api/transactions rejected: CSRF token mismatch", "error"),
-            ("Prediction Updated", "CC-2026-0147 risk score increased to 92% - evening peak activity", "prediction"),
-            ("Prediction Updated", "CC-2026-0145 risk score increased to 88% - 6 mule accounts confirmed", "prediction"),
-            ("Prediction Updated", "CC-2026-0138 risk score increased to 85% - SIM swap pattern detected", "prediction"),
-            ("Prediction Updated", "CC-2026-0130 risk score updated to 91% - 7 mule accounts", "prediction"),
+            ("Prediction Updated", "CC-2026-0147 review priority raised - evening peak activity", "prediction"),
+            ("Prediction Updated", "CC-2026-0145 review priority raised - 6 mule accounts confirmed", "prediction"),
+            ("Prediction Updated", "CC-2026-0138 review priority raised - SIM swap pattern detected", "prediction"),
+            ("Prediction Updated", "CC-2026-0130 review priority raised - 7 mule accounts", "prediction"),
             ("Transaction Simulated", "Rs.25,000 simulated for CC-2026-0147 at PNY-001", "prediction"),
             ("Transaction Simulated", "Rs.48,500 simulated for CC-2026-0145 at PNY-006", "prediction"),
             ("Transaction Simulated", "Rs.15,000 simulated for CC-2026-0142 at CHN-003", "prediction"),
