@@ -97,6 +97,7 @@ The model is decision support — every high-risk case needs human review.
 **What remains unvalidated or prototype-only:**
 
 - Future-window coverage and geographic error (need observed future outcomes and authorised data)
+- Real-data validation: the protocol, splits, metrics and go/no-go criteria are specified in [`docs/VALIDATION_PLAN.md`](docs/VALIDATION_PLAN.md) — a plan, not a result
 - NLP complaint triage (statistical TF-IDF + Naive Bayes classifier trained on illustrative templates, not transformer-based)
 - Mule network graph built live from case transaction records with Louvain communities (illustrative records; account-count synthesis only as fallback when no records exist)
 
