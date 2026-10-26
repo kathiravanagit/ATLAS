@@ -9,7 +9,7 @@ export default function ModelPerformanceCard() {
   const { data: metrics, loading, error } = useApiData<ModelMetrics>('/api/model/metrics');
   return <section className="card p-5">
     <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="w-full flex items-center justify-between gap-2">
-      <span className="flex flex-wrap items-center gap-2"><BarChart3 size={18} /><span className="text-base font-semibold">Model Performance</span><span className="text-sm text-gray-700">Accuracy: {percent(metrics?.ensemble?.accuracy)}</span></span>
+      <span className="flex flex-wrap items-center gap-2"><BarChart3 size={18} /><span className="text-base font-semibold">Model Performance</span><span className="text-sm text-gray-700">Accuracy {percent(metrics?.ensemble?.accuracy)} · Precision {percent(metrics?.ensemble?.precision)} · Recall {percent(metrics?.ensemble?.recall)} · F1 {percent(metrics?.ensemble?.f1_score)}</span></span>
       {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
     </button>
     {loading ? <p className="mt-3 text-sm" role="status">Loading model metrics…</p> : error ? <p className="mt-3 text-sm text-red-800" role="alert">Model metrics unavailable: {error}</p> : <>
