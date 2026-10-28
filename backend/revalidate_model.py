@@ -246,7 +246,9 @@ def _case_context(ring_rows, group_id):
     }
 
 
-def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=None):
+def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5),
+                       perturb=None, atms=None, holdout_groups=None,
+                       return_ranks=False):
     """Per-case ATM retrieval with planted ground truth (synthetic only).
 
     For holdout ring-groups, score each case's candidate ATMs with the
@@ -258,19 +260,29 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=No
     ``perturb`` optionally receives ``(case_context, atm, history_count)`` and
     returns the same triple, letting the sensitivity harness score the frozen
     ranker against altered complaint or registry inputs without retraining.
+
+    ``atms`` accepts an already-generated registry (a regenerated or perturbed
+    world) and ``holdout_groups`` accepts an explicit case set; both default to
+    the shipped seed-42 registry and the supplied ``splits``.
     """
     if not {"atm_id", "city", "cash_out_occurred"}.issubset(df.columns):
         return {"status": "unavailable",
                 "reason": "Retrieval needs per-row atm_id, city and cash-out labels"}
-    holdout_groups = set()
-    for name in ("group_holdout", "time_holdout", "location_holdout"):
-        holdout_groups |= set(df.iloc[splits[name]].group_id.astype(str))
+    if holdout_groups is None:
+        holdout_groups = set()
+        for name in ("group_holdout", "time_holdout", "location_holdout"):
+            holdout_groups |= set(df.iloc[splits[name]].group_id.astype(str))
+    else:
+        holdout_groups = set(str(g) for g in holdout_groups)
     import generate_data as _gen
-    # generate_atms() is deterministic only as the first consumer of a
-    # seed-42 stream: reseed explicitly so report output cannot depend on
-    # whatever consumed global RNG earlier in this process.
-    np.random.seed(42)
-    atms = {a["atm_id"]: a for a in _gen.generate_atms()}
+    if atms is None:
+        # generate_atms() is deterministic only as the first consumer of a
+        # seed-42 stream: reseed explicitly so report output cannot depend on
+        # whatever consumed global RNG earlier in this process.
+        np.random.seed(42)
+        atms = {a["atm_id"]: a for a in _gen.generate_atms()}
+    elif not isinstance(atms, dict):
+        atms = {a["atm_id"]: a for a in atms}
     by_city = {}
     for a in atms.values():
         by_city.setdefault(a["city"], []).append(a)
@@ -288,7 +300,7 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=No
         return int(cum.loc[max(prev), atm_id])
     cases = candidates[candidates["group_id"].isin(holdout_groups)]
     hits = {k: 0 for k in ks}
-    ranks, evaluated = [], 0
+    ranks, per_case, evaluated = [], {}, 0
     for case_id, part in cases.groupby("case_id"):
         ring = df[df["group_id"] == part["group_id"].iloc[0]]
         if ring.empty:
@@ -309,11 +321,12 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=No
         truth_pos = int(np.where(part["is_true"].to_numpy()[order] == 1)[0][0]) + 1
         evaluated += 1
         ranks.append(truth_pos)
+        per_case[str(case_id)] = truth_pos
         for k in ks:
             if truth_pos <= k:
                 hits[k] += 1
     import statistics as _stats
-    return {
+    result = {
         "status": "available_synthetic_only" if evaluated else "unavailable",
         "method": "per holdout ring-case, rank 15 candidate ATMs by ensemble probability over serving-formula features; truth = planted ring ATM",
         "n_cases": evaluated,
@@ -323,6 +336,9 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=No
         "mrr": round(float(_stats.mean([1.0 / r for r in ranks])), 4) if ranks else None,
         "note": "synthetic per-case retrieval with planted ground truth; measures the serving ranker on synthetic cases, not real-world next-ATM accuracy",
     }
+    if return_ranks:
+        result["case_ranks"] = per_case
+    return result
 
 
 def unavailable_report(reason):

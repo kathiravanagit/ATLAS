@@ -1,0 +1,1462 @@
+{
+  "protocol": "one-assumption-at-a-time generator sweep, frozen artifacts",
+  "status": "available_synthetic_only",
+  "retrained": false,
+  "n_transactions": 200000,
+  "seeds": [
+    42,
+    7,
+    13
+  ],
+  "control_seeds": [
+    21,
+    34,
+    55
+  ],
+  "n_cases": {
+    "serving_ranker": 429,
+    "ensemble": 429
+  },
+  "two_se": {
+    "serving_ranker": 0.0281,
+    "ensemble": 0.0454
+  },
+  "noise_floor": {
+    "serving_ranker": 0.0369,
+    "ensemble": 0.0323
+  },
+  "noise_floor_method": "largest absolute deviation of the unmodified generator's Hit@3 across independent seeds",
+  "control_spread": {
+    "serving_ranker": {
+      "seeds": [
+        7,
+        13,
+        21,
+        34,
+        42,
+        55
+      ],
+      "hit_rates": [
+        0.8951,
+        0.8811,
+        0.9068,
+        0.8741,
+        0.9068,
+        0.9371
+      ],
+      "mean": 0.9002,
+      "min": 0.8741,
+      "max": 0.9371,
+      "band": 0.0369
+    },
+    "ensemble": {
+      "seeds": [
+        7,
+        13,
+        21,
+        34,
+        42,
+        55
+      ],
+      "hit_rates": [
+        0.303,
+        0.352,
+        0.3147,
+        0.296,
+        0.331,
+        0.3217
+      ],
+      "mean": 0.3197,
+      "min": 0.296,
+      "max": 0.352,
+      "band": 0.0323
+    }
+  },
+  "cross_draw_churn": {
+    "serving_ranker": {
+      "counts": [
+        83,
+        89,
+        68,
+        76,
+        65
+      ],
+      "of": 429,
+      "min": 65,
+      "max": 89,
+      "min_pct": 15.2,
+      "max_pct": 20.7
+    },
+    "ensemble": {
+      "counts": [
+        192,
+        179,
+        193,
+        199,
+        208
+      ],
+      "of": 429,
+      "min": 179,
+      "max": 208,
+      "min_pct": 41.7,
+      "max_pct": 48.5
+    }
+  },
+  "bounds": {
+    "serving_ranker": {
+      "name": "geography_jitter_1000m",
+      "delta": 0.021,
+      "n_knobs": 8
+    },
+    "ensemble": {
+      "name": "timing_removed",
+      "delta": 0.0295,
+      "n_knobs": 8
+    }
+  },
+  "holdout_groups_sha256": "857359b5177940ffc7b45640066860788789f27fe93973ff792a74570fbff322",
+  "note": "Synthetic only. Measures transfer of frozen artifacts to a world regenerated without one generative assumption; not real-world next-ATM accuracy and not a calibration or probability statement.",
+  "configs": [
+    {
+      "name": "baseline",
+      "kind": "baseline",
+      "changed": "the generator as shipped",
+      "chance_top3": null,
+      "seeds": [
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.9068,
+          0.8951,
+          0.8811
+        ],
+        "deltas": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean_hit_rate": 0.8943,
+        "mean_delta": 0.0,
+        "min_delta": 0.0,
+        "max_delta": 0.0,
+        "mean_rank": 1.7267,
+        "mrr": 0.8056,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.331,
+          0.303,
+          0.352
+        ],
+        "deltas": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean_hit_rate": 0.3287,
+        "mean_delta": 0.0,
+        "min_delta": 0.0,
+        "max_delta": 0.0,
+        "mean_rank": 7.5067,
+        "mrr": 0.3196,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "baseline",
+      "ensemble_verdict": "baseline"
+    },
+    {
+      "name": "timing_removed",
+      "kind": "knob",
+      "changed": "ring hours uniform over the day; evening terms dropped from the outcome logit",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8974,
+          0.8811,
+          0.9114
+        ],
+        "deltas": [
+          0.0023,
+          0.0,
+          0.0046
+        ],
+        "mean_hit_rate": 0.8966,
+        "mean_delta": 0.0023,
+        "min_delta": 0.0,
+        "max_delta": 0.0046,
+        "mean_rank": 1.72,
+        "mrr": 0.8054,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3473,
+          0.373,
+          0.3543
+        ],
+        "deltas": [
+          0.0443,
+          0.021,
+          0.0233
+        ],
+        "mean_hit_rate": 0.3582,
+        "mean_delta": 0.0295,
+        "min_delta": 0.021,
+        "max_delta": 0.0443,
+        "mean_rank": 7.02,
+        "mrr": 0.3562,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "ring_size_x2",
+      "kind": "knob",
+      "changed": "every crime type's mule_range doubled",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8951,
+          0.8834,
+          0.9068
+        ],
+        "deltas": [
+          0.0,
+          0.0023,
+          0.0
+        ],
+        "mean_hit_rate": 0.8951,
+        "mean_delta": 0.0008,
+        "min_delta": 0.0,
+        "max_delta": 0.0023,
+        "mean_rank": 1.7267,
+        "mrr": 0.8055,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3287,
+          0.3217,
+          0.303
+        ],
+        "deltas": [
+          0.0257,
+          -0.0303,
+          -0.028
+        ],
+        "mean_hit_rate": 0.3178,
+        "mean_delta": -0.0109,
+        "min_delta": -0.0303,
+        "max_delta": 0.0257,
+        "mean_rank": 7.5667,
+        "mrr": 0.3115,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "amount_wide",
+      "kind": "knob",
+      "changed": "loss amounts ~2x wider for both fraud and legitimate rows",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8951,
+          0.8834,
+          0.9091
+        ],
+        "deltas": [
+          0.0,
+          0.0023,
+          0.0023
+        ],
+        "mean_hit_rate": 0.8959,
+        "mean_delta": 0.0015,
+        "min_delta": 0.0,
+        "max_delta": 0.0023,
+        "mean_rank": 1.7233,
+        "mrr": 0.8055,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3287,
+          0.345,
+          0.3357
+        ],
+        "deltas": [
+          0.0257,
+          -0.007,
+          0.0047
+        ],
+        "mean_hit_rate": 0.3365,
+        "mean_delta": 0.0078,
+        "min_delta": -0.007,
+        "max_delta": 0.0257,
+        "mean_rank": 6.9833,
+        "mrr": 0.3242,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "amount_flat",
+      "kind": "knob",
+      "changed": "one lognormal for every row; amount independent of crime type",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8974,
+          0.8834,
+          0.9091
+        ],
+        "deltas": [
+          0.0023,
+          0.0023,
+          0.0023
+        ],
+        "mean_hit_rate": 0.8966,
+        "mean_delta": 0.0023,
+        "min_delta": 0.0023,
+        "max_delta": 0.0023,
+        "mean_rank": 1.72,
+        "mrr": 0.8064,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3357,
+          0.3077,
+          0.31
+        ],
+        "deltas": [
+          0.0327,
+          -0.0443,
+          -0.021
+        ],
+        "mean_hit_rate": 0.3178,
+        "mean_delta": -0.0109,
+        "min_delta": -0.0443,
+        "max_delta": 0.0327,
+        "mean_rank": 7.9467,
+        "mrr": 0.3125,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "geography_jitter_250m",
+      "kind": "knob",
+      "changed": "every ATM coordinate moved by 250 m of Gaussian noise",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.9044,
+          0.9161,
+          0.8998
+        ],
+        "deltas": [
+          0.0093,
+          0.035,
+          -0.007
+        ],
+        "mean_hit_rate": 0.9068,
+        "mean_delta": 0.0124,
+        "min_delta": -0.007,
+        "max_delta": 0.035,
+        "mean_rank": 1.6767,
+        "mrr": 0.8122,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3077,
+          0.3403,
+          0.3193
+        ],
+        "deltas": [
+          0.0047,
+          -0.0117,
+          -0.0117
+        ],
+        "mean_hit_rate": 0.3224,
+        "mean_delta": -0.0062,
+        "min_delta": -0.0117,
+        "max_delta": 0.0047,
+        "mean_rank": 7.5967,
+        "mrr": 0.3219,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "geography_jitter_1000m",
+      "kind": "knob",
+      "changed": "every ATM coordinate moved by 1 km of Gaussian noise",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.9371,
+          0.9091,
+          0.8998
+        ],
+        "deltas": [
+          0.042,
+          0.028,
+          -0.007
+        ],
+        "mean_hit_rate": 0.9153,
+        "mean_delta": 0.021,
+        "min_delta": -0.007,
+        "max_delta": 0.042,
+        "mean_rank": 1.61,
+        "mrr": 0.819,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.3217,
+          0.345,
+          0.338
+        ],
+        "deltas": [
+          0.0187,
+          -0.007,
+          0.007
+        ],
+        "mean_hit_rate": 0.3349,
+        "mean_delta": 0.0062,
+        "min_delta": -0.007,
+        "max_delta": 0.0187,
+        "mean_rank": 7.6067,
+        "mrr": 0.3129,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "label_noise_5pct",
+      "kind": "knob",
+      "changed": "5% of drawn cash-out outcomes flipped before they enter ATM history",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8998,
+          0.8788,
+          0.9138
+        ],
+        "deltas": [
+          0.0047,
+          -0.0023,
+          0.007
+        ],
+        "mean_hit_rate": 0.8975,
+        "mean_delta": 0.0031,
+        "min_delta": -0.0023,
+        "max_delta": 0.007,
+        "mean_rank": 1.7333,
+        "mrr": 0.805,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.2914,
+          0.3357,
+          0.3403
+        ],
+        "deltas": [
+          -0.0116,
+          -0.0163,
+          0.0093
+        ],
+        "mean_hit_rate": 0.3225,
+        "mean_delta": -0.0062,
+        "min_delta": -0.0163,
+        "max_delta": 0.0093,
+        "mean_rank": 7.3767,
+        "mrr": 0.3287,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "label_noise_10pct",
+      "kind": "knob",
+      "changed": "10% of drawn cash-out outcomes flipped before they enter ATM history",
+      "chance_top3": null,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8998,
+          0.8834,
+          0.9161
+        ],
+        "deltas": [
+          0.0047,
+          0.0023,
+          0.0093
+        ],
+        "mean_hit_rate": 0.8998,
+        "mean_delta": 0.0054,
+        "min_delta": 0.0023,
+        "max_delta": 0.0093,
+        "mean_rank": 1.7333,
+        "mrr": 0.805,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.2914,
+          0.3217,
+          0.3287
+        ],
+        "deltas": [
+          -0.0116,
+          -0.0303,
+          -0.0023
+        ],
+        "mean_hit_rate": 0.3139,
+        "mean_delta": -0.0147,
+        "min_delta": -0.0303,
+        "max_delta": -0.0023,
+        "mean_rank": 7.5267,
+        "mrr": 0.3183,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "within noise (\u00b10.037)",
+      "ensemble_verdict": "within noise (\u00b10.032)"
+    },
+    {
+      "name": "candidate_pool_5",
+      "kind": "task",
+      "changed": "5 candidates per case instead of 15 \u2014 a different task, not a broken assumption",
+      "chance_top3": 0.6,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.9883,
+          0.993,
+          0.9837
+        ],
+        "deltas": [
+          0.0932,
+          0.1119,
+          0.0769
+        ],
+        "mean_hit_rate": 0.9883,
+        "mean_delta": 0.094,
+        "min_delta": 0.0769,
+        "max_delta": 0.1119,
+        "mean_rank": 1.3233,
+        "mrr": 0.8677,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.6131,
+          0.6177,
+          0.6364
+        ],
+        "deltas": [
+          0.3101,
+          0.2657,
+          0.3054
+        ],
+        "mean_hit_rate": 0.6224,
+        "mean_delta": 0.2937,
+        "min_delta": 0.2657,
+        "max_delta": 0.3101,
+        "mean_rank": 2.82,
+        "mrr": 0.5183,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "not comparable (chance 0.600)",
+      "ensemble_verdict": "not comparable (chance 0.600)"
+    },
+    {
+      "name": "candidate_pool_50",
+      "kind": "task",
+      "changed": "50 candidates per case instead of 15 \u2014 a different task, not a broken assumption",
+      "chance_top3": 0.06,
+      "seeds": [
+        7,
+        13,
+        42
+      ],
+      "n_rings": 1000,
+      "house": {},
+      "serving_ranker": {
+        "hit_rates": [
+          0.8601,
+          0.8485,
+          0.8765
+        ],
+        "deltas": [
+          -0.035,
+          -0.0326,
+          -0.0303
+        ],
+        "mean_hit_rate": 0.8617,
+        "mean_delta": -0.0326,
+        "min_delta": -0.035,
+        "max_delta": -0.0303,
+        "mean_rank": 2.19,
+        "mrr": 0.7739,
+        "n_cases": 429
+      },
+      "ensemble": {
+        "hit_rates": [
+          0.2075,
+          0.2121,
+          0.2121
+        ],
+        "deltas": [
+          -0.0955,
+          -0.1399,
+          -0.1189
+        ],
+        "mean_hit_rate": 0.2106,
+        "mean_delta": -0.1181,
+        "min_delta": -0.1399,
+        "max_delta": -0.0955,
+        "mean_rank": 23.99,
+        "mrr": 0.2108,
+        "n_cases": 429
+      },
+      "serving_ranker_verdict": "not comparable (chance 0.060)",
+      "ensemble_verdict": "not comparable (chance 0.060)"
+    }
+  ],
+  "worlds": {
+    "baseline@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2081
+    },
+    "baseline@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0412,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1857
+    },
+    "baseline@21": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.041,
+      "ring_evening_share": 0.8523,
+      "ring_mean_mules": 3.3,
+      "ring_mean_amount": 65417.7,
+      "history_mean": 0.2003
+    },
+    "baseline@34": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0409,
+      "ring_evening_share": 0.8423,
+      "ring_mean_mules": 3.19,
+      "ring_mean_amount": 63488.2,
+      "history_mean": 0.2104
+    },
+    "baseline@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2019
+    },
+    "baseline@55": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0401,
+      "ring_evening_share": 0.856,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64357.7,
+      "history_mean": 0.1792
+    },
+    "timing_removed@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0414,
+      "ring_evening_share": 0.2607,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2119
+    },
+    "timing_removed@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0414,
+      "ring_evening_share": 0.2603,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2144
+    },
+    "timing_removed@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0407,
+      "ring_evening_share": 0.252,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1886
+    },
+    "ring_size_x2@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 6.46,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2006
+    },
+    "ring_size_x2@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0421,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 6.57,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2073
+    },
+    "ring_size_x2@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0413,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 6.55,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1861
+    },
+    "amount_wide@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 198168.8,
+      "history_mean": 0.2
+    },
+    "amount_wide@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0421,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 200889.7,
+      "history_mean": 0.2078
+    },
+    "amount_wide@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0413,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 199586.5,
+      "history_mean": 0.1858
+    },
+    "amount_flat@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 27675.3,
+      "history_mean": 0.2023
+    },
+    "amount_flat@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 26850.5,
+      "history_mean": 0.2088
+    },
+    "amount_flat@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0412,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 28432.4,
+      "history_mean": 0.1852
+    },
+    "geography_jitter_250m@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0419,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2017
+    },
+    "geography_jitter_250m@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.208
+    },
+    "geography_jitter_250m@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0412,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1856
+    },
+    "geography_jitter_1000m@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0419,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2017
+    },
+    "geography_jitter_1000m@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2079
+    },
+    "geography_jitter_1000m@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0413,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1857
+    },
+    "label_noise_5pct@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0887,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.4254
+    },
+    "label_noise_5pct@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.0889,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.4318
+    },
+    "label_noise_5pct@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.088,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.3952
+    },
+    "label_noise_10pct@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.1342,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.5877
+    },
+    "label_noise_10pct@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.1344,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.5914
+    },
+    "label_noise_10pct@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 15,
+      "cashout_rate": 0.1339,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.5654
+    },
+    "candidate_pool_5@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 5,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2019
+    },
+    "candidate_pool_5@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 5,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2081
+    },
+    "candidate_pool_5@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 5,
+      "cashout_rate": 0.0412,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1857
+    },
+    "candidate_pool_50@42": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 50,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8457,
+      "ring_mean_mules": 3.23,
+      "ring_mean_amount": 64028.1,
+      "history_mean": 0.2019
+    },
+    "candidate_pool_50@7": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 50,
+      "cashout_rate": 0.042,
+      "ring_evening_share": 0.8497,
+      "ring_mean_mules": 3.29,
+      "ring_mean_amount": 64896.8,
+      "history_mean": 0.2081
+    },
+    "candidate_pool_50@13": {
+      "n_rings": 1000,
+      "n_candidates_per_case": 50,
+      "cashout_rate": 0.0412,
+      "ring_evening_share": 0.849,
+      "ring_mean_mules": 3.27,
+      "ring_mean_amount": 63462.1,
+      "history_mean": 0.1857
+    }
+  },
+  "churn": {
+    "baseline@7": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "baseline@13": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "baseline@21": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "baseline@34": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "baseline@42": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "baseline@55": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      }
+    },
+    "timing_removed@42": {
+      "serving_ranker": {
+        "changed": 2,
+        "of": 429,
+        "pct": 0.5
+      },
+      "ensemble": {
+        "changed": 80,
+        "of": 429,
+        "pct": 18.6
+      }
+    },
+    "timing_removed@7": {
+      "serving_ranker": {
+        "changed": 1,
+        "of": 429,
+        "pct": 0.2
+      },
+      "ensemble": {
+        "changed": 87,
+        "of": 429,
+        "pct": 20.3
+      }
+    },
+    "timing_removed@13": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 91,
+        "of": 429,
+        "pct": 21.2
+      }
+    },
+    "ring_size_x2@42": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 104,
+        "of": 429,
+        "pct": 24.2
+      }
+    },
+    "ring_size_x2@7": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 109,
+        "of": 429,
+        "pct": 25.4
+      }
+    },
+    "ring_size_x2@13": {
+      "serving_ranker": {
+        "changed": 1,
+        "of": 429,
+        "pct": 0.2
+      },
+      "ensemble": {
+        "changed": 105,
+        "of": 429,
+        "pct": 24.5
+      }
+    },
+    "amount_wide@42": {
+      "serving_ranker": {
+        "changed": 3,
+        "of": 429,
+        "pct": 0.7
+      },
+      "ensemble": {
+        "changed": 58,
+        "of": 429,
+        "pct": 13.5
+      }
+    },
+    "amount_wide@7": {
+      "serving_ranker": {
+        "changed": 0,
+        "of": 429,
+        "pct": 0.0
+      },
+      "ensemble": {
+        "changed": 47,
+        "of": 429,
+        "pct": 11.0
+      }
+    },
+    "amount_wide@13": {
+      "serving_ranker": {
+        "changed": 1,
+        "of": 429,
+        "pct": 0.2
+      },
+      "ensemble": {
+        "changed": 63,
+        "of": 429,
+        "pct": 14.7
+      }
+    },
+    "amount_flat@42": {
+      "serving_ranker": {
+        "changed": 3,
+        "of": 429,
+        "pct": 0.7
+      },
+      "ensemble": {
+        "changed": 123,
+        "of": 429,
+        "pct": 28.7
+      }
+    },
+    "amount_flat@7": {
+      "serving_ranker": {
+        "changed": 1,
+        "of": 429,
+        "pct": 0.2
+      },
+      "ensemble": {
+        "changed": 96,
+        "of": 429,
+        "pct": 22.4
+      }
+    },
+    "amount_flat@13": {
+      "serving_ranker": {
+        "changed": 1,
+        "of": 429,
+        "pct": 0.2
+      },
+      "ensemble": {
+        "changed": 119,
+        "of": 429,
+        "pct": 27.7
+      }
+    },
+    "geography_jitter_250m@42": {
+      "serving_ranker": {
+        "changed": 17,
+        "of": 429,
+        "pct": 4.0
+      },
+      "ensemble": {
+        "changed": 35,
+        "of": 429,
+        "pct": 8.2
+      }
+    },
+    "geography_jitter_250m@7": {
+      "serving_ranker": {
+        "changed": 22,
+        "of": 429,
+        "pct": 5.1
+      },
+      "ensemble": {
+        "changed": 30,
+        "of": 429,
+        "pct": 7.0
+      }
+    },
+    "geography_jitter_250m@13": {
+      "serving_ranker": {
+        "changed": 19,
+        "of": 429,
+        "pct": 4.4
+      },
+      "ensemble": {
+        "changed": 39,
+        "of": 429,
+        "pct": 9.1
+      }
+    },
+    "geography_jitter_1000m@42": {
+      "serving_ranker": {
+        "changed": 31,
+        "of": 429,
+        "pct": 7.2
+      },
+      "ensemble": {
+        "changed": 49,
+        "of": 429,
+        "pct": 11.4
+      }
+    },
+    "geography_jitter_1000m@7": {
+      "serving_ranker": {
+        "changed": 26,
+        "of": 429,
+        "pct": 6.1
+      },
+      "ensemble": {
+        "changed": 46,
+        "of": 429,
+        "pct": 10.7
+      }
+    },
+    "geography_jitter_1000m@13": {
+      "serving_ranker": {
+        "changed": 40,
+        "of": 429,
+        "pct": 9.3
+      },
+      "ensemble": {
+        "changed": 55,
+        "of": 429,
+        "pct": 12.8
+      }
+    },
+    "label_noise_5pct@42": {
+      "serving_ranker": {
+        "changed": 5,
+        "of": 429,
+        "pct": 1.2
+      },
+      "ensemble": {
+        "changed": 38,
+        "of": 429,
+        "pct": 8.9
+      }
+    },
+    "label_noise_5pct@7": {
+      "serving_ranker": {
+        "changed": 4,
+        "of": 429,
+        "pct": 0.9
+      },
+      "ensemble": {
+        "changed": 47,
+        "of": 429,
+        "pct": 11.0
+      }
+    },
+    "label_noise_5pct@13": {
+      "serving_ranker": {
+        "changed": 7,
+        "of": 429,
+        "pct": 1.6
+      },
+      "ensemble": {
+        "changed": 51,
+        "of": 429,
+        "pct": 11.9
+      }
+    },
+    "label_noise_10pct@42": {
+      "serving_ranker": {
+        "changed": 8,
+        "of": 429,
+        "pct": 1.9
+      },
+      "ensemble": {
+        "changed": 45,
+        "of": 429,
+        "pct": 10.5
+      }
+    },
+    "label_noise_10pct@7": {
+      "serving_ranker": {
+        "changed": 4,
+        "of": 429,
+        "pct": 0.9
+      },
+      "ensemble": {
+        "changed": 45,
+        "of": 429,
+        "pct": 10.5
+      }
+    },
+    "label_noise_10pct@13": {
+      "serving_ranker": {
+        "changed": 7,
+        "of": 429,
+        "pct": 1.6
+      },
+      "ensemble": {
+        "changed": 53,
+        "of": 429,
+        "pct": 12.4
+      }
+    },
+    "candidate_pool_5@42": {
+      "serving_ranker": {
+        "changed": 33,
+        "of": 429,
+        "pct": 7.7
+      },
+      "ensemble": {
+        "changed": 131,
+        "of": 429,
+        "pct": 30.5
+      }
+    },
+    "candidate_pool_5@7": {
+      "serving_ranker": {
+        "changed": 40,
+        "of": 429,
+        "pct": 9.3
+      },
+      "ensemble": {
+        "changed": 133,
+        "of": 429,
+        "pct": 31.0
+      }
+    },
+    "candidate_pool_5@13": {
+      "serving_ranker": {
+        "changed": 48,
+        "of": 429,
+        "pct": 11.2
+      },
+      "ensemble": {
+        "changed": 114,
+        "of": 429,
+        "pct": 26.6
+      }
+    },
+    "candidate_pool_50@42": {
+      "serving_ranker": {
+        "changed": 13,
+        "of": 429,
+        "pct": 3.0
+      },
+      "ensemble": {
+        "changed": 51,
+        "of": 429,
+        "pct": 11.9
+      }
+    },
+    "candidate_pool_50@7": {
+      "serving_ranker": {
+        "changed": 15,
+        "of": 429,
+        "pct": 3.5
+      },
+      "ensemble": {
+        "changed": 41,
+        "of": 429,
+        "pct": 9.6
+      }
+    },
+    "candidate_pool_50@13": {
+      "serving_ranker": {
+        "changed": 14,
+        "of": 429,
+        "pct": 3.3
+      },
+      "ensemble": {
+        "changed": 60,
+        "of": 429,
+        "pct": 14.0
+      }
+    }
+  }
+}

@@ -24,16 +24,23 @@ RANKER_PATH = os.path.join(BASE_DIR, "model", "ranker.pkl")
 RANKER_META = os.path.join(BASE_DIR, "model", "ranker_metadata.json")
 
 
-def build_ranker_rows(df, candidates, train_groups, perturb=None):
+def build_ranker_rows(df, candidates, train_groups, perturb=None, atms=None):
     """Candidate rows for the pointwise ranker, optionally with altered inputs.
 
     ``perturb`` receives ``(case_context, atm, history_count)`` and returns the
     same triple. The sensitivity harness uses it to score the frozen artifact
     against altered complaint and registry values without retraining.
+
+    ``atms`` lets a caller supply an already-generated registry (for example a
+    perturbed world). When omitted the deterministic seed-42 registry is
+    regenerated exactly as before.
     """
     import generate_data as _g
-    np.random.seed(42)
-    atms = {a["atm_id"]: a for a in _g.generate_atms()}
+    if atms is None:
+        np.random.seed(42)
+        atms = {a["atm_id"]: a for a in _g.generate_atms()}
+    elif not isinstance(atms, dict):
+        atms = {a["atm_id"]: a for a in atms}
     by_city = {}
     for a in atms.values():
         by_city.setdefault(a["city"], []).append(a)

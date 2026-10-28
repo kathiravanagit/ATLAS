@@ -103,8 +103,64 @@ NAMES_FEMALE = [
 VICTIM_NAMES = NAMES_MALE + NAMES_FEMALE
 
 
-def generate_atms():
+DEFAULT_ASSUMPTIONS = {
+    # Ring members cluster in the evening 17-22 window and the outcome logit
+    # rewards that window. Turning this off makes hours uniform and drops the
+    # evening terms, so reported hour stops carrying any generative signal.
+    "timing_coupling": True,
+    # Multiplier on each crime type's mule_range (number of mule accounts).
+    "ring_scale": 1.0,
+    # "default" (crime-typed uniform / lognormal), "wide" (same shapes, ~2x
+    # spread), or "flat" (one lognormal for every row, amount independent of
+    # crime type and of the injected-fraud flag).
+    "amount_shape": "default",
+    # Gaussian noise added to every ATM coordinate, in metres.
+    "atm_jitter_m": 0.0,
+    # Fraction of drawn cash-out outcomes flipped after the draw. Feeds through
+    # to per-ATM history, so it corrupts the history feature as well as labels.
+    "label_noise": 0.0,
+}
+
+AMOUNT_SHAPES = ("default", "wide", "flat")
+
+# Private stream for the geography knob: the offset field must not depend on
+# the main draw order, or jittering coordinates would also redraw the world.
+ATM_JITTER_SEED = 2718
+# Private streams for the timing and label-noise knobs, for the same reason:
+# breaking one mechanism must not silently redraw everything else.
+TIMING_SEED = 3141
+LABEL_NOISE_SEED = 1618
+AMOUNT_SEED = 5772
+
+
+def _assumptions(overrides=None):
+    """Merge caller overrides onto the documented defaults.
+
+    Every branch downstream is guarded on the default value, so passing
+    ``None`` consumes exactly the same random stream as the original
+    generator and the committed dataset stays reproducible.
+    """
+    resolved = dict(DEFAULT_ASSUMPTIONS)
+    for key, value in (overrides or {}).items():
+        if key not in resolved:
+            raise KeyError(f"unknown generator assumption: {key}")
+        resolved[key] = value
+    if resolved["amount_shape"] not in AMOUNT_SHAPES:
+        raise ValueError(f"amount_shape must be one of {AMOUNT_SHAPES}")
+    if float(resolved["ring_scale"]) <= 0:
+        raise ValueError("ring_scale must be positive")
+    if float(resolved["atm_jitter_m"]) < 0:
+        raise ValueError("atm_jitter_m must be non-negative")
+    if not 0.0 <= float(resolved["label_noise"]) <= 1.0:
+        raise ValueError("label_noise must be between 0 and 1")
+    return resolved
+
+
+def generate_atms(assumptions=None):
     """Generate 50 ATMs per city (400 total) with realistic distributions."""
+    opts = _assumptions(assumptions)
+    atm_jitter_m = float(opts["atm_jitter_m"])
+    jitter_rng = np.random.RandomState(ATM_JITTER_SEED)
     all_atms = []
     for city_id, city in CITIES.items():
         center_lat, center_lng = city["center"]
@@ -114,6 +170,15 @@ def generate_atms():
             dist = min(dist, city["radius_km"])
             lat = center_lat + dist * np.cos(angle) / 111.32
             lng = center_lng + dist * np.sin(angle) / (111.32 * np.cos(np.radians(center_lat)))
+            if atm_jitter_m:
+                # Registry coordinate error: metres on the ground, so latitude
+                # and longitude noise are scaled by the local degree length.
+                # Drawn from a private stream so the knob displaces coordinates
+                # and nothing else — the rest of the world is bit-identical to
+                # the baseline draw.
+                lat += jitter_rng.normal(0, atm_jitter_m) / 111_320.0
+                lng += jitter_rng.normal(0, atm_jitter_m) / (
+                    111_320.0 * np.cos(np.radians(lat)))
 
             atm_type = np.random.choice(ATM_TYPES, p=ATM_TYPE_WEIGHTS)
             area_idx = i % len(city["top_areas"])
@@ -150,13 +215,21 @@ def haversine(lat1, lng1, lat2, lng2):
     return R * 2 * np.arcsin(np.sqrt(a))
 
 
-def generate_transactions(atms, n_transactions=200000):
+def generate_transactions(atms, n_transactions=200000, assumptions=None):
     """
     Generate synthetic row-level cash-out targets, not next-ATM/time outcomes.
     Fraud rings share geography, month, and group identity; ordinary rows are
     independent groups. Row order starts with injected rings, so prefixes are
     deliberately NOT random samples.
     """
+    opts = _assumptions(assumptions)
+    timing_coupled = bool(opts["timing_coupling"])
+    ring_scale = float(opts["ring_scale"])
+    amount_shape = opts["amount_shape"]
+    # Knob-only streams: a broken assumption must not also redraw the rest of
+    # the world. With the defaults none of these is consulted below.
+    hour_rng = np.random.RandomState(TIMING_SEED)
+    amount_rng = np.random.RandomState(AMOUNT_SEED)
     print(f"  Generating {n_transactions:,} transactions across {len(atms)} ATMs...")
 
     crime_weights = [CRIME_TYPES[ct]["weight"] for ct in CRIME_TYPES]
@@ -186,13 +259,26 @@ def generate_transactions(atms, n_transactions=200000):
             member_lat = ring_center_atm["lat"] + np.random.normal(0, 0.01)
             member_lng = ring_center_atm["lng"] + np.random.normal(0, 0.01)
             # Mostly evening hours, with a small late-night (0-4) sub-pattern.
+            # The same main-stream draws happen in both modes so the rest of
+            # the world stays put; with timing_coupling off their value is
+            # discarded and the hour comes from the knob's own stream.
             if np.random.random() < 0.15:
-                member_hour = int(np.random.randint(0, 5))
+                coupled_hour = int(np.random.randint(0, 5))
             else:
-                member_hour = np.random.choice(range(17, 23), p=[0.15, 0.20, 0.25, 0.20, 0.15, 0.05])
+                coupled_hour = np.random.choice(range(17, 23), p=[0.15, 0.20, 0.25, 0.20, 0.15, 0.05])
+            member_hour = coupled_hour if timing_coupled else int(hour_rng.randint(0, 24))
+            # The shipped draw always happens, so the main stream stays aligned
+            # whichever shape is active; a shaped draw replaces the value only.
+            shipped_amount = float(np.random.uniform(8000, 120000))
+            if amount_shape == "default":
+                member_amount = shipped_amount
+            elif amount_shape == "flat":
+                member_amount = float(amount_rng.lognormal(9.5, 1.2))
+            else:
+                member_amount = float(amount_rng.uniform(1000, 400000))
             ring_members.append({
                 "lat": member_lat, "lng": member_lng,
-                "amount": np.random.uniform(8000, 120000),
+                "amount": member_amount,
                 "hour": member_hour,
             })
         fraud_rings.append({
@@ -219,18 +305,35 @@ def generate_transactions(atms, n_transactions=200000):
             group_id = ring["group_id"]
             crime_type = ring["crime_type"]
             pattern = CRIME_TYPES[crime_type]
-            amount = member["amount"] * np.random.uniform(0.8, 1.2)
+            shipped_mult = np.random.uniform(0.8, 1.2)
+            if amount_shape == "default":
+                amount = member["amount"] * shipped_mult
+            elif amount_shape == "flat":
+                amount = member["amount"] * amount_rng.uniform(0.8, 1.2)
+            else:
+                amount = member["amount"] * amount_rng.uniform(0.6, 1.4)
             hour = member["hour"]
             victim_lat = member["lat"] + np.random.normal(0, 0.005)
             victim_lng = member["lng"] + np.random.normal(0, 0.005)
-            num_mules = np.random.randint(*pattern["mule_range"])
+            # Drawn from the shipped range either way, then scaled, so the
+            # random stream does not depend on the bound (numpy's bounded
+            # integer sampling consumes a range-dependent number of words).
+            num_mules = int(np.random.randint(*pattern["mule_range"]))
+            if ring_scale != 1.0:
+                num_mules = max(1, int(round(num_mules * ring_scale)))
             fraud_count += 1
         else:
             is_fraud = False
             group_id = f"INDEPENDENT-{txn_idx:07d}"
             crime_type = "none"
             pattern = {"amount_range": (500, 25000), "mule_range": (1, 1), "peak_hours": (8, 20)}
-            amount = np.random.lognormal(9.5, 0.8)
+            shipped_amount = np.random.lognormal(9.5, 0.8)
+            if amount_shape == "default":
+                amount = shipped_amount
+            elif amount_shape == "flat":
+                amount = float(amount_rng.lognormal(9.5, 1.2))
+            else:
+                amount = float(amount_rng.lognormal(9.5, 1.4))
             amount = min(amount, 50000)
             victim_lat = atm["lat"] + np.random.normal(0, 0.003)
             victim_lng = atm["lng"] + np.random.normal(0, 0.003)
@@ -258,18 +361,19 @@ def generate_transactions(atms, n_transactions=200000):
         # The linear predictor is stored; final labels are drawn in month
         # order below so per-ATM history reflects strictly past months.
         if is_fraud:
+            evening = 1.0 if timing_coupled else 0.0
             logit = (
                 -1.0
                 + 1.2 * proximity
                 + 1.0 * density
-                + 0.8 * time_match
+                + 0.8 * time_match * evening
                 + 0.5 * type_score
                 + 0.7 * suspect_prox
                 + 0.4 * velocity
                 + 0.2 * freq
                 + 0.25 * amount_norm
                 + 0.35 * (num_mules >= 3)
-                + 0.25 * (hour >= 17)
+                + 0.25 * (hour >= 17) * evening
                 + np.random.normal(0, 0.9)
             )
         else:
@@ -325,19 +429,26 @@ def generate_transactions(atms, n_transactions=200000):
     df = pd.DataFrame(rows)
     df["_logit_base"] = np.array(base_logits)
     df["_is_fraud"] = np.array(fraud_flags)
-    _label_cashouts_in_month_order(df, atms)
+    _label_cashouts_in_month_order(df, atms, assumptions=opts)
     df.drop(columns=["_logit_base", "_is_fraud"], inplace=True)
     return df
 
 
-def _label_cashouts_in_month_order(df, atms):
+def _label_cashouts_in_month_order(df, atms, assumptions=None):
     """Draw final cash-out labels in month order with per-ATM memory.
 
     History for a row counts only strictly past-month cash-outs at its ATM
     (same-month rows never see each other), so no future information leaks
     into any feature. The city maximum used for scaling is a city-wide
     constant from a base-dynamics pass, not per-row future data.
+
+    ``label_noise`` flips a fraction of the drawn outcomes *before* they enter
+    the per-ATM history, so a misrecorded outcome corrupts the history feature
+    as well as the label itself.
     """
+    opts = _assumptions(assumptions)
+    label_noise = float(opts["label_noise"])
+    noise_rng = np.random.RandomState(LABEL_NOISE_SEED)
     from ml_engine import hist_norm, local_hotspot
     base = df["_logit_base"].to_numpy()
     is_fraud = df["_is_fraud"].to_numpy()
@@ -378,6 +489,11 @@ def _label_cashouts_in_month_order(df, atms):
         draw = (np.random.random(len(idx)) < prob).astype(int)
         flip = np.where(draw == 1, 0.07, 0.015)
         draw = np.where(np.random.random(len(idx)) < flip, 1 - draw, draw)
+        if label_noise > 0:
+            # Extra misrecording on top of the generator's own label noise.
+            # Applied before accumulation so history inherits the corruption.
+            # Its own stream: same base draw, only the flips differ.
+            draw = np.where(noise_rng.random(len(idx)) < label_noise, 1 - draw, draw)
         cash[idx] = draw
         hist_feat[idx] = hn
         for i, a in zip(idx, atm_ids[idx]):
