@@ -1,0 +1,327 @@
+{
+  "protocol": "frozen-artifact sensitivity sweep",
+  "status": "available_synthetic_only",
+  "features": {
+    "serving_ranker": [
+      "distance_from_victim_km",
+      "historical_crime_density",
+      "atm_type_score",
+      "suspect_distance_km",
+      "proximity_score",
+      "density_score",
+      "suspect_proximity",
+      "atm_cashout_history",
+      "local_hotspot_density"
+    ],
+    "ensemble": [
+      "distance_from_victim_km",
+      "historical_crime_density",
+      "time_window_match",
+      "atm_type_score",
+      "suspect_distance_km",
+      "recent_withdrawal_freq",
+      "amount",
+      "num_mule_accounts",
+      "hour",
+      "day_of_week",
+      "transaction_velocity",
+      "proximity_score",
+      "density_score",
+      "suspect_proximity",
+      "amount_factor",
+      "atm_cashout_history",
+      "local_hotspot_density"
+    ]
+  },
+  "n_cases": {
+    "serving_ranker": 429,
+    "ensemble": 429
+  },
+  "noise_band_top3": {
+    "serving_ranker": 0.0281,
+    "ensemble": 0.0454
+  },
+  "note": "Synthetic per-case retrieval with planted ground truth. Measures the frozen artifacts' sensitivity to altered complaint and registry inputs; not real-world next-ATM accuracy, and not a calibration or probability statement.",
+  "perturbations": [
+    {
+      "name": "baseline",
+      "description": "no change",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6923,
+          "top_3": 0.9068,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.807,
+        "delta_top3": 0.0
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1818,
+          "top_3": 0.331,
+          "top_5": 0.4359
+        },
+        "mean_rank": 7.48,
+        "mrr": 0.3241,
+        "delta_top3": 0.0
+      }
+    },
+    {
+      "name": "victim_offset_250m",
+      "description": "complaint coordinate moved 250 m north-east",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.7016,
+          "top_3": 0.8951,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.72,
+        "mrr": 0.8073,
+        "delta_top3": -0.0117
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1772,
+          "top_3": 0.338,
+          "top_5": 0.4429
+        },
+        "mean_rank": 7.37,
+        "mrr": 0.3235,
+        "delta_top3": 0.007
+      }
+    },
+    {
+      "name": "victim_offset_1km",
+      "description": "complaint coordinate moved 1 km north-east",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6387,
+          "top_3": 0.8765,
+          "top_5": 0.9441
+        },
+        "mean_rank": 1.87,
+        "mrr": 0.7687,
+        "delta_top3": -0.0303
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1818,
+          "top_3": 0.3357,
+          "top_5": 0.4709
+        },
+        "mean_rank": 7.12,
+        "mrr": 0.3292,
+        "delta_top3": 0.0047
+      }
+    },
+    {
+      "name": "hour_plus_one",
+      "description": "reported hour is one hour late",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6923,
+          "top_3": 0.9068,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.807,
+        "delta_top3": 0.0
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1795,
+          "top_3": 0.3054,
+          "top_5": 0.4266
+        },
+        "mean_rank": 7.62,
+        "mrr": 0.3169,
+        "delta_top3": -0.0256
+      }
+    },
+    {
+      "name": "hour_off_window",
+      "description": "reported hour outside the 17-22 window",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6923,
+          "top_3": 0.9068,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.807,
+        "delta_top3": 0.0
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.2168,
+          "top_3": 0.3683,
+          "top_5": 0.4592
+        },
+        "mean_rank": 7.14,
+        "mrr": 0.3567,
+        "delta_top3": 0.0373
+      }
+    },
+    {
+      "name": "amount_doubled",
+      "description": "reported loss doubled",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6923,
+          "top_3": 0.9068,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.807,
+        "delta_top3": 0.0
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1958,
+          "top_3": 0.345,
+          "top_5": 0.4592
+        },
+        "mean_rank": 6.92,
+        "mrr": 0.3429,
+        "delta_top3": 0.014
+      }
+    },
+    {
+      "name": "mules_plus_two",
+      "description": "two more linked mule accounts",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.6923,
+          "top_3": 0.9068,
+          "top_5": 0.958
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.807,
+        "delta_top3": 0.0
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1399,
+          "top_3": 0.2797,
+          "top_5": 0.3963
+        },
+        "mean_rank": 8.04,
+        "mrr": 0.282,
+        "delta_top3": -0.0513
+      }
+    },
+    {
+      "name": "withdrawal_history_dropped",
+      "description": "past-month ATM cash-out history unavailable",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.69,
+          "top_3": 0.9161,
+          "top_5": 0.979
+        },
+        "mean_rank": 1.62,
+        "mrr": 0.8095,
+        "delta_top3": 0.0093
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1445,
+          "top_3": 0.2681,
+          "top_5": 0.366
+        },
+        "mean_rank": 8.11,
+        "mrr": 0.2831,
+        "delta_top3": -0.0629
+      }
+    },
+    {
+      "name": "crime_density_zeroed",
+      "description": "registry crime density unavailable",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.5501,
+          "top_3": 0.8345,
+          "top_5": 0.9441
+        },
+        "mean_rank": 2.05,
+        "mrr": 0.7102,
+        "delta_top3": -0.0723
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1795,
+          "top_3": 0.3333,
+          "top_5": 0.4266
+        },
+        "mean_rank": 7.72,
+        "mrr": 0.3199,
+        "delta_top3": 0.0023
+      }
+    },
+    {
+      "name": "atm_type_unknown",
+      "description": "ATM type missing from the registry",
+      "serving_ranker": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.7063,
+          "top_3": 0.9091,
+          "top_5": 0.965
+        },
+        "mean_rank": 1.68,
+        "mrr": 0.8116,
+        "delta_top3": 0.0023
+      },
+      "ensemble": {
+        "status": "available_synthetic_only",
+        "n_cases": 429,
+        "hit_rate": {
+          "top_1": 0.1702,
+          "top_3": 0.3054,
+          "top_5": 0.3963
+        },
+        "mean_rank": 8.03,
+        "mrr": 0.3061,
+        "delta_top3": -0.0256
+      }
+    }
+  ]
+}

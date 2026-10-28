@@ -246,7 +246,7 @@ def _case_context(ring_rows, group_id):
     }
 
 
-def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
+def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5), perturb=None):
     """Per-case ATM retrieval with planted ground truth (synthetic only).
 
     For holdout ring-groups, score each case's candidate ATMs with the
@@ -254,6 +254,10 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
     of the serving ranker; small print: candidates share one case context,
     so separation comes only from ATM-discriminative signal. Not
     real-world next-ATM accuracy.
+
+    ``perturb`` optionally receives ``(case_context, atm, history_count)`` and
+    returns the same triple, letting the sensitivity harness score the frozen
+    ranker against altered complaint or registry inputs without retraining.
     """
     if not {"atm_id", "city", "cash_out_occurred"}.issubset(df.columns):
         return {"status": "unavailable",
@@ -292,9 +296,14 @@ def candidate_hit_at_k(df, candidates, splits, rf, xgb, ks=(1, 3, 5)):
         ctx = _case_context(ring, part["group_id"].iloc[0])
         registry = by_city.get(ctx["city"], [])
         cmax = int(city_max.get(ctx["city"], 0))
-        feats = [build_candidate_features(
-            ctx, atms[c], _past(ctx["month"], c), cmax, registry)
-            for c in part["candidate_atm_id"]]
+        feats = []
+        for candidate in part["candidate_atm_id"]:
+            history = _past(ctx["month"], candidate)
+            if perturb is None:
+                context, atm, history = ctx, atms[candidate], history
+            else:
+                context, atm, history = perturb(dict(ctx), dict(atms[candidate]), history)
+            feats.append(build_candidate_features(context, atm, history, cmax, registry))
         proba = ensemble_proba(rf, xgb, pd.DataFrame(feats, columns=FEATURE_COLS))
         order = np.argsort(-np.asarray(proba), kind="stable")
         truth_pos = int(np.where(part["is_true"].to_numpy()[order] == 1)[0][0]) + 1

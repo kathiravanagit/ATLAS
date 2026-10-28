@@ -24,7 +24,13 @@ RANKER_PATH = os.path.join(BASE_DIR, "model", "ranker.pkl")
 RANKER_META = os.path.join(BASE_DIR, "model", "ranker_metadata.json")
 
 
-def build_ranker_rows(df, candidates, train_groups):
+def build_ranker_rows(df, candidates, train_groups, perturb=None):
+    """Candidate rows for the pointwise ranker, optionally with altered inputs.
+
+    ``perturb`` receives ``(case_context, atm, history_count)`` and returns the
+    same triple. The sensitivity harness uses it to score the frozen artifact
+    against altered complaint and registry values without retraining.
+    """
     import generate_data as _g
     np.random.seed(42)
     atms = {a["atm_id"]: a for a in _g.generate_atms()}
@@ -50,9 +56,13 @@ def build_ranker_rows(df, candidates, train_groups):
         reg = by_city.get(ctx["city"], [])
         cmax = int(city_max.get(ctx["city"], 0))
         for _, cand in part.iterrows():
-            feats = build_candidate_features(
-                ctx, atms[cand["candidate_atm_id"]],
-                _past(ctx["month"], cand["candidate_atm_id"]), cmax, reg)
+            atm_id = cand["candidate_atm_id"]
+            history = _past(ctx["month"], atm_id)
+            if perturb is None:
+                context, atm, hist = ctx, atms[atm_id], history
+            else:
+                context, atm, hist = perturb(dict(ctx), dict(atms[atm_id]), history)
+            feats = build_candidate_features(context, atm, hist, cmax, reg)
             rows.append([feats[c] for c in RANKER_FEATURES])
             labels.append(int(cand["is_true"]))
             case_ids.append(part["case_id"].iloc[0])
