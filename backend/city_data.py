@@ -9,6 +9,11 @@ CITIES = {
     "puducherry": {
         "name": "Puducherry",
         "state": "Puducherry",
+        # Police district that a complaint in this city is filed under. This is
+        # the jurisdiction key on Case/Alert; the city key above is the ATM
+        # registry key. They are deliberately separate so a district filter
+        # never depends on parsing a case description.
+        "district": "Puducherry",
         "center": (11.9416, 79.8083),
         "zoom": 12,
         "atms": [
@@ -26,6 +31,7 @@ CITIES = {
     "chennai": {
         "name": "Chennai",
         "state": "Tamil Nadu",
+        "district": "Chennai",
         "center": (13.0827, 80.2707),
         "zoom": 11,
         "atms": [
@@ -43,6 +49,7 @@ CITIES = {
     "delhi": {
         "name": "Delhi",
         "state": "Delhi",
+        "district": "New Delhi",
         "center": (28.7041, 77.1025),
         "zoom": 11,
         "atms": [
@@ -60,6 +67,7 @@ CITIES = {
     "mumbai": {
         "name": "Mumbai",
         "state": "Maharashtra",
+        "district": "Mumbai City",
         "center": (19.0760, 72.8777),
         "zoom": 11,
         "atms": [
@@ -77,6 +85,7 @@ CITIES = {
     "bangalore": {
         "name": "Bangalore",
         "state": "Karnataka",
+        "district": "Bengaluru Urban",
         "center": (12.9716, 77.5946),
         "zoom": 11,
         "atms": [
@@ -94,6 +103,7 @@ CITIES = {
     "kolkata": {
         "name": "Kolkata",
         "state": "West Bengal",
+        "district": "Kolkata",
         "center": (22.5726, 88.3639),
         "zoom": 11,
         "atms": [
@@ -111,6 +121,7 @@ CITIES = {
     "hyderabad": {
         "name": "Hyderabad",
         "state": "Telangana",
+        "district": "Hyderabad",
         "center": (17.3850, 78.4867),
         "zoom": 11,
         "atms": [
@@ -128,6 +139,7 @@ CITIES = {
     "ahmedabad": {
         "name": "Ahmedabad",
         "state": "Gujarat",
+        "district": "Ahmedabad",
         "center": (23.0225, 72.5714),
         "zoom": 11,
         "atms": [

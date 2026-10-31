@@ -6,6 +6,8 @@ export interface Case {
   current_risk: string;
   last_updated: string;
   status: 'new' | 'investigating' | 'resolved';
+  district?: string;
+  department?: string;
   victim_name?: string;
   contact?: string;
   description?: string;

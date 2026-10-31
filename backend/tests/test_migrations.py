@@ -43,9 +43,12 @@ def _run(tmp_path, code, *, demo="false", testing="0", url=None):
         "import dotenv\n"
         "dotenv.load_dotenv = lambda *args, **kwargs: False\n"
     )
+    # This subprocess seeds the demo database twice to prove idempotency. Each
+    # pass runs the real prediction pipeline for every active case (~4 s each),
+    # so the budget has to cover two full seeds, not one.
     result = subprocess.run(
         [sys.executable, "-B", "-c", bootstrap + textwrap.dedent(code)],
-        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=90,
+        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=300,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert not (tmp_path / "cybercrime_intel.db").exists()
@@ -55,7 +58,11 @@ def _run(tmp_path, code, *, demo="false", testing="0", url=None):
 MIGRATE = f"""
         from alembic import command
         from alembic.config import Config
+        from alembic.script import ScriptDirectory
         config = Config({str(BACKEND_DIR / 'alembic.ini')!r})
+        # Derive head instead of pinning a revision literal, so adding a
+        # migration does not fail these tests for the wrong reason.
+        HEAD = ScriptDirectory.from_config(config).get_current_head()
 """
 
 
@@ -93,7 +100,7 @@ def test_empty_database_upgrade_has_complete_schema(tmp_path):
             assert {index.name for index in table.indexes} <= indexes, name
         assert config.get_main_option('sqlalchemy.url') == DATABASE_URL
         with engine.connect() as conn:
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == HEAD
         command.upgrade(config, 'head')
         engine.dispose()
     """)
@@ -144,7 +151,7 @@ def test_existing_schema_upgrade_preserves_data(tmp_path, existing):
         assert 'ix_predictions_model_version' in {{i['name'] for i in inspector.get_indexes('predictions')}}
         with engine.connect() as conn:
             assert conn.execute(text("SELECT amount FROM cases WHERE case_id = 'keep-me'")).scalar_one() == 123
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == HEAD
         engine.dispose()
     """)
 
@@ -167,10 +174,10 @@ def test_demo_setup_only_is_repeatable(tmp_path):
         with engine.connect() as conn:
             for name, count in counts.items():
                 assert conn.execute(text('SELECT COUNT(*) FROM ' + name)).scalar_one() == count
-            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == '0004_review_records'
+            assert conn.execute(text('SELECT version_num FROM alembic_version')).scalar_one() == HEAD
         engine.dispose()
     """
-    _run(tmp_path, code, demo="true")
+    _run(tmp_path, MIGRATE + code, demo="true")
 
 
 @pytest.mark.parametrize("tls", ["unset", "paired", "partial"])

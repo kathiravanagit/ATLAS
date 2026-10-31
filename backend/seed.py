@@ -4,6 +4,7 @@ from models_db import (
     Case, Alert, Suspect,
     AuditLog, AtmLocation, FieldOutcome
 )
+from city_data import CITIES
 from datetime import datetime, timedelta, timezone
 import random
 import json
@@ -166,12 +167,43 @@ def seed_data(force=False):
             "CC-2026-0143": "Intelligence Unit",
             "CC-2026-0142": "Intelligence Unit",
         }
-        for cid, ctype, amt, linked, risk, status, vname, contact, desc in case_data:
+        # Complaint geography. The 23 curated cases stay in Puducherry because
+        # every seeded alert and suspect below references a PNY-* ATM; moving
+        # them would contradict the fixture. One generated case per remaining
+        # district keeps the jurisdiction filter exercisable without hand-writing
+        # another 30 tuples, and each names its city in the description so the
+        # legacy description-based fallback agrees with the explicit field.
+        district_by_case = {row[0]: CITIES["puducherry"]["district"] for row in case_data}
+        generated_cases = []
+        generated_alerts = []
+        for city_id, city in CITIES.items():
+            if city_id == "puducherry":
+                continue
+            idx = len(generated_cases) + 1
+            cid = f"CC-2026-02{idx:02d}"
+            atm = city["atms"][0]
+            district_by_case[cid] = city["district"]
+            generated_cases.append((
+                cid, "UPI Fraud", 48000 + 15000 * idx, 2 + idx % 3, "Medium", "active",
+                f"VICTIM-SYN-{100 + idx}", f"+91-SYN-{1100 + idx}",
+                f"Unauthorized UPI transfer reported in {city['name']}. "
+                f"Funds withdrawn at {atm['id']}, {atm['name']}.",
+            ))
+            generated_alerts.append((
+                f"ALT-G{idx:03d}", cid,
+                f"MEDIUM-RISK: {city['name']} case {cid} shows elevated cash-out "
+                f"risk at {atm['id']} during 18:00-20:00.",
+                "Medium", f"{atm['id']}, {atm['name']}", "18:00-20:00", False,
+            ))
+
+        for cid, ctype, amt, linked, risk, status, vname, contact, desc in (
+                case_data + generated_cases):
             cases.append(Case(
                 case_id=cid, crime_type=ctype, amount=amt,
                 linked_accounts=linked, current_risk=risk, last_updated="just now",
                 status=status, victim_name=_enc(vname), contact=_enc(contact),
                 description=_enc(desc), department=dept_assignments.get(cid, ""),
+                district=district_by_case.get(cid, ""),
             ))
         db.add_all(cases)
         db.flush()
@@ -195,11 +227,12 @@ def seed_data(force=False):
         ]
 
         alerts = []
-        for aid, cid, msg, level, loc, tw, ack in alert_data:
+        for aid, cid, msg, level, loc, tw, ack in (alert_data + generated_alerts):
             ts = (now - timedelta(minutes=random.randint(5, 120))).strftime("%H:%M:%S")  # nosec B311 (synthetic demo timestamps)
             alerts.append(Alert(
                 alert_id=aid, case_id=cid, message=_enc(msg),
                 risk_level=level, location=loc, time_window=tw,
+                district=district_by_case.get(cid, ""),
                 timestamp=ts, acknowledged=ack,
                 acknowledged_at=(now - timedelta(minutes=random.randint(1, 30))).strftime("%H:%M:%S") if ack else None,  # nosec B311 (synthetic demo timestamps)
             ))
@@ -255,11 +288,19 @@ def seed_data(force=False):
         print(f"  Predictions: {prediction_count}, Ranked Locations: {ranked_count}")
 
         # ─── Audit Log ────────────────────────────────────────────────
+        # Counts are read back from the database, not from the fixture lists.
+        # The prediction pipeline raises its own high-risk alerts, so len(alerts)
+        # under-reports what the dashboard will show; an audit log that disagrees
+        # with the dashboard is the first thing an evaluator checks.
+        db_atms = db.query(AtmLocation).count()
+        db_cases = db.query(Case).count()
+        db_alerts = db.query(Alert).count()
+        open_alerts = db.query(Alert).filter(Alert.acknowledged == False).count()
         officers = ["Inspector Sharma", "Inspector Verma", "Inspector Patel", "Inspector Reddy", "Inspector Nair"]
         audit_entries = [
-            ("System Initialized", "Database seeded with 64 ATMs across 8 cities, 23 cases, 14 alerts", "system"),
-            ("Model Loaded", "Ensemble model (RF+XGBoost) loaded with 72.7% accuracy", "system"),
-            ("Data Refresh", "Case data synchronized: 23 cases, 14 active alerts across 8 cities", "system"),
+            ("System Initialized", f"Database seeded with {db_atms} ATMs across {len(CITIES)} cities, {db_cases} cases, {db_alerts} alerts", "system"),
+            ("Model Loaded", f"Ensemble model (RF+XGBoost) loaded for {len(CITIES)} cities - synthetic demo artifacts", "system"),
+            ("Data Refresh", f"Case data synchronized: {db_cases} cases, {open_alerts} active alerts across {len(CITIES)} cities", "system"),
             ("User Login", "Inspector Sharma logged in from 103.25.x.x - Chrome/Windows", "session"),
             ("User Login", "Inspector Verma logged in from 103.25.x.x - Firefox/Windows", "session"),
             ("User Login", "Inspector Patel logged in from 172.16.x.x - Safari/macOS", "session"),
@@ -290,7 +331,7 @@ def seed_data(force=False):
             ("Evidence Exported", f"Exported evidence chain for CC-2026-0145 - 5 signals anchored", "evidence"),
             ("Evidence Exported", f"Exported evidence chain for CC-2026-0138 - SIM swap evidence package", "evidence"),
             ("Evidence Exported", f"Exported evidence chain for CC-2026-0132 - identity theft package", "evidence"),
-            ("Model Prediction Run", "Batch prediction completed for 17 active cases across 8 cities", "system"),
+            ("Model Prediction Run", f"Batch prediction completed for {prediction_count} active cases across {len(CITIES)} cities", "system"),
             ("Model Prediction Run", "SHAP explanation generated for CC-2026-0147 - top feature: distance_from_victim_km", "system"),
             ("Model Prediction Run", "Mule network analysis completed - 3 suspicious clusters detected", "system"),
             ("API Error", "Rate limit exceeded for IP 103.25.x.x on /api/predictions/CC-2026-0147 (429)", "error"),
@@ -335,7 +376,7 @@ def seed_data(force=False):
             ))
 
         db.commit()
-        print(f"Database seeded: {len(atm_locations)} ATMs, {len(cases)} cases, {prediction_count} predictions, {ranked_count} ranked locations, {len(alerts)} alerts, {len(suspects)} suspects, {len(audit_entries)} audit logs, {len(field_outcomes)} field outcomes")
+        print(f"Database seeded: {db_atms} ATMs, {db_cases} cases, {prediction_count} predictions, {ranked_count} ranked locations, {db_alerts} alerts, {len(suspects)} suspects, {len(audit_entries)} audit logs, {len(field_outcomes)} field outcomes")
 
     except Exception as e:
         db.rollback()

@@ -257,7 +257,7 @@ python seed.py
 
 | Method | Endpoint | Description |
 | -------- | ---------- | ------------- |
-| GET | `/api/cases` | List cases (PII decrypted for authorized roles) |
+| GET | `/api/cases` | List cases (PII decrypted for authorized roles). Optional `crime_type` and `district` filters, both case-insensitive exact match |
 | GET | `/api/alerts` | Active alerts |
 | POST | `/api/alerts` | Create alert |
 | GET | `/api/review/queue` | Pending review items |

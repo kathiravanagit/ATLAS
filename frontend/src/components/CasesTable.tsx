@@ -29,6 +29,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [crimeFilter, setCrimeFilter] = useState<string>("All");
+  const [districtFilter, setDistrictFilter] = useState<string>("All");
   const [confirmResolve, setConfirmResolve] = useState<string | null>(null);
   const [expandedCase, setExpandedCase] = useState<string | null>(null);
   const [expandedData, setExpandedData] = useState<Record<string, any>>({});
@@ -44,13 +45,21 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
       (c.victim_name && c.victim_name.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
     const matchesCrime = crimeFilter === "All" || c.crime_type === crimeFilter;
-    return matchesSearch && matchesStatus && matchesCrime;
-  }), [cases, search, statusFilter, crimeFilter]);
+    const matchesDistrict = districtFilter === "All" || (c.district || "") === districtFilter;
+    return matchesSearch && matchesStatus && matchesCrime && matchesDistrict;
+  }), [cases, search, statusFilter, crimeFilter, districtFilter]);
 
   const crimeCounts = useMemo(() => cases.reduce((acc, c) => {
     acc[c.crime_type] = (acc[c.crime_type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>), [cases]);
+
+  // Jurisdictions present in the loaded set, so the control never offers a
+  // district with no cases behind it.
+  const districts = useMemo(
+    () => Array.from(new Set(cases.map(c => c.district || "").filter(Boolean))).sort(),
+    [cases],
+  );
 
   const handleCaseAction = async (caseId: string, type: string, reason?: string, assignedTo?: string) => {
     setActionLoading(caseId);
@@ -144,6 +153,17 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               </button>
             ))}
           </div>
+          <select
+            value={districtFilter}
+            onChange={e => setDistrictFilter(e.target.value)}
+            aria-label="Filter by district"
+            className="px-2 py-1.5 text-xs bg-white border border-[#D1D5DB] rounded-lg text-[#1F2937] focus:outline-none focus:border-[#1D4ED8]"
+          >
+            <option value="All">All districts</option>
+            {districts.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -153,6 +173,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
             <tr className="text-xs text-[#6B7280] uppercase border-b border-[#D1D5DB]">
               <th scope="col" className="text-left px-4 py-2 font-medium">Case ID</th>
               <th scope="col" className="text-left px-4 py-2 font-medium">Crime Type</th>
+              <th scope="col" className="text-left px-4 py-2 font-medium">District</th>
               <th scope="col" className="text-left px-4 py-2 font-medium">Victim</th>
               <th scope="col" className="text-left px-4 py-2 font-medium">Amount</th>
               <th scope="col" className="text-center px-4 py-2 font-medium">Accounts</th>
@@ -164,7 +185,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center">
+                <td colSpan={9} className="px-4 py-8 text-center">
                   <div className="text-center py-12">
                     <div className="w-12 h-12 bg-[#F3F4F6] rounded-full flex items-center justify-center mx-auto mb-3">
                       <FolderOpen size={20} className="text-[#9CA3AF]" />
@@ -172,7 +193,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                     <p className="text-[#4B5563] font-medium text-sm">No cases found</p>
                     <p className="text-[#9CA3AF] text-[11px] mt-1">Try adjusting your filters or search terms</p>
                     <button
-                      onClick={() => { setSearch(""); setStatusFilter("all"); setCrimeFilter("All"); }}
+                      onClick={() => { setSearch(""); setStatusFilter("all"); setCrimeFilter("All"); setDistrictFilter("All"); }}
                       className="mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 transition-colors"
                     >
                       Reset Filters
@@ -201,6 +222,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                       {c.crime_type}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs text-[#4B5563]">{c.district || '—'}</td>
                   <td className="px-4 py-3 text-base text-[#4B5563]">{c.victim_name || '—'}</td>
                   <td className="px-4 py-3 text-base font-medium text-[#1F2937]">₹{c.amount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-base text-center text-[#4B5563]">{c.linked_accounts}</td>

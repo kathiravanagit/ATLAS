@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -339,6 +339,7 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
             victim_name="SYNTHETIC-VICTIM",
             contact="SYNTHETIC-ONLY",
             description=f"Persisted synthetic prediction fixture for {city_id}",
+            district=(get_city(city_id) or {}).get("district", ""),
         ))
         db.flush()
 
@@ -519,6 +520,22 @@ def _label_simulated_evidence(evidence):
 
 # ─── Risk Scoring Engine (ML-powered) ─────────────────────────────────────────
 
+def district_to_city(district: str):
+    """Resolve a complaint's district to (city_id, city_config).
+
+    Returns None for an empty or unknown district so callers keep their previous
+    fallback. Districts are the jurisdiction key; city ids are ATM-registry keys,
+    and city_data.CITIES holds the mapping.
+    """
+    if not district:
+        return None
+    want = district.strip().lower()
+    for city_id, data in CITIES.items():
+        if (data.get("district") or "").lower() == want:
+            return city_id, data
+    return None
+
+
 def get_predictions_for_case(case_id: str, db: Session) -> dict:
     _current_model_fingerprint()  # fail before creating synthetic fixtures
     case = db.query(Case).filter(Case.case_id == case_id).first()
@@ -530,14 +547,20 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     if not atm_locations:
         raise HTTPException(status_code=503, detail="Prediction service unavailable: no ATM reference data")
 
-    # Determine city from case alerts/description, default to puducherry
+    # District is authoritative. The description fallback predates it and is
+    # unreliable in encrypted deployments (description is EncryptedText, so the
+    # city name is not readable here); it is kept only for rows still at "".
     city_id = "puducherry"
     if case:
-        desc = (case.description or "").upper()
-        for cid, cdata in CITIES.items():
-            if cdata["name"].upper() in desc:
-                city_id = cid
-                break
+        resolved = district_to_city(case.district)
+        if resolved:
+            city_id = resolved[0]
+        else:
+            desc = (case.description or "").upper()
+            for cid, cdata in CITIES.items():
+                if cdata["name"].upper() in desc:
+                    city_id = cid
+                    break
     city = CITIES.get(city_id, CITIES["puducherry"])
     city_center = city["center"]
 
@@ -854,6 +877,10 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
     if not primary or primary.get("risk_score", 0) <= HIGH_RISK_THRESHOLD:
         return None
     alert_msg, email_subject = _high_risk_message(case_id, primary, city)
+    # Carry jurisdiction onto the notification so a district-scoped dashboard or
+    # SMS recipient can route without joining back to the case.
+    alert_case = db.query(Case).filter(Case.case_id == case_id).first()
+    case_district = (alert_case.district or "") if alert_case else ""
     # Alert.location is EncryptedText: SQL LIKE would match ciphertext, so
     # dedupe after decryption like the rest of the codebase (see get_audit_log).
     prefix = f"{primary.get('atm_id')}"
@@ -871,6 +898,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
             message=alert_msg,
             risk_level="High",
             location=f"{primary.get('atm_id')}, {primary.get('location_name')}",
+            district=case_district,
             time_window=primary.get("expected_window", ""),
             timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
             acknowledged=False,
@@ -916,6 +944,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
                 "risk_score": primary.get("risk_score"),
                 "atm_id": primary.get("atm_id"),
                 "location": primary.get("location_name"),
+                "district": case_district,
                 "time_window": primary.get("expected_window"),
                 "timestamp": alert.timestamp,
             }))
@@ -1048,6 +1077,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             victim_name="SYNTHETIC-VICTIM",
             contact="SYNTHETIC-ONLY",
             description=f"Persisted synthetic city fixture for {city_id}",
+            district=city.get("district", ""),
         ))
         db.commit()
     synthetic_records = ensure_synthetic_transactions(db, synthetic_case_id, city_id, atms)
@@ -1273,9 +1303,19 @@ def _window_lead_hours(window: str):
 
 
 @app.get("/api/cases")
-def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db)):
-    q = visible_cases(db, user).order_by(Case.case_id)
-    cases = q.offset(offset).limit(limit).all()
+def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200, ge=1, le=500), offset: int = Query(default=0, ge=0), crime_type: str | None = Query(default=None), district: str | None = Query(default=None), db: Session = Depends(get_db)):
+    """Case registry, optionally narrowed by crime category or district.
+
+    Filtering is server-side: the dashboard's category drill-down previously ran
+    client-side over only the pages already loaded, so a match beyond `limit` was
+    invisible. Case-insensitive exact match, no wildcard expansion.
+    """
+    q = visible_cases(db, user)
+    if crime_type:
+        q = q.filter(func.lower(Case.crime_type) == crime_type.strip().lower())
+    if district:
+        q = q.filter(func.lower(Case.district) == district.strip().lower())
+    cases = q.order_by(Case.case_id).offset(offset).limit(limit).all()
 
     def _dec(val):
         return val or ""
@@ -1294,6 +1334,7 @@ def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200
             "status": c.status,
             "assigned_to": c.assigned_to,
             "department": c.department or "",
+            "district": c.district or "",
             "victim_name": _dec(c.victim_name) if can_see_pii else "[REDACTED]",
             "contact": _dec(c.contact) if can_see_pii else "[REDACTED]",
             "description": _dec(c.description) if can_see_pii else "[REDACTED]",
@@ -1389,12 +1430,15 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
         )
     if primary["risk_score"] > HIGH_RISK_THRESHOLD:
         alert_msg = _transaction_alert_message(tx.amount, primary)
+        tx_case = db.query(Case).filter(Case.case_id == tx.case_id).first()
+        tx_district = (tx_case.district or "") if tx_case else ""
         alert = Alert(
             alert_id=f"ALT-{uuid.uuid4().hex[:8].upper()}",
             case_id=tx.case_id,
             message=alert_msg,
             risk_level="High",
             location=f"{primary['atm_id']}, {primary['location_name']}",
+            district=tx_district,
             time_window=primary["expected_window"],
             timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
             acknowledged=False
@@ -1441,6 +1485,7 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
                     "risk_score": primary["risk_score"],
                     "atm_id": primary["atm_id"],
                     "location": primary["location_name"],
+                    "district": tx_district,
                     "time_window": primary["expected_window"],
                     "timestamp": alert.timestamp,
                 }))
@@ -1476,12 +1521,16 @@ def create_alert(request: Request, alert_data: AlertCreate, user: dict = Depends
         if replay is not None:
             return replay
     alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
+    # Derived from the case, not the request body: a client must not be able to
+    # file an alert into another jurisdiction by setting the field.
+    alert_case = db.query(Case).filter(Case.case_id == alert_data.case_id).first()
     alert = Alert(
         alert_id=alert_id,
         case_id=alert_data.case_id,
         message=alert_data.message,
         risk_level=alert_data.risk_level,
         location=alert_data.location,
+        district=(alert_case.district or "") if alert_case else "",
         time_window=alert_data.time_window,
         timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
         acknowledged=False
@@ -1506,6 +1555,7 @@ def create_alert(request: Request, alert_data: AlertCreate, user: dict = Depends
             "message": alert_data.message,
             "risk_level": alert_data.risk_level,
             "location": alert_data.location,
+            "district": (alert_case.district or "") if alert_case else "",
             "time_window": alert_data.time_window,
             "timestamp": datetime.now(timezone.utc).strftime("%H:%M:%S"),
             "acknowledged": False,
@@ -1531,6 +1581,7 @@ def get_alerts(user: dict = Depends(require_permission("read")), limit: int = Qu
             "message": a.message,
             "risk_level": a.risk_level,
             "location": a.location,
+            "district": a.district or "",
             "time_window": a.time_window,
             "timestamp": a.timestamp,
             "acknowledged": a.acknowledged,

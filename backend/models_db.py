@@ -55,6 +55,10 @@ class Case(Base):
     description = Column(Text, default="")
     assigned_to = Column(String, nullable=True, default=None)  # user.id of owning officer
     department = Column(String, default="")  # owning department; "" = shared pool
+    # Jurisdiction a complaint is filed under. Drives the district filter and,
+    # via city_data.CITIES, which ATM registry a prediction is scored against.
+    # "" = unassigned, which behaves like the old description-string fallback.
+    district = Column(String, default="", index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     predictions = relationship("Prediction", back_populates="case")
@@ -104,6 +108,9 @@ class Alert(Base):
     message = Column(Text, nullable=False)
     risk_level = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    # Carried at creation so a notification can name the jurisdiction without a
+    # join, and so alerts stay filterable by district after the case moves.
+    district = Column(String, default="", index=True)
     time_window = Column(String, nullable=False)
     timestamp = Column(String, nullable=False)
     acknowledged = Column(Boolean, default=False)
