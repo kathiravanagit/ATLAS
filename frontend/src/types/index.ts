@@ -44,6 +44,41 @@ export interface Prediction {
   disclaimer?: string;
   /** Server-built H3 hexbin of the same ranking. Absent in local fixtures. */
   risk_surface?: RiskSurface;
+  /** Adjacent priority/watch cells grouped into an area to check. */
+  intervention_zones?: InterventionZones;
+}
+
+export type ZoneLevel = 'priority' | 'watch';
+
+export interface InterventionZone {
+  zone_id: string;
+  level: ZoneLevel;
+  cells: number;
+  priority_cells: number;
+  watch_cells: number;
+  score_mean: number;
+  score_max: number;
+  top_atm: string;
+  atm_count: number;
+  center: [number, number];
+  h3_cells: string[];
+  /** Convex hull of the member cells as [[lat, lng], ...]. */
+  boundary: [number, number][];
+}
+
+export interface InterventionZones {
+  zones: InterventionZone[];
+  summary: {
+    zones: number;
+    clustered_cells: number;
+    noise_cells: number;
+    priority_cells: number;
+    watch_cells: number;
+  };
+  eps_hops: number;
+  min_samples: number;
+  method: string;
+  note: string;
 }
 
 export type RiskCellLevel = 'priority' | 'watch' | 'background' | 'none';
@@ -76,8 +111,12 @@ export interface RiskSurface {
   sigma_m: number;
   cell_edge_m: number;
   reach_m: number;
-  /** Quantile cut points of this city's own cells, not absolute risk levels. */
-  bands: { priority_at: number; watch_at: number };
+  /** Quantile cut points of this city's own cells, not absolute risk levels.
+   *  Both are null when the field carries no spread, in which case no cell is
+   *  banded as priority or watch (see `flat`). */
+  bands: { priority_at: number | null; watch_at: number | null };
+  /** True when every scored cell is equal: the ranking cannot separate them. */
+  flat: boolean;
   method: string;
   basis: 'ranker_score' | 'risk_score';
   calibrated: false;

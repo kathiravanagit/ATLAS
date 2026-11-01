@@ -78,6 +78,12 @@ MAX_CELLS = 900
 PRIORITY_FRACTION = 0.15
 WATCH_FRACTION = 0.40
 
+# Values are ranker relevance x100, so a spread under this is no spread at all.
+# The ranker returns an exact 0.0 for an ATM outside its positive region (it
+# never saw a positive more than ~8 km from the victim), and a city whose
+# registry sits entirely out there collapses to a field of identical zeros.
+FLAT_EPS = 0.05
+
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Great-circle distance in metres.
@@ -140,24 +146,47 @@ def surface_cells(points: list[dict], resolution: int = RESOLUTION_DEFAULT,
     return cells
 
 
-def _bands(values: list[float]) -> tuple[float, float]:
+def _bands(values: list[float]) -> tuple[float | None, float | None, bool]:
     """Priority/watch cut points as quantiles of this city's scored cells.
 
     Quantiles rather than constants so the map always shows *where* risk
-    concentrates relative to the rest of the city. With a flat field every cell
-    is equally hot and the bands collapse toward the same value, which is the
-    honest picture of a model that cannot separate them.
+    concentrates relative to the rest of the city.
+
+    Two degenerate fields are handled here, because both would otherwise paint
+    the whole city as priority:
+
+    * A *flat* field (every scored cell equal) has no order to show. It carries
+      no bands at all and every cell is background; `flat: true` says why.
+    * A *floor-dominated* field (many cells tied on the lowest value) puts the
+      quantile cut on the floor, and `score >= floor` selects every cell. The cut
+      is therefore pushed to the lowest value that is actually above the floor,
+      so tied-at-floor cells read as background rather than as the hottest band.
+
+    Measured cause of the second case: the A2.1 ranker trained on 1996 candidate
+    rows whose two proximity terms were both zero and whose label was never 1,
+    so it outputs an exact 0.0 for an ATM far from the victim. Chennai's registry
+    spans 18 km, which put 7 of 8 ATMs in that region and made all 82 scored
+    cells priority at a cut of 0.0.
     """
     scored = sorted(v for v in values if v is not None)
-    if not scored:
-        return 0.0, 0.0
     n = len(scored)
+    if not n:
+        return None, None, False
 
     def at(fraction: float) -> float:
         idx = min(n - 1, max(0, int(round((1.0 - fraction) * n)) - 1))
         return scored[idx]
 
-    return at(PRIORITY_FRACTION), at(PRIORITY_FRACTION + WATCH_FRACTION)
+    lo, hi = scored[0], scored[-1]
+    if hi - lo <= FLAT_EPS:
+        return None, None, True
+
+    # Lowest value strictly above the floor: the first band boundary that can
+    # separate cells instead of selecting all of them.
+    above_floor = next(v for v in scored if v > lo)
+    priority_cut = max(at(PRIORITY_FRACTION), above_floor)
+    watch_cut = max(at(PRIORITY_FRACTION + WATCH_FRACTION), above_floor)
+    return priority_cut, min(watch_cut, priority_cut), False
 
 
 def build_surface(points: list[dict],
@@ -177,6 +206,10 @@ def build_surface(points: list[dict],
         return {
             "cells": [],
             "summary": {"cells": 0, "scored": 0, "priority": 0, "watch": 0, "background": 0},
+            "resolution": resolution,
+            "sigma_m": sigma_m,
+            "bands": {"priority_at": None, "watch_at": None},
+            "flat": False,
         }
 
     scored = [(p, float(p["score"])) for p in points if p.get("score") is not None]
@@ -233,11 +266,14 @@ def build_surface(points: list[dict],
             "top_atm_score": None if driver_score is None else round(driver_score * 100.0, 1),
         })
 
-    priority_cut, watch_cut = _bands([c["score"] for c in raw])
+    priority_cut, watch_cut, flat = _bands([c["score"] for c in raw])
     for cell in raw:
         score = cell["score"]
         if score is None:
             cell["level"] = "none"
+        elif priority_cut is None:
+            # Flat field: no cell is hotter than any other, so none is a priority.
+            cell["level"] = "background"
         elif score >= priority_cut:
             cell["level"] = "priority"
         elif score >= watch_cut:
@@ -260,12 +296,22 @@ def build_surface(points: list[dict],
         "sigma_m": sigma_m,
         "cell_edge_m": round(h3.average_hexagon_edge_length(resolution, unit="m"), 1),
         "reach_m": round(2.0 * sigma_m, 1),
-        "bands": {"priority_at": round(priority_cut, 1), "watch_at": round(watch_cut, 1)},
+        "bands": {
+            "priority_at": None if priority_cut is None else round(priority_cut, 1),
+            "watch_at": None if watch_cut is None else round(watch_cut, 1),
+        },
+        "flat": flat,
         "method": "gaussian-weighted mean of per-ATM ranker scores",
         "basis": "ranker_score",
         "calibrated": False,
-        "note": "Uncalibrated relative ordering. Cell values are not probabilities, "
-                "and bands are quantiles within this city.",
+        "note": (
+            "Uncalibrated relative ordering. Cell values are not probabilities, "
+            "and bands are quantiles within this city."
+            if not flat else
+            "Ranker scores do not separate this city's cells, so no cell is "
+            "banded as priority or watch. Cell values are still shown, but they "
+            "carry no ordering, and they are not probabilities."
+        ),
     }
 
 

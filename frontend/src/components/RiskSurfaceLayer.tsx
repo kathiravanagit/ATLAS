@@ -56,9 +56,15 @@ export function cellTooltip(cell: RiskCell, edgeM: number, bands?: RiskSurface['
   // city's own cut-off. Saying where the cut-off is answers the judge's "why is
   // this one red?" without implying the number is a risk level.
   if (bands) {
+    const cuts: string[] = [];
+    if (bands.priority_at != null) cuts.push(`priority ≥ <strong>${bands.priority_at.toFixed(1)}</strong>`);
+    if (bands.watch_at != null) cuts.push(`watch ≥ <strong>${bands.watch_at.toFixed(1)}</strong>`);
+    // Both cuts are null when the field has no spread: saying "priority ≥ null"
+    // would be worse than saying there is no band to show.
     rows.push(
-      `<div style="color:#6B7280">This city: priority ≥ <strong>${bands.priority_at.toFixed(1)}</strong>, ` +
-      `watch ≥ <strong>${bands.watch_at.toFixed(1)}</strong></div>`,
+      cuts.length
+        ? `<div style="color:#6B7280">This city: ${cuts.join(', ')}</div>`
+        : '<div style="color:#6B7280">This city: scores do not separate, so no cell is banded priority.</div>',
     );
   }
   if (cell.nearest_atm) {

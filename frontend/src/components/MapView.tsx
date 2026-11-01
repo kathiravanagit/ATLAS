@@ -1,4 +1,4 @@
-import { PredictionLocation, RiskArea, RiskSurface, RiskCellLevel } from '../types';
+import { PredictionLocation, RiskArea, RiskSurface, RiskCellLevel, InterventionZones } from '../types';
 import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP, AREA_LABEL } from '../lib/riskAreas';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import GlobeTransition from './globe/GlobeTransition';
 import RiskSurfaceLayer from './RiskSurfaceLayer';
+import RiskZoneLayer from './RiskZoneLayer';
 
 interface MapViewProps {
   locations: PredictionLocation[];
@@ -17,6 +18,8 @@ interface MapViewProps {
   cityCenter?: [number, number];
   /** Server-built H3 surface. Absent in local demo fixtures, where no overlay is drawn. */
   surface?: RiskSurface | null;
+  /** Adjacent priority/watch cells grouped by the server into areas to check. */
+  zones?: InterventionZones | null;
 }
 
 function areaColor(area: RiskArea): string {
@@ -137,17 +140,19 @@ function ZoomControls({ onRecenter, isFullscreen, onToggleFullscreen }: {
 type RiskFilterType = 'all' | 'priority' | 'watch' | 'background';
 type TimeFilterType = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';
 
-export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter, surface }: MapViewProps) {
+export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter, surface, zones }: MapViewProps) {
   const [showFilters, setShowFilters] = useState(true);
   const [riskFilter, setRiskFilter] = useState<RiskFilterType>('all');
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
   const [showSurface, setShowSurface] = useState(true);
+  const [showZones, setShowZones] = useState(true);
   const [hoveredAtm, setHoveredAtm] = useState<string | null>(null);
   const [globeDone, setGlobeDone] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const hasSurface = Boolean(surface?.cells?.length);
+  const hasZones = Boolean(zones?.zones?.length);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(document.fullscreenElement === containerRef.current);
@@ -233,6 +238,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
           onSelectAtm={handleSelectAtm}
           visibleLevels={surfaceLevels}
         />
+        <RiskZoneLayer zones={zones} enabled={showZones} onSelectAtm={handleSelectAtm} />
 
         {filtered.filter(loc => locArea(loc, locations.length) === 'priority').map((loc) => (
           <Circle
@@ -363,6 +369,26 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 </div>
               )}
 
+              {/* Intervention-zone toggle */}
+              {hasZones && zones && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[#6B7280]">
+                    Intervention zones · {zones.summary.zones}
+                  </span>
+                  <button
+                    onClick={() => setShowZones(!showZones)}
+                    aria-pressed={showZones}
+                    className={`relative w-8 h-[18px] rounded-full transition-colors ${
+                      showZones ? 'bg-[#3b82f6]' : 'bg-[#F3F4F6]'
+                    }`}
+                  >
+                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${
+                      showZones ? 'left-[14px]' : 'left-[2px]'
+                    }`} />
+                  </button>
+                </div>
+              )}
+
               {/* Risk Legend */}
               <div className="pt-2 border-t border-[#D1D5DB]" title={SCORE_TOOLTIP}>
                 <div className="text-[10px] text-[#6B7280] uppercase mb-2">Rank Zones</div>
@@ -419,9 +445,49 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                     {surface.summary.cells} cells · {Math.round(surface.cell_edge_m)} m edge ·
                     smoothed at σ {Math.round(surface.sigma_m)} m from{' '}
                     {surface.basis === 'ranker_score' ? 'ranker scores' : 'row-model scores'}.
-                    Bands are quantiles of this city&apos;s own cells, not probabilities:
-                    priority ≥ {surface.bands.priority_at.toFixed(1)} · watch ≥ {surface.bands.watch_at.toFixed(1)}.
+                    {surface.flat ? (
+                      <> Scores do not separate this city&apos;s cells, so nothing is banded
+                      priority or watch.</>
+                    ) : (
+                      <> Bands are quantiles of this city&apos;s own cells, not probabilities:
+                      priority ≥ {surface.bands.priority_at?.toFixed(1)} · watch ≥{' '}
+                      {surface.bands.watch_at?.toFixed(1)}.</>
+                    )}{' '}
                     Dashed cells have no ATM within {Math.round(surface.reach_m)} m and are not scored.
+                  </div>
+                </div>
+              )}
+
+              {/* Intervention zones: the operational read of the surface */}
+              {hasZones && zones && (
+                <div className="pt-2 border-t border-[#D1D5DB]">
+                  <div className="text-[10px] text-[#6B7280] uppercase mb-2">
+                    Intervention zones
+                  </div>
+                  <div className="space-y-1.5">
+                    {zones.zones.map((zone) => (
+                      <div key={zone.zone_id} className="flex items-center gap-2">
+                        <div className={`w-3 h-2 border border-dashed ${
+                          zone.level === 'priority' ? 'border-[#991b1b]' : 'border-[#92400e]'
+                        }`} />
+                        <span className="text-[10px] text-[#374151]">
+                          {zone.zone_id} · {zone.cells} cells
+                        </span>
+                        <span className="text-[10px] text-[#6B7280] ml-auto">
+                          {zone.priority_cells} priority
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-[#6B7280] mt-2 leading-snug">
+                    {zones.summary.zones} zone{zones.summary.zones === 1 ? '' : 's'} from{' '}
+                    {zones.summary.clustered_cells} adjacent cells · DBSCAN over H3
+                    neighbourhoods (eps {zones.eps_hops} cell
+                    {zones.eps_hops === 1 ? '' : 's'}, min {zones.min_samples}).{' '}
+                    {zones.summary.noise_cells > 0
+                      ? `${zones.summary.noise_cells} isolated cell${zones.summary.noise_cells === 1 ? '' : 's'} not in a zone. `
+                      : ''}
+                    An area to check, not a predicted crime location.
                   </div>
                 </div>
               )}

@@ -15,6 +15,7 @@ export default function MapPage() {
         onSelectLocation={setSelectedLocation}
         cityCenter={cityCenter}
         surface={prediction.risk_surface}
+        zones={prediction.intervention_zones}
       />
       {dataMode === 'demo' ? <p className="card p-5 text-sm">Account network requires the backend and is disabled in local demo.</p> : <MuleNetworkGraph />}
     </motion.div>

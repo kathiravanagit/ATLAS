@@ -104,13 +104,76 @@ def test_bands_are_quantiles_of_this_citys_cells():
         {"id": "A2", "lat": 11.96, "lng": 79.82},
         {"id": "A3", "lat": 11.92, "lng": 79.78},
     ]
-    low = rs.build_surface([{**p, "score": 0.10} for p in geometry])
-    high = rs.build_surface([{**p, "score": 0.90} for p in geometry])
+    # Add spread so the field is not flat: three distinct magnitudes.
+    low = rs.build_surface([{**p, "score": s} for p, s in zip(geometry, (0.10, 0.14, 0.18))])
+    high = rs.build_surface([{**p, "score": s} for p, s in zip(geometry, (0.70, 0.80, 0.90))])
 
-    # Flat fields: every scored cell is equal, so the priority band must also
-    # hold every cell rather than a constant 70.
-    assert low["bands"]["priority_at"] == pytest.approx(10.0, abs=0.1)
-    assert high["bands"]["priority_at"] == pytest.approx(90.0, abs=0.1)
+    # The cut sits near the top of each field's own scale, not on a constant 70.
+    assert low["bands"]["priority_at"] < 20.0
+    assert high["bands"]["priority_at"] > 70.0
+    assert low["bands"]["priority_at"] > low["bands"]["watch_at"]
+
+
+def test_flat_field_carries_no_bands_and_marks_nothing_priority():
+    """A field with no spread has no ordering to display.
+
+    Every scored cell is equal, so a quantile cut lands on the single value and
+    `score >= cut` would select all of them. The honest read is no bands at all,
+    every scored cell background, and `flat: true` saying why.
+    """
+    geometry = [
+        {"id": "A1", "lat": 11.94, "lng": 79.80},
+        {"id": "A2", "lat": 11.96, "lng": 79.82},
+        {"id": "A3", "lat": 11.92, "lng": 79.78},
+    ]
+    for score in (0.10, 0.90, 0.0):
+        surface = rs.build_surface([{**p, "score": score} for p in geometry])
+        assert surface["flat"] is True
+        assert surface["bands"] == {"priority_at": None, "watch_at": None}
+        assert surface["summary"]["priority"] == 0
+        assert surface["summary"]["watch"] == 0
+        assert surface["summary"]["background"] == surface["summary"]["scored"] > 0
+
+
+def test_floor_dominated_field_does_not_mark_every_cell_priority():
+    """A ranker that returns exact zeros for most ATMs must not paint the city.
+
+    Reproduces the measured city failure: one ATM scores, the rest return 0.0,
+    so most scored cells tie on the floor and the quantile cut lands on 0.0.
+    Before the guard that made every scored cell priority at a cut of 0.0.
+    """
+    points = [{"id": "A0", "lat": 11.94, "lng": 79.80, "score": 0.28}]
+    points += [
+        {"id": f"Z{i}", "lat": 11.94 + 0.01 * i, "lng": 79.80 + 0.01 * i, "score": 0.0}
+        for i in range(1, 8)
+    ]
+    surface = rs.build_surface(points, pad_m=2000.0)
+
+    assert surface["flat"] is False
+    assert surface["bands"]["priority_at"] > 0.0
+    assert surface["bands"]["watch_at"] > 0.0
+    priority = [c for c in surface["cells"] if c["level"] == "priority"]
+    assert len(priority) < surface["summary"]["scored"]
+    assert all(c["score"] > 0.0 for c in priority)
+    # Tied-at-floor cells are background, never priority.
+    floor_cells = [c for c in surface["cells"] if c["score"] == 0.0]
+    assert floor_cells and all(c["level"] == "background" for c in floor_cells)
+
+
+def test_band_cut_is_the_lowest_score_inside_the_band():
+    """The legend prints the cut, so it must be reachable, not a limit above it."""
+    points = [
+        {"id": "A0", "lat": 11.94, "lng": 79.80, "score": 0.42},
+        {"id": "A1", "lat": 11.95, "lng": 79.81, "score": 0.11},
+        {"id": "A2", "lat": 11.96, "lng": 79.82, "score": 0.02},
+        {"id": "A3", "lat": 11.97, "lng": 79.83, "score": 0.01},
+    ]
+    surface = rs.build_surface(points, pad_m=2000.0)
+    cut = surface["bands"]["priority_at"]
+    assert cut is not None
+    scores = [c["score"] for c in surface["cells"] if c["level"] == "priority"]
+    assert scores and min(scores) == pytest.approx(cut, abs=0.1)
+
 
 
 def test_priority_band_is_high_and_watch_band_is_lower():

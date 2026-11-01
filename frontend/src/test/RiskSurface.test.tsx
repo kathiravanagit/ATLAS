@@ -44,6 +44,7 @@ const surface: RiskSurface = {
   cell_edge_m: 461.4,
   reach_m: 1600,
   bands: { priority_at: 52, watch_at: 42.4 },
+  flat: false,
   method: 'gaussian-weighted mean of per-ATM ranker scores',
   basis: 'ranker_score',
   calibrated: false,
@@ -95,6 +96,13 @@ describe('cell tooltip', () => {
     expect(text).toContain('16.0');
     expect(text).toContain('priority ≥ <strong>14.7</strong>');
     expect(text).toContain('watch ≥ <strong>6.8</strong>');
+  });
+
+  it('never renders a null cut-off as "priority ≥ null"', () => {
+    // A flat field carries no bands; the tooltip must say that instead.
+    const text = cellTooltip(cell({ score: 0 }), 461.4, { priority_at: null, watch_at: null });
+    expect(text).not.toContain('null');
+    expect(text).toContain('scores do not separate');
   });
 
   it('explains a hot cell that contains no ATM of its own', () => {
