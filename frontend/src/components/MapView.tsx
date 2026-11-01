@@ -1,20 +1,22 @@
-import { PredictionLocation, RiskArea } from '../types';
+import { PredictionLocation, RiskArea, RiskSurface, RiskCellLevel } from '../types';
 import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP, AREA_LABEL } from '../lib/riskAreas';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet.heat';
 import {
   MapPin, Filter, ChevronDown, ChevronUp, AlertTriangle,
-  Clock, Shield, Crosshair, RotateCcw, X, Info
+  Clock, Shield, Crosshair, RotateCcw, X, Info, Maximize2, Minimize2
 } from 'lucide-react';
 import GlobeTransition from './globe/GlobeTransition';
+import RiskSurfaceLayer from './RiskSurfaceLayer';
 
 interface MapViewProps {
   locations: PredictionLocation[];
   selectedLocation: PredictionLocation | null;
   onSelectLocation: (loc: PredictionLocation) => void;
   cityCenter?: [number, number];
+  /** Server-built H3 surface. Absent in local demo fixtures, where no overlay is drawn. */
+  surface?: RiskSurface | null;
 }
 
 function areaColor(area: RiskArea): string {
@@ -22,12 +24,6 @@ function areaColor(area: RiskArea): string {
   if (area === 'watch') return '#f59e0b';
   return '#3b82f6';
 }
-
-const AREA_WEIGHT: Record<RiskArea, number> = {
-  priority: 1.0,
-  watch: 0.55,
-  background: 0.2,
-};
 
 function locArea(loc: PredictionLocation, total: number): RiskArea {
   return riskArea(loc.rank, total, loc.risk_area);
@@ -85,41 +81,25 @@ function MapUpdater({ center }: { center: [number, number] }) {
   return null;
 }
 
-function RiskHeatLayer({ locations, enabled }: { locations: PredictionLocation[]; enabled: boolean }) {
+function MapResizer() {
   const map = useMap();
-
-  React.useEffect(() => {
-    if (!enabled || locations.length === 0) return;
-
-    const points: L.HeatLatLngTuple[] = locations.map((loc) => [
-      loc.latitude,
-      loc.longitude,
-      AREA_WEIGHT[locArea(loc, locations.length)],
-    ]);
-    const layer = L.heatLayer(points, {
-      radius: 42,
-      blur: 30,
-      maxZoom: 17,
-      max: 1,
-      minOpacity: 0.35,
-      gradient: {
-        0.15: '#3b82f6',
-        0.45: '#22c55e',
-        0.7: '#f59e0b',
-        0.88: '#f97316',
-        1: '#ef4444',
-      },
-    });
-    layer.addTo(map);
+  useEffect(() => {
+    const update = () => map.invalidateSize();
+    document.addEventListener('fullscreenchange', update);
+    window.addEventListener('resize', update);
     return () => {
-      map.removeLayer(layer);
+      document.removeEventListener('fullscreenchange', update);
+      window.removeEventListener('resize', update);
     };
-  }, [enabled, locations, map]);
-
+  }, [map]);
   return null;
 }
 
-function ZoomControls({ onRecenter }: { onRecenter: () => void }) {
+function ZoomControls({ onRecenter, isFullscreen, onToggleFullscreen }: {
+  onRecenter: () => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+}) {
   const map = useMap();
   return (
     <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-1">
@@ -142,6 +122,14 @@ function ZoomControls({ onRecenter }: { onRecenter: () => void }) {
       >
         <Crosshair size={14} />
       </button>
+      <button
+        onClick={onToggleFullscreen}
+        className="w-8 h-8 bg-white/90 backdrop-blur border border-[#D1D5DB] rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF] transition-colors"
+        title={isFullscreen ? 'Exit full screen' : 'Full screen map'}
+        aria-pressed={isFullscreen}
+      >
+        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+      </button>
     </div>
   );
 }
@@ -149,13 +137,36 @@ function ZoomControls({ onRecenter }: { onRecenter: () => void }) {
 type RiskFilterType = 'all' | 'priority' | 'watch' | 'background';
 type TimeFilterType = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';
 
-export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter }: MapViewProps) {
+export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter, surface }: MapViewProps) {
   const [showFilters, setShowFilters] = useState(true);
   const [riskFilter, setRiskFilter] = useState<RiskFilterType>('all');
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
-  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [showSurface, setShowSurface] = useState(true);
   const [hoveredAtm, setHoveredAtm] = useState<string | null>(null);
   const [globeDone, setGlobeDone] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const hasSurface = Boolean(surface?.cells?.length);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement === containerRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void containerRef.current?.requestFullscreen?.();
+    }
+  }, []);
+
+  const handleSelectAtm = useCallback((atmId: string) => {
+    const match = locations.find((loc) => loc.atm_id === atmId);
+    if (match) onSelectLocation(match);
+  }, [locations, onSelectLocation]);
 
   const center: [number, number] = useMemo(() => {
     if (selectedLocation) return [selectedLocation.latitude, selectedLocation.longitude];
@@ -185,8 +196,15 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   const selectedTotal = selectedLocation
     ? locTotal(selectedLocation, locations.length) : 0;
 
+  const surfaceLevels: RiskCellLevel[] | undefined = riskFilter === 'all'
+    ? undefined
+    : [riskFilter as RiskCellLevel];
+
   return (
-    <div className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D1D5DB]">
+    <div
+      ref={containerRef}
+      className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D1D5DB]"
+    >
       {!globeDone && (
         <GlobeTransition locations={locations} onComplete={() => setGlobeDone(true)} />
       )}
@@ -206,9 +224,15 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
           subdomains="abc"
         />
         <MapUpdater center={center} />
+        <MapResizer />
         <MapEvents onClick={() => onSelectLocation(null as any)} />
 
-        <RiskHeatLayer locations={filtered} enabled={showHeatmap} />
+        <RiskSurfaceLayer
+          surface={surface}
+          enabled={showSurface}
+          onSelectAtm={handleSelectAtm}
+          visibleLevels={surfaceLevels}
+        />
 
         {filtered.filter(loc => locArea(loc, locations.length) === 'priority').map((loc) => (
           <Circle
@@ -245,10 +269,14 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             </Popup>
           </Marker>
         ))}
-        <ZoomControls onRecenter={() => {
-          const top = locations.reduce((best, loc) => loc.rank < best.rank ? loc : best, locations[0]);
-          if (top) onSelectLocation(top);
-        }} />
+        <ZoomControls
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={toggleFullscreen}
+          onRecenter={() => {
+            const top = locations.reduce((best, loc) => loc.rank < best.rank ? loc : best, locations[0]);
+            if (top) onSelectLocation(top);
+          }}
+        />
       </MapContainer>
 
       {/* Left Filter Panel */}
@@ -315,20 +343,25 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 </div>
               </div>
 
-              {/* Heatmap Toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#6B7280]">Risk Heatmap</span>
-                <button
-                  onClick={() => setShowHeatmap(!showHeatmap)}
-                  className={`relative w-8 h-[18px] rounded-full transition-colors ${
-                    showHeatmap ? 'bg-[#3b82f6]' : 'bg-[#F3F4F6]'
-                  }`}
-                >
-                  <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${
-                    showHeatmap ? 'left-[14px]' : 'left-[2px]'
-                  }`} />
-                </button>
-              </div>
+              {/* Risk surface toggle */}
+              {hasSurface && surface && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[#6B7280]">
+                    Risk surface · H3 res {surface.resolution}
+                  </span>
+                  <button
+                    onClick={() => setShowSurface(!showSurface)}
+                    aria-pressed={showSurface}
+                    className={`relative w-8 h-[18px] rounded-full transition-colors ${
+                      showSurface ? 'bg-[#3b82f6]' : 'bg-[#F3F4F6]'
+                    }`}
+                  >
+                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${
+                      showSurface ? 'left-[14px]' : 'left-[2px]'
+                    }`} />
+                  </button>
+                </div>
+              )}
 
               {/* Risk Legend */}
               <div className="pt-2 border-t border-[#D1D5DB]" title={SCORE_TOOLTIP}>
@@ -352,9 +385,50 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 </div>
               </div>
 
-              {/* Heatmap explanation */}
+              {/* Risk surface legend */}
+              {hasSurface && surface && (
+                <div className="pt-2 border-t border-[#D1D5DB]">
+                  <div className="text-[10px] text-[#6B7280] uppercase mb-2">
+                    Risk surface cells
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-[#ef4444]/60 border border-[#ef4444]" />
+                      <span className="text-[10px] text-[#374151]">Priority cell</span>
+                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.priority}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-[#f59e0b]/50 border border-[#f59e0b]" />
+                      <span className="text-[10px] text-[#374151]">Watch cell</span>
+                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.watch}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm bg-[#3b82f6]/25 border border-[#3b82f6]" />
+                      <span className="text-[10px] text-[#374151]">Background cell</span>
+                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.background}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm border border-dashed border-[#9CA3AF]" />
+                      <span className="text-[10px] text-[#374151]">No coverage</span>
+                      <span className="text-[10px] text-[#6B7280] ml-auto">
+                        {surface.summary.cells - surface.summary.scored}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-[#6B7280] mt-2 leading-snug">
+                    {surface.summary.cells} cells · {Math.round(surface.cell_edge_m)} m edge ·
+                    smoothed at σ {Math.round(surface.sigma_m)} m from{' '}
+                    {surface.basis === 'ranker_score' ? 'ranker scores' : 'row-model scores'}.
+                    Bands are quantiles of this city&apos;s own cells, not probabilities:
+                    priority ≥ {surface.bands.priority_at.toFixed(1)} · watch ≥ {surface.bands.watch_at.toFixed(1)}.
+                    Dashed cells have no ATM within {Math.round(surface.reach_m)} m and are not scored.
+                  </div>
+                </div>
+              )}
+
+              {/* Rank zone explanation */}
               <div className="pt-2 border-t border-[#D1D5DB]">
-                <div className="text-[10px] text-[#6B7280]">Heatmap intensity</div>
+                <div className="text-[10px] text-[#6B7280]">Pin colour</div>
                 <div className="text-[10px] text-[#6B7280] mt-0.5">Blue = background · amber = watch · red = priority zone</div>
               </div>
             </div>

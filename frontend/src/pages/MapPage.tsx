@@ -9,7 +9,13 @@ export default function MapPage() {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
       className="space-y-6">
-      <MapView locations={prediction.ranked_locations} selectedLocation={selectedLocation} onSelectLocation={setSelectedLocation} cityCenter={cityCenter} />
+      <MapView
+        locations={prediction.ranked_locations}
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
+        cityCenter={cityCenter}
+        surface={prediction.risk_surface}
+      />
       {dataMode === 'demo' ? <p className="card p-5 text-sm">Account network requires the backend and is disabled in local demo.</p> : <MuleNetworkGraph />}
     </motion.div>
   );

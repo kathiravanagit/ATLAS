@@ -92,6 +92,7 @@ if os.getenv("TESTING") != "1":
     _prewarm_models()
 
 from city_data import CITIES, get_city, get_all_cities, get_city_atms, get_city_stats
+from risk_surface import build_for_ranked as build_risk_surface
 from evidence_chain import get_evidence_chain
 from blockchain import get_blockchain, get_network, Blockchain
 from auth import register_auth_routes, verify_token, require_permission, require_role, generate_csrf_token, ws_tracker, require_csrf, consume_ws_ticket
@@ -752,6 +753,10 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         "status": "HIGH PRIORITY" if primary["risk_score"] > HIGH_RISK_THRESHOLD else "MEDIUM PRIORITY",
         "primary_location": primary,
         "ranked_locations": ranked,
+        # The same ranking rendered as a spatial field. Built here rather than
+        # in the browser so the map and the table cannot disagree, and so the
+        # cell grid DBSCAN will cluster in the next step is computed once.
+        "risk_surface": build_risk_surface(ranked),
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]],
         "evidence": _label_simulated_evidence(evidence),
         "model_info": {
@@ -1217,6 +1222,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "state": city["state"],
         "center": city["center"],
         "ranked_locations": ranked,
+        "risk_surface": build_risk_surface(ranked),
         "total_atms": len(atms),
         "model_accuracy": get_metadata().get("accuracy") if get_metadata() else None,
         "case_id": synthetic_case_id,

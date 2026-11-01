@@ -42,6 +42,46 @@ export interface Prediction {
   risk_trend: number[];
   evidence: Record<string, EvidenceItem>;
   disclaimer?: string;
+  /** Server-built H3 hexbin of the same ranking. Absent in local fixtures. */
+  risk_surface?: RiskSurface;
+}
+
+export type RiskCellLevel = 'priority' | 'watch' | 'background' | 'none';
+
+export interface RiskCell {
+  h3: string;
+  center: [number, number];
+  /** Polygon ring as [[lat, lng], ...]. */
+  boundary: [number, number][];
+  /** Null means "no coverage": no ATM within the surface's reach. */
+  score: number | null;
+  level: RiskCellLevel;
+  atm_count: number;
+  nearest_atm: string;
+  nearest_m: number | null;
+  top_atm: string;
+  top_atm_score: number | null;
+}
+
+export interface RiskSurface {
+  cells: RiskCell[];
+  summary: {
+    cells: number;
+    scored: number;
+    priority: number;
+    watch: number;
+    background: number;
+  };
+  resolution: number;
+  sigma_m: number;
+  cell_edge_m: number;
+  reach_m: number;
+  /** Quantile cut points of this city's own cells, not absolute risk levels. */
+  bands: { priority_at: number; watch_at: number };
+  method: string;
+  basis: 'ranker_score' | 'risk_score';
+  calibrated: false;
+  note: string;
 }
 
 export interface EvidenceItem {
