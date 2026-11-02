@@ -70,7 +70,7 @@ Local SHAP explains the full available ensemble probability function. It uses sa
 
 Without empirical background, the UI shows **global feature importance**, not fabricated local SHAP. Legacy bundled artifacts have no validated empirical background, so genuine local SHAP requires explicit regeneration/retraining.
 
-Risk index and confidence are uncalibrated model-derived scores—not the probability that an officer will find the criminal at the indicated ATM. Time windows are illustrative rules, not a fitted and validated event-time forecast. Historical-similarity descriptions and trends are labelled simulated.
+Risk index and confidence are uncalibrated model-derived scores—not the probability that an officer will find the criminal at the indicated ATM. Screens describe the cash-out records already on file; no future time window is shown, and lead time is reported as unmeasured. Historical-similarity descriptions and trends are labelled simulated.
 
 ## Evaluation protocol and limitations
 
@@ -193,7 +193,7 @@ Cheat sheet for the demo. The right-hand column is what the repository actually 
 |---|---|---|
 | **Ranking algorithm** | "We use LambdaMART / LightGBM learning-to-rank." | **Pointwise Random Forest ranker (A2.1)** (`train_ranker.py`, `ranker.pkl`) that scores and orders each case's ATM candidates; the RandomForest+XGBoost row ensemble keeps case risk and alerts. |
 | **Blockchain & evidence PDF** | "Court-admissible chain of custody / legal evidence." | **Tamper-evident prototype ledger**: SHA-256 hash chain + Merkle root + local proof-of-work blocks (`evidence_chain.py`, `blockchain.py`). Exports carry a prototype disclaimer and audit hashes. Not a government blockchain and not a legal-admissibility claim. |
-| **Time window** | "ML forecasting of time-to-cashout." | No predicted window is shown. The API reports `observed_window` — a descriptive span of the case's stored cash-out records (start, end, hours, record count) — and the dashboard reports lead time as **unmeasured** until a confirmed cash-out outcome is linked to a complaint. |
+| **Time window** | "ML forecasting of time-to-cashout." | No predicted window is shown. The API reports `observed_window` — a descriptive span of the case's stored cash-out records (start, end, hours, record count) — and the dashboard reports lead time as **unmeasured** until a confirmed cash-out outcome is linked to a complaint. A Phase 2 measurement on unseen synthetic rings found the first cash-out hour was not predictable better than permutation (`docs/LEAD_TIME_MEASUREMENT.md`), so no lead time is derived. |
 | **System roles** | "I4C Admin, State Police, Bank Nodal, Field Officer." | Four enforced roles — **`admin`, `inspector`, `analyst`, `bank_officer`** — via JWT claims and route guards (`auth.py`). |
 | **Data ingestion** | "Drop-in NCRP / CFCFRMS replacement, zero code changes." | **`POST /api/complaints`** accepts an NCRP-shaped complaint (`external_ref`, `district`, `category`, `amount`, `incident_at`), creates and ranks the case in one request, and replays safely on a repeated reference. The records and model are **synthetic evaluation fixtures** modelling Indian banking topologies; ingesting real CFCFRMS feeds would still need schema mapping and the `PUD`/`PNY` ATM-registry unification — future work, not built. |
 | **Alert tiers** | "P1 Critical vs P2 High." | **Priority / Watch / Background** tiers derived from ordinal risk rank (Part B presentation). |

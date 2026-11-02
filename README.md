@@ -90,7 +90,9 @@ Reported holdout figures are **simulator classification metrics only**
 14 holdout city-slices: Hit@1 7/14, Hit@3 11/14, Hit@5 11/14
 (`synthetic_hit_at_k` in `validation_report.json` — small-n, synthetic only).
 Future-window coverage remains unavailable without observed outcomes
-and authorised data.
+and authorised data. `docs/LEAD_TIME_MEASUREMENT.md` records the Phase 2 result:
+the first cash-out hour was not predictable from complaint-time features better
+than a permutation of the same labels, so no lead time is reported.
 
 The model is decision support — every high-risk case needs human review.
 

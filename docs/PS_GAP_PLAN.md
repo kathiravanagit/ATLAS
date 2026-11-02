@@ -1,9 +1,10 @@
 # ATLAS — PS 26184 Gap Plan
 
-**Status: Phase 1 (1.1–1.3) is built locally and uncommitted; Phases 2–4 are
-proposal.** Every measurement below was taken against `main` (`14ef942`) and the
-synthetic fixtures. No real complaint, transaction or outcome data has been seen
-by this build; see `docs/VALIDATION_PLAN.md` for how that would change.
+**Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
+negative (§2.1). Phases 3–4 are still proposal.** Every measurement below was
+taken against `main` (`5a0493e`) and the synthetic fixtures. No real complaint,
+transaction or outcome data has been seen by this build; see
+`docs/VALIDATION_PLAN.md` for how that would change.
 
 The problem statement asks for four things. This document states which of them
 the prototype actually does today, then closes them in order of what a judge or
@@ -13,7 +14,7 @@ an investigating officer would probe first.
 | --- | --- | --- |
 | Receive a complaint | **Done (Phase 1).** `POST /api/complaints` creates the case, anchors its synthetic records to the complaint time, and ranks locations in one request. | §1.1, §1.4. |
 | Rank cash-out locations | **Done**, surface + zones shipped. | `14ef942`, `eb38afb`. |
-| Say *when* the cash-out is expected | **Removed (Phase 1).** No predicted window or lead time is shown; screens describe the records on file. | §1.2, §1.4. |
+| Say *when* the cash-out is expected | **Removed (Phase 1); measurement negative (Phase 2).** No predicted window or lead time is shown; screens describe the records on file, and the first cash-out hour is not predictable from complaint-time features. | §1.2, §1.4, §2.1. |
 | Jurisdiction-correct access | **Partly.** Reads scoped; writes unverified. | `visibility_filter`, `require_case`; §3.2. |
 | Alerting at scale | **Partly.** Durable dispatch exists; outbound is unpublished; 8,000/day unmeasured. | §3.3, §3.4. |
 
@@ -186,9 +187,9 @@ probability; every screen that prints `risk_score` carries the shared label.
 - `avg_lead_time` now reads
   `"Not measured — no confirmed cash-out outcomes linked yet"`; `_window_lead_hours`
   and `_expected_window` are deleted, and `tests/test_api.py` asserts their absence.
-- Intake is covered by `backend/tests/test_complaints_intake.py` (19 tests):
+- Intake is covered by `backend/tests/test_complaints_intake.py` (23 tests):
   create, replay, `409`, `422`, CSRF, auth, district authority, department
-  ownership, record anchoring and observed-window shape.
+  ownership, record anchoring, category canonicalisation and observed-window shape.
 - Regeneration guarantee: `ensure_synthetic_transactions(anchor=None)` keeps the
   fixed `2026-09-01T17:00Z` base, so `baseline@42` is unchanged. Anchored records use
   `stable_int(f"{case_id}:cashout:{index}")` and never the global RNG.
@@ -219,6 +220,22 @@ So the first deliverable is a measurement, not a model:
    number.
 
 Deliverable: `docs/LEAD_TIME_MEASUREMENT.md`. No UI until the number exists.
+
+### 2.1 As measured (negative)
+
+`backend/measure_lead_time.py` runs the protocol above. On 143 group-holdout
+rings the model hits the first cash-out hour within ±1h in 69.2% of cases, against
+a permutation mean of 71.3% (p = 0.82); always answering 18:00 scores 80.4%. On
+the union of all holdouts (429 rings) the model gets 73.9% against 74.1%
+(p = 0.59), and the modal hour again wins at 80.7%. The feature list excludes
+`hour` and `time_window_match`, and a test pins that exclusion.
+
+The generator draws ring hours from the evening window independently of the
+complaint-time features, so there is nothing beyond the marginal evening prior
+to learn. No lead time is reported: `avg_lead_time` stays "not measured", the
+observed window stays descriptive, and the next honest step is timestamped
+complaint/cash-out outcome logs, not another model. Details in
+`docs/LEAD_TIME_MEASUREMENT.md`.
 
 ---
 
