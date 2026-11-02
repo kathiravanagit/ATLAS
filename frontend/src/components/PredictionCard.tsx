@@ -36,7 +36,7 @@ function downloadReport(prediction: Prediction) {
     `  Location: ${p.location_name}`,
     `  ${areaPrimary(area, p.rank, total)}`,
     `  ${areaSecondary(area, p.display_score, p.risk_score)}`,
-    `  Time Window: ${p.expected_window}`,
+    `  Cash-out records: ${p.observed_window?.label ?? '—'} (${p.observed_window?.records ?? 0} records on file)`,
     `  Distance from center: ${p.distance}`,
     `  Coordinates: ${p.latitude}, ${p.longitude}`,
     ``,
@@ -112,9 +112,9 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
             </div>
           </div>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Time Window</div>
-            <div className="text-lg font-bold text-[#1F2937]">{p.expected_window}</div>
-            <div className="text-xs text-[#4B5563] mt-0.5">Model window — lead time not measured</div>
+            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Cash-out Records</div>
+            <div className="text-lg font-bold text-[#1F2937]">{p.observed_window?.label ?? '—'}</div>
+            <div className="text-xs text-[#4B5563] mt-0.5">Observed in this case · synthetic</div>
           </div>
           <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>

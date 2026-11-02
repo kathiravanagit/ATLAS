@@ -10,7 +10,7 @@ interface ScenarioFlow {
   steps?: string[];
   prediction?: {
     status?: string;
-    primary_location?: { atm_id?: string; location_name?: string; risk_score?: number; rank?: number; rank_total?: number; risk_area?: string; display_score?: number; expected_window?: string } | null;
+    primary_location?: { atm_id?: string; location_name?: string; risk_score?: number; rank?: number; rank_total?: number; risk_area?: string; display_score?: number; observed_window?: { label?: string; records?: number } } | null;
   } | null;
 }
 
@@ -72,7 +72,7 @@ export default function ScenarioRunner() {
                     const t = pl.rank_total ?? pl.rank;
                     return <>{areaPrimary(riskArea(pl.rank, t, pl.risk_area), pl.rank, t)} (relative order, not a probability)</>;
                   })()}
-                  {flow.prediction?.primary_location?.expected_window ? ` · ${flow.prediction.primary_location.expected_window}` : ''}
+                  {flow.prediction?.primary_location?.observed_window?.label ? ` · records ${flow.prediction.primary_location.observed_window.label}` : ''}
                   {flow.case_id ? <span className="font-mono text-xs">({flow.case_id})</span> : null}
                 </p>
               </> : null}

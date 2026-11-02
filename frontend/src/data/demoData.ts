@@ -12,7 +12,13 @@ export function getDemoCity(cityId: string) {
     .map((atm, index) => ({
       rank: index + 1, atm_id: atm.id, location_name: atm.name,
       latitude: atm.lat, longitude: atm.lng, risk_score: Math.round(atm.risk * 100),
-      expected_window: 'Not provided in city fixture', distance: 'Not provided',
+      // A city overview stands for no complaint, so it has no cash-out records
+      // to describe. Saying that is different from inventing a time window.
+      observed_window: {
+        label: 'no cash-out records', start: null, end: null,
+        end_day_offset: 0, hours: [], records: 0,
+      },
+      distance: 'Not provided',
       reason: 'Synthetic city fixture risk signal (not a model inference)', status: 'Fixture',
     }));
   const prediction: Prediction = {

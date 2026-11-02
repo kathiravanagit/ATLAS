@@ -27,7 +27,7 @@ const FLOW = {
   case_id: 'CC-2026-0145',
   steps: ['Complaint filed', 'Mule accounts found'],
   prediction: {
-    primary_location: { atm_id: 'PNY-005', location_name: 'Kurumbapet', risk_score: 88, rank: 2, rank_total: 12, risk_area: 'priority', expected_window: '19:00-21:00' },
+    primary_location: { atm_id: 'PNY-005', location_name: 'Kurumbapet', risk_score: 88, rank: 2, rank_total: 12, risk_area: 'priority', observed_window: { label: '19:20–21:15 UTC', records: 12 } },
   },
 }
 

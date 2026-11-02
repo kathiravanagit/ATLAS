@@ -311,7 +311,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                 className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
               />
               <input
-                placeholder="Time Window (e.g., 18:00-20:00)"
+                placeholder="Observed cash-out records (e.g. 18:05–20:00 UTC)"
                 value={newAlert.time_window}
                 onChange={e => setNewAlert(p => ({ ...p, time_window: e.target.value }))}
                 className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
@@ -370,7 +370,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
               <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
                 <span>Location: {alert.location}</span>
                 <span>·</span>
-                <span>Window: {alert.time_window}</span>
+                <span>Records: {alert.time_window}</span>
               </div>
 
               {/* Notification delivery badges */}

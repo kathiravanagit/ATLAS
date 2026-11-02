@@ -1,4 +1,4 @@
-import { DashboardStats, Case, Prediction, Alert } from '../types';
+import { DashboardStats, Case, Prediction, Alert, ObservedWindow } from '../types';
 
 export const DEMO_CASE_ID = "CC-2026-0147";
 
@@ -7,7 +7,9 @@ export const FALLBACK_STATS: DashboardStats = {
   active_cases: 23,
   high_risk_locations: 8,
   alerts_today: 14,
-  avg_lead_time: "38 min",
+  // No confirmed cash-out outcome is linked to a complaint in these fixtures,
+  // so there is no lead time to report. A duration here would be invented.
+  avg_lead_time: "Not measured — no confirmed cash-out outcomes linked yet",
   prevented_fraud: 2475000,
   mules_flagged: 12,
 };
@@ -293,23 +295,39 @@ export const FALLBACK_CASES: Case[] = [
 ];
 
 // ─── Predictions for Active Cases ───────────────────────────────────────────
+// Each case's cash-out records span one period; every location in the ranking
+// reports the same span because it describes the case, not the ATM.
+const OBSERVED_147: ObservedWindow = {
+  label: "18:05–20:00 UTC", start: "18:05", end: "20:00",
+  end_day_offset: 0, hours: [18, 19, 20], records: 12,
+};
+const OBSERVED_146: ObservedWindow = {
+  label: "17:10–19:40 UTC", start: "17:10", end: "19:40",
+  end_day_offset: 0, hours: [17, 18, 19], records: 12,
+};
+const OBSERVED_145: ObservedWindow = {
+  label: "19:20–21:15 UTC", start: "19:20", end: "21:15",
+  end_day_offset: 0, hours: [19, 20, 21], records: 12,
+};
+
 export const FALLBACK_PREDICTIONS: Record<string, Prediction> = {
   "CC-2026-0147": {
     case_id: "CC-2026-0147",
     status: "HIGH PRIORITY",
     primary_location: {
       rank: 1, atm_id: "ATM-027", location_name: "White Town Main Road",
-      risk_score: 92, expected_window: "18:00-20:00", distance: "1.2 km",
+      risk_score: 92, observed_window: OBSERVED_147, distance: "1.2 km",
       reason: "Evening withdrawal pattern matches historical behavior",
       status: "High", latitude: 11.9335, longitude: 79.8075
     },
     ranked_locations: [
-      { rank: 1, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 92, expected_window: "18:00-20:00", distance: "1.2 km", reason: "Evening withdrawal pattern matches historical behavior", status: "High", latitude: 11.9335, longitude: 79.8075 },
-      { rank: 2, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 78, expected_window: "18:30-20:30", distance: "2.1 km", reason: "Transaction velocity spike detected", status: "High", latitude: 11.9355, longitude: 79.8085 },
-      { rank: 3, atm_id: "ATM-031", location_name: "Lawspet Junction", risk_score: 64, expected_window: "19:00-21:00", distance: "3.4 km", reason: "Geographic cluster alignment", status: "Medium", latitude: 11.9450, longitude: 79.8105 },
-      { rank: 4, atm_id: "ATM-009", location_name: "Muthialpet Bazaar", risk_score: 51, expected_window: "19:30-21:30", distance: "4.0 km", reason: "Historical cash-out similarity", status: "Medium", latitude: 11.9295, longitude: 79.8055 },
-      { rank: 5, atm_id: "ATM-022", location_name: "Reddiarpalayam Town", risk_score: 38, expected_window: "20:00-22:00", distance: "4.8 km", reason: "Account network coordination", status: "Watch", latitude: 11.9395, longitude: 79.8035 },
+      { rank: 1, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 92, observed_window: OBSERVED_147, distance: "1.2 km", reason: "Evening withdrawal pattern matches historical behavior", status: "High", latitude: 11.9335, longitude: 79.8075 },
+      { rank: 2, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 78, observed_window: OBSERVED_147, distance: "2.1 km", reason: "Transaction velocity spike detected", status: "High", latitude: 11.9355, longitude: 79.8085 },
+      { rank: 3, atm_id: "ATM-031", location_name: "Lawspet Junction", risk_score: 64, observed_window: OBSERVED_147, distance: "3.4 km", reason: "Geographic cluster alignment", status: "Medium", latitude: 11.9450, longitude: 79.8105 },
+      { rank: 4, atm_id: "ATM-009", location_name: "Muthialpet Bazaar", risk_score: 51, observed_window: OBSERVED_147, distance: "4.0 km", reason: "Historical cash-out similarity", status: "Medium", latitude: 11.9295, longitude: 79.8055 },
+      { rank: 5, atm_id: "ATM-022", location_name: "Reddiarpalayam Town", risk_score: 38, observed_window: OBSERVED_147, distance: "4.8 km", reason: "Account network coordination", status: "Watch", latitude: 11.9395, longitude: 79.8035 },
     ],
+    observed_window: OBSERVED_147,
     risk_trend: [10, 18, 27, 44, 67, 92],
     evidence: {
       transaction_pattern: { category: "Transaction Pattern", description: "Rapid fund movement through 3 linked accounts detected", strength: "Strong", details: "₹48,500 moved across 3 accounts within 4 hours before complaint filing." },
@@ -322,14 +340,15 @@ export const FALLBACK_PREDICTIONS: Record<string, Prediction> = {
   "CC-2026-0146": {
     case_id: "CC-2026-0146",
     status: "HIGH PRIORITY",
-    primary_location: { rank: 1, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 85, expected_window: "17:00-19:00", distance: "1.8 km", reason: "Card cloning pattern matches known skimmer locations", status: "High", latitude: 11.9355, longitude: 79.8085 },
+    primary_location: { rank: 1, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 85, observed_window: OBSERVED_146, distance: "1.8 km", reason: "Card cloning pattern matches known skimmer locations", status: "High", latitude: 11.9355, longitude: 79.8085 },
     ranked_locations: [
-      { rank: 1, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 85, expected_window: "17:00-19:00", distance: "1.8 km", reason: "Card cloning pattern matches known skimmer locations", status: "High", latitude: 11.9355, longitude: 79.8085 },
-      { rank: 2, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 71, expected_window: "18:00-20:00", distance: "2.3 km", reason: "High ATM traffic area", status: "High", latitude: 11.9335, longitude: 79.8075 },
-      { rank: 3, atm_id: "ATM-009", location_name: "Muthialpet Bazaar", risk_score: 58, expected_window: "19:00-21:00", distance: "3.1 km", reason: "Secondary withdrawal pattern", status: "Medium", latitude: 11.9295, longitude: 79.8055 },
-      { rank: 4, atm_id: "ATM-031", location_name: "Lawspet Junction", risk_score: 45, expected_window: "19:30-21:30", distance: "3.8 km", reason: "Low activity monitoring", status: "Medium", latitude: 11.9450, longitude: 79.8105 },
-      { rank: 5, atm_id: "ATM-022", location_name: "Reddiarpalayam Town", risk_score: 32, expected_window: "20:00-22:00", distance: "4.5 km", reason: "Minimal risk indicators", status: "Watch", latitude: 11.9395, longitude: 79.8035 },
+      { rank: 1, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 85, observed_window: OBSERVED_146, distance: "1.8 km", reason: "Card cloning pattern matches known skimmer locations", status: "High", latitude: 11.9355, longitude: 79.8085 },
+      { rank: 2, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 71, observed_window: OBSERVED_146, distance: "2.3 km", reason: "High ATM traffic area", status: "High", latitude: 11.9335, longitude: 79.8075 },
+      { rank: 3, atm_id: "ATM-009", location_name: "Muthialpet Bazaar", risk_score: 58, observed_window: OBSERVED_146, distance: "3.1 km", reason: "Secondary withdrawal pattern", status: "Medium", latitude: 11.9295, longitude: 79.8055 },
+      { rank: 4, atm_id: "ATM-031", location_name: "Lawspet Junction", risk_score: 45, observed_window: OBSERVED_146, distance: "3.8 km", reason: "Low activity monitoring", status: "Medium", latitude: 11.9450, longitude: 79.8105 },
+      { rank: 5, atm_id: "ATM-022", location_name: "Reddiarpalayam Town", risk_score: 32, observed_window: OBSERVED_146, distance: "4.5 km", reason: "Minimal risk indicators", status: "Watch", latitude: 11.9395, longitude: 79.8035 },
     ],
+    observed_window: OBSERVED_146,
     risk_trend: [8, 15, 32, 48, 62, 85],
     evidence: {
       transaction_pattern: { category: "Transaction Pattern", description: "Card skimming pattern detected at 2 ATMs", strength: "Strong", details: "₹35,200 withdrawn in rapid succession within 30 minutes." },
@@ -342,14 +361,15 @@ export const FALLBACK_PREDICTIONS: Record<string, Prediction> = {
   "CC-2026-0145": {
     case_id: "CC-2026-0145",
     status: "CRITICAL",
-    primary_location: { rank: 1, atm_id: "ATM-005", location_name: "Kurumbapet Highway", risk_score: 88, expected_window: "19:00-21:00", distance: "5.2 km", reason: "High-value investment fraud cash-out pattern", status: "High", latitude: 11.9520, longitude: 79.8085 },
+    primary_location: { rank: 1, atm_id: "ATM-005", location_name: "Kurumbapet Highway", risk_score: 88, observed_window: OBSERVED_145, distance: "5.2 km", reason: "High-value investment fraud cash-out pattern", status: "High", latitude: 11.9520, longitude: 79.8085 },
     ranked_locations: [
-      { rank: 1, atm_id: "ATM-005", location_name: "Kurumbapet Highway", risk_score: 88, expected_window: "19:00-21:00", distance: "5.2 km", reason: "High-value investment fraud cash-out pattern", status: "High", latitude: 11.9520, longitude: 79.8085 },
-      { rank: 2, atm_id: "ATM-018", location_name: "Thattanchavady East", risk_score: 72, expected_window: "18:00-20:00", distance: "3.8 km", reason: "Multi-account fund splitting location", status: "High", latitude: 11.9315, longitude: 79.8155 },
-      { rank: 3, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 65, expected_window: "20:00-22:00", distance: "1.2 km", reason: "High-value ATM target", status: "Medium", latitude: 11.9335, longitude: 79.8075 },
-      { rank: 4, atm_id: "ATM-041", location_name: "Nehru Park Branch", risk_score: 48, expected_window: "19:00-21:00", distance: "2.9 km", reason: "Secondary cash-out location", status: "Medium", latitude: 11.9350, longitude: 79.8115 },
-      { rank: 5, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 41, expected_window: "18:00-20:00", distance: "2.1 km", reason: "Monitoring required", status: "Watch", latitude: 11.9355, longitude: 79.8085 },
+      { rank: 1, atm_id: "ATM-005", location_name: "Kurumbapet Highway", risk_score: 88, observed_window: OBSERVED_145, distance: "5.2 km", reason: "High-value investment fraud cash-out pattern", status: "High", latitude: 11.9520, longitude: 79.8085 },
+      { rank: 2, atm_id: "ATM-018", location_name: "Thattanchavady East", risk_score: 72, observed_window: OBSERVED_145, distance: "3.8 km", reason: "Multi-account fund splitting location", status: "High", latitude: 11.9315, longitude: 79.8155 },
+      { rank: 3, atm_id: "ATM-027", location_name: "White Town Main Road", risk_score: 65, observed_window: OBSERVED_145, distance: "1.2 km", reason: "High-value ATM target", status: "Medium", latitude: 11.9335, longitude: 79.8075 },
+      { rank: 4, atm_id: "ATM-041", location_name: "Nehru Park Branch", risk_score: 48, observed_window: OBSERVED_145, distance: "2.9 km", reason: "Secondary cash-out location", status: "Medium", latitude: 11.9350, longitude: 79.8115 },
+      { rank: 5, atm_id: "ATM-014", location_name: "MG Road Commercial", risk_score: 41, observed_window: OBSERVED_145, distance: "2.1 km", reason: "Monitoring required", status: "Watch", latitude: 11.9355, longitude: 79.8085 },
     ],
+    observed_window: OBSERVED_145,
     risk_trend: [5, 12, 28, 52, 71, 88],
     evidence: {
       transaction_pattern: { category: "Transaction Pattern", description: "Complex fund splitting across 6 accounts", strength: "Strong", details: "₹1,25,000 split into 6 parts of ₹18,000–25,000 each within 48 hours." },
@@ -366,20 +386,20 @@ export const FALLBACK_PREDICTION: Prediction = FALLBACK_PREDICTIONS["CC-2026-014
 
 // ─── Alerts (14 Active + Acknowledged) ──────────────────────────────────────
 export const FALLBACK_ALERTS: Alert[] = [
-  { alert_id: "ALT-001", case_id: "CC-2026-0147", message: "HIGH-RISK: Case CC-2026-0147 has a high predicted cash-out risk at ATM-027 during 18:00-20:00.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "14:32:15", acknowledged: false, acknowledged_at: null },
-  { alert_id: "ALT-002", case_id: "CC-2026-0145", message: "CRITICAL: Case CC-2026-0145 — ₹1,25,000 investment fraud. 6 mule accounts active. Deploy units NOW.", risk_level: "High", location: "ATM-005, Kurumbapet Highway", time_window: "19:00-21:00", timestamp: "14:28:42", acknowledged: false, acknowledged_at: null },
-  { alert_id: "ALT-003", case_id: "CC-2026-0146", message: "HIGH-RISK: Card cloning alert. ATM-014 shows elevated skimming risk.", risk_level: "High", location: "ATM-014, MG Road Commercial", time_window: "17:00-19:00", timestamp: "14:25:11", acknowledged: false, acknowledged_at: null },
-  { alert_id: "ALT-004", case_id: "CC-2026-0139", message: "MEDIUM-RISK: Case CC-2026-0139 shows elevated cash-out risk at ATM-014.", risk_level: "Medium", location: "ATM-014, MG Road Commercial", time_window: "19:00-21:00", timestamp: "14:20:33", acknowledged: false, acknowledged_at: null },
-  { alert_id: "ALT-005", case_id: "CC-2026-0143", message: "MEDIUM-RISK: Identity theft case. Multiple account linkage detected.", risk_level: "Medium", location: "ATM-031, Lawspet Junction", time_window: "19:30-21:30", timestamp: "14:17:22", acknowledged: true, acknowledged_at: "14:22:15" },
-  { alert_id: "ALT-006", case_id: "CC-2026-0138", message: "HIGH-RISK: SIM swap fraud. ₹92,000 at risk. Urgent action required.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "14:12:45", acknowledged: true, acknowledged_at: "14:18:30" },
-  { alert_id: "ALT-007", case_id: "CC-2026-0142", message: "WATCH: Case CC-2026-0142 activity detected near ATM-031.", risk_level: "Watch", location: "ATM-031, Lawspet Junction", time_window: "20:00-22:00", timestamp: "14:02:11", acknowledged: true, acknowledged_at: "14:10:00" },
-  { alert_id: "ALT-008", case_id: "CC-2026-0134", message: "MEDIUM-RISK: Multiple UPI transactions detected. Fund splitting pattern.", risk_level: "Medium", location: "ATM-009, Muthialpet Bazaar", time_window: "19:00-21:00", timestamp: "13:57:08", acknowledged: true, acknowledged_at: "14:05:22" },
-  { alert_id: "ALT-009", case_id: "CC-2026-0132", message: "HIGH-RISK: Large identity theft case. ₹1,56,000 at risk.", risk_level: "High", location: "ATM-005, Kurumbapet Highway", time_window: "20:00-22:00", timestamp: "13:45:30", acknowledged: true, acknowledged_at: "13:52:15" },
-  { alert_id: "ALT-010", case_id: "CC-2026-0130", message: "CRITICAL: Ponzi scheme detected. ₹2,10,000 across 7 accounts.", risk_level: "High", location: "ATM-018, Thattanchavady East", time_window: "19:00-21:00", timestamp: "13:30:00", acknowledged: true, acknowledged_at: "13:38:45" },
-  { alert_id: "ALT-011", case_id: "CC-2026-0128", message: "WATCH: Case CC-2026-0128 — new account linkage detected.", risk_level: "Watch", location: "ATM-009, Muthialpet Bazaar", time_window: "19:00-21:00", timestamp: "13:15:00", acknowledged: true, acknowledged_at: "13:22:30" },
-  { alert_id: "ALT-012", case_id: "CC-2026-0127", message: "MEDIUM-RISK: Card cloning across multiple ATMs detected.", risk_level: "Medium", location: "ATM-014, MG Road Commercial", time_window: "18:00-20:00", timestamp: "13:00:00", acknowledged: true, acknowledged_at: "13:10:15" },
-  { alert_id: "ALT-013", case_id: "CC-2026-0125", message: "HIGH-RISK: SIM swap fraud. ₹78,000 at risk.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:45:00", acknowledged: true, acknowledged_at: "12:55:30" },
-  { alert_id: "ALT-014", case_id: "CC-2026-0147", message: "UPDATE: Case CC-2026-0147 — new transaction signal; review priority raised.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:00-20:00", timestamp: "12:30:00", acknowledged: true, acknowledged_at: "12:40:15" },
+  { alert_id: "ALT-001", case_id: "CC-2026-0147", message: "HIGH-RISK: Case CC-2026-0147 — cash-out records at ATM-027 span 18:05–20:00 UTC.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:05–20:00 UTC", timestamp: "14:32:15", acknowledged: false, acknowledged_at: null },
+  { alert_id: "ALT-002", case_id: "CC-2026-0145", message: "CRITICAL: Case CC-2026-0145 — ₹1,25,000 investment fraud. 6 mule accounts active. Deploy units NOW.", risk_level: "High", location: "ATM-005, Kurumbapet Highway", time_window: "19:20–21:15 UTC", timestamp: "14:28:42", acknowledged: false, acknowledged_at: null },
+  { alert_id: "ALT-003", case_id: "CC-2026-0146", message: "HIGH-RISK: Card cloning alert. ATM-014 shows elevated skimming risk.", risk_level: "High", location: "ATM-014, MG Road Commercial", time_window: "17:10–19:40 UTC", timestamp: "14:25:11", acknowledged: false, acknowledged_at: null },
+  { alert_id: "ALT-004", case_id: "CC-2026-0139", message: "MEDIUM-RISK: Case CC-2026-0139 shows elevated cash-out risk at ATM-014.", risk_level: "Medium", location: "ATM-014, MG Road Commercial", time_window: "19:20–21:15 UTC", timestamp: "14:20:33", acknowledged: false, acknowledged_at: null },
+  { alert_id: "ALT-005", case_id: "CC-2026-0143", message: "MEDIUM-RISK: Identity theft case. Multiple account linkage detected.", risk_level: "Medium", location: "ATM-031, Lawspet Junction", time_window: "19:35–21:25 UTC", timestamp: "14:17:22", acknowledged: true, acknowledged_at: "14:22:15" },
+  { alert_id: "ALT-006", case_id: "CC-2026-0138", message: "HIGH-RISK: SIM swap fraud. ₹92,000 at risk. Urgent action required.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:05–20:00 UTC", timestamp: "14:12:45", acknowledged: true, acknowledged_at: "14:18:30" },
+  { alert_id: "ALT-007", case_id: "CC-2026-0142", message: "WATCH: Case CC-2026-0142 activity detected near ATM-031.", risk_level: "Watch", location: "ATM-031, Lawspet Junction", time_window: "20:10–21:55 UTC", timestamp: "14:02:11", acknowledged: true, acknowledged_at: "14:10:00" },
+  { alert_id: "ALT-008", case_id: "CC-2026-0134", message: "MEDIUM-RISK: Multiple UPI transactions detected. Fund splitting pattern.", risk_level: "Medium", location: "ATM-009, Muthialpet Bazaar", time_window: "19:20–21:15 UTC", timestamp: "13:57:08", acknowledged: true, acknowledged_at: "14:05:22" },
+  { alert_id: "ALT-009", case_id: "CC-2026-0132", message: "HIGH-RISK: Large identity theft case. ₹1,56,000 at risk.", risk_level: "High", location: "ATM-005, Kurumbapet Highway", time_window: "20:10–21:55 UTC", timestamp: "13:45:30", acknowledged: true, acknowledged_at: "13:52:15" },
+  { alert_id: "ALT-010", case_id: "CC-2026-0130", message: "CRITICAL: Ponzi scheme detected. ₹2,10,000 across 7 accounts.", risk_level: "High", location: "ATM-018, Thattanchavady East", time_window: "19:20–21:15 UTC", timestamp: "13:30:00", acknowledged: true, acknowledged_at: "13:38:45" },
+  { alert_id: "ALT-011", case_id: "CC-2026-0128", message: "WATCH: Case CC-2026-0128 — new account linkage detected.", risk_level: "Watch", location: "ATM-009, Muthialpet Bazaar", time_window: "19:20–21:15 UTC", timestamp: "13:15:00", acknowledged: true, acknowledged_at: "13:22:30" },
+  { alert_id: "ALT-012", case_id: "CC-2026-0127", message: "MEDIUM-RISK: Card cloning across multiple ATMs detected.", risk_level: "Medium", location: "ATM-014, MG Road Commercial", time_window: "18:05–20:00 UTC", timestamp: "13:00:00", acknowledged: true, acknowledged_at: "13:10:15" },
+  { alert_id: "ALT-013", case_id: "CC-2026-0125", message: "HIGH-RISK: SIM swap fraud. ₹78,000 at risk.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:05–20:00 UTC", timestamp: "12:45:00", acknowledged: true, acknowledged_at: "12:55:30" },
+  { alert_id: "ALT-014", case_id: "CC-2026-0147", message: "UPDATE: Case CC-2026-0147 — new transaction signal; review priority raised.", risk_level: "High", location: "ATM-027, White Town Main Road", time_window: "18:05–20:00 UTC", timestamp: "12:30:00", acknowledged: true, acknowledged_at: "12:40:15" },
 ];
 
 // ─── Crime Type Distribution (for charts) ───────────────────────────────────

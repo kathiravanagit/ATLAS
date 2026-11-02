@@ -1,5 +1,6 @@
 import { PredictionLocation, RiskArea, RiskSurface, RiskCellLevel, InterventionZones } from '../types';
 import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP, AREA_LABEL } from '../lib/riskAreas';
+import { TIME_BUCKETS, OBSERVED_HOURS_TIP, matchesTimeBucket, type TimeBucket } from '../lib/observedHours';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -138,7 +139,7 @@ function ZoomControls({ onRecenter, isFullscreen, onToggleFullscreen }: {
 }
 
 type RiskFilterType = 'all' | 'priority' | 'watch' | 'background';
-type TimeFilterType = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';
+type TimeFilterType = TimeBucket;
 
 export default function MapView({ locations, selectedLocation, onSelectLocation, cityCenter, surface, zones }: MapViewProps) {
   const [showFilters, setShowFilters] = useState(true);
@@ -185,7 +186,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   const filtered = useMemo(() => locations.filter(loc => {
     const matchRisk = riskFilter === 'all' ||
       locArea(loc, locations.length) === riskFilter;
-    const matchTime = timeFilter === 'all' || loc.expected_window.includes(timeFilter.split('-')[0].slice(0, 2));
+    const matchTime = matchesTimeBucket(loc.observed_window?.hours, timeFilter);
     return matchRisk && matchTime;
   }), [locations, riskFilter, timeFilter]);
 
@@ -270,7 +271,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 <span style={{ fontWeight: 'bold', color: areaColor(locArea(loc, locations.length)) }}>
                   {areaPrimary(locArea(loc, locations.length), loc.rank, locTotal(loc, locations.length))}
                 </span><br />
-                <span>Window: {loc.expected_window}</span>
+                <span>Records: {loc.observed_window?.label ?? '—'}</span>
               </div>
             </Popup>
           </Marker>
@@ -329,21 +330,22 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
           {/* Expanded Filters */}
           {showFilters && (
             <div className="p-4 space-y-3">
-              {/* Time Window */}
+              {/* Observed hours */}
               <div>
-                <label className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1.5 block">Time Window</label>
+                <label className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1.5 block" title={OBSERVED_HOURS_TIP}>Observed Hours</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {(['all', '17:00-19:00', '18:00-20:00', '19:00-21:00', '20:00-22:00'] as const).map(t => (
+                  {TIME_BUCKETS.map(bucket => (
                     <button
-                      key={t}
-                      onClick={() => setTimeFilter(t)}
+                      key={bucket.id}
+                      onClick={() => setTimeFilter(bucket.id)}
+                      title={OBSERVED_HOURS_TIP}
                       className={`px-2 py-1 text-[11px] rounded border transition-colors ${
-                        timeFilter === t
+                        timeFilter === bucket.id
                           ? 'border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]'
                           : 'border-[#D1D5DB] text-[#6B7280] hover:border-[#9CA3AF]'
                       }`}
                     >
-                      {t === 'all' ? 'Any' : t}
+                      {bucket.label}
                     </button>
                   ))}
                 </div>
@@ -568,9 +570,9 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                 <div className="bg-white rounded-lg p-2.5 border border-[#D1D5DB]">
                   <div className="flex items-center gap-1 mb-1">
                     <Clock size={10} className="text-[#6B7280]" />
-                    <span className="text-[11px] text-[#6B7280] uppercase">Window</span>
+                    <span className="text-[11px] text-[#6B7280] uppercase" title={OBSERVED_HOURS_TIP}>Cash-out records</span>
                   </div>
-                  <div className="text-sm font-medium text-[#1F2937]">{selectedLocation.expected_window}</div>
+                  <div className="text-sm font-medium text-[#1F2937]">{selectedLocation.observed_window?.label ?? '—'}</div>
                 </div>
                 <div className="bg-white rounded-lg p-2.5 border border-[#D1D5DB]">
                   <div className="flex items-center gap-1 mb-1">

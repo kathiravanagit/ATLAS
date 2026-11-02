@@ -15,12 +15,25 @@ export interface Case {
 
 export type RiskArea = 'priority' | 'watch' | 'background';
 
+export interface ObservedWindow {
+  /** Human-readable span of the cash-out records on file, e.g. "17:32–23:05 UTC". */
+  label: string;
+  start: string | null;
+  end: string | null;
+  /** 0 or 1: whether the span crosses midnight. */
+  end_day_offset: number;
+  /** Distinct hours that appear in the records, for the time-of-day filter. */
+  hours: number[];
+  records: number;
+}
+
 export interface PredictionLocation {
   rank: number;
   atm_id: string;
   location_name: string;
   risk_score: number;
-  expected_window: string;
+  /** Descriptive span of stored records. Never a predicted window. */
+  observed_window?: ObservedWindow;
   distance: string;
   reason: string;
   status: string;
@@ -39,6 +52,7 @@ export interface Prediction {
   status: string;
   primary_location: PredictionLocation;
   ranked_locations: PredictionLocation[];
+  observed_window?: ObservedWindow;
   risk_trend: number[];
   evidence: Record<string, EvidenceItem>;
   disclaimer?: string;
@@ -136,6 +150,7 @@ export interface Alert {
   message: string;
   risk_level: string;
   location: string;
+  /** Column name kept for storage compatibility; carries the observed cash-out span. */
   time_window: string;
   timestamp: string;
   acknowledged: boolean;
@@ -163,4 +178,4 @@ export interface AuditEntry {
 }
 
 export type RiskFilter = 'all' | 'High' | 'Medium' | 'Low' | 'Watch';
-export type TimeFilter = 'all' | '17:00-19:00' | '18:00-20:00' | '19:00-21:00' | '20:00-22:00';
+export type TimeFilter = 'all' | 'morning' | 'afternoon' | 'evening' | 'night';

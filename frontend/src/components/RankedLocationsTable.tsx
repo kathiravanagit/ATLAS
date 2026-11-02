@@ -1,5 +1,6 @@
 import { PredictionLocation, RiskFilter, TimeFilter } from '../types';
 import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
+import { TIME_BUCKETS, OBSERVED_HOURS_TIP, matchesTimeBucket } from '../lib/observedHours';
 import { MapPin, Clock, AlertTriangle, ChevronDown, Search } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
@@ -13,11 +14,9 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [search, setSearch] = useState("");
 
-  const timeWindows = ["17:00-19:00", "18:00-20:00", "18:30-20:30", "19:00-21:00", "19:30-21:30", "20:00-22:00"];
-
   const filtered = useMemo(() => locations.filter(loc => {
     const matchesRisk = riskFilter === "all" || loc.status === riskFilter;
-    const matchesTime = timeFilter === "all" || loc.expected_window === timeFilter;
+    const matchesTime = matchesTimeBucket(loc.observed_window?.hours, timeFilter);
     const matchesSearch = search === "" ||
       loc.atm_id.toLowerCase().includes(search.toLowerCase()) ||
       loc.location_name.toLowerCase().includes(search.toLowerCase());
@@ -37,7 +36,7 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
           <div>
             <h3 className="font-semibold text-lg text-[#1F2937]">Risk Assessment — Ranked Locations</h3>
             <p className="text-base text-[#6B7280] mt-0.5">
-              Risk-ranked ATM locations with expected cash-out windows
+              Risk-ranked ATM locations; times are the cash-out records on file
             </p>
           </div>
         </div>
@@ -67,16 +66,16 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5">
-            {(["all", ...timeWindows] as TimeFilter[]).map(t => (
+          <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5" title={OBSERVED_HOURS_TIP}>
+            {TIME_BUCKETS.map(bucket => (
               <button
-                key={t}
-                onClick={() => setTimeFilter(t)}
+                key={bucket.id}
+                onClick={() => setTimeFilter(bucket.id)}
                 className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  timeFilter === t ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#1F2937]"
+                  timeFilter === bucket.id ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#1F2937]"
                 }`}
               >
-                {t === "all" ? "All Time" : t}
+                {bucket.id === "all" ? "All Times" : bucket.label}
               </button>
             ))}
           </div>
@@ -91,7 +90,7 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
               <th className="text-left px-4 py-2 font-medium">ATM ID</th>
               <th className="text-left px-4 py-2 font-medium">Location</th>
               <th className="text-center px-4 py-2 font-medium" title={SCORE_TOOLTIP}>Display</th>
-              <th className="text-left px-4 py-2 font-medium">Window</th>
+              <th className="text-left px-4 py-2 font-medium" title={OBSERVED_HOURS_TIP}>Records</th>
               <th className="text-left px-4 py-2 font-medium">Distance</th>
               <th className="text-left px-4 py-2 font-medium">Status</th>
               <th className="text-left px-4 py-2 font-medium">Reason</th>
@@ -135,7 +134,7 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                     </span>
                     <div className="text-[10px] text-[#6B7280]">{areaSecondary(area, loc.display_score, loc.risk_score)}</div>
                   </td>
-                  <td className="px-4 py-3 text-base text-[#4B5563]">{loc.expected_window}</td>
+                  <td className="px-4 py-3 text-base text-[#4B5563]" title={OBSERVED_HOURS_TIP}>{loc.observed_window?.label ?? '—'}</td>
                   <td className="px-4 py-3 text-base text-[#4B5563]">{loc.distance}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${

@@ -22,7 +22,7 @@ describe('dashboard null operational metrics', () => {
     const impact = screen.getByText('Resolved Case Value').parentElement!;
     expect(impact.textContent).toContain('Not measured');
     expect(impact.textContent).not.toMatch(/₹|0\.0L|12,345/);
-    expect(screen.getByText('Simulated Lead Time').parentElement!.textContent).toContain('Not measured');
+    expect(screen.getByText('Lead Time').parentElement!.textContent).toContain('Not measured');
     expect(screen.getByText('Linked Accounts Flagged').parentElement!.textContent).toContain('Not measured');
     expect(screen.getByText(/Resolved amounts are not verified/)).toBeDefined();
   });
@@ -31,6 +31,9 @@ describe('dashboard null operational metrics', () => {
     const { container } = render(<PredictionCard prediction={{ ...FALLBACK_PREDICTION, evidence: {} }} onShowEvidence={vi.fn()} />);
     expect(screen.getByText('No evidence supplied')).toBeDefined();
     expect(container.textContent).not.toContain('Loading...');
-    expect(screen.getByText(/lead time not measured/)).toBeDefined();
+    // No confirmed cash-out outcome is linked to a complaint, so the card must
+    // not present a lead time at all rather than a plausible duration.
+    expect(container.textContent?.toLowerCase()).not.toContain('lead time');
+    expect(screen.getByText(/Observed in this case/)).toBeDefined();
   });
 });

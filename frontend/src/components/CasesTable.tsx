@@ -352,8 +352,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               })()}
             </div>
             <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase">Time Window</div>
-              <div className="text-sm font-medium text-[#1F2937]">{expandedData[expandedCase].primary_location?.expected_window}</div>
+              <div className="text-[11px] text-[#6B7280] uppercase">Cash-out Records</div>
+              <div className="text-sm font-medium text-[#1F2937]">{expandedData[expandedCase].primary_location?.observed_window?.label ?? '—'}</div>
             </div>
           </div>
           {expandedData[expandedCase].ranked_locations && (
@@ -365,7 +365,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                     <th scope="col" className="text-left px-3 py-2">ATM ID</th>
                     <th scope="col" className="text-left px-3 py-2">Location</th>
                     <th scope="col" className="text-right px-3 py-2" title={SCORE_TOOLTIP}>Display</th>
-                    <th scope="col" className="text-left px-3 py-2">Window</th>
+                    <th scope="col" className="text-left px-3 py-2">Records</th>
                     <th scope="col" className="text-left px-3 py-2">Status</th>
                   </tr>
                 </thead>
@@ -376,7 +376,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                       <td className="px-3 py-2 font-mono font-medium">{loc.atm_id}</td>
                       <td className="px-3 py-2 text-[#4B5563]">{loc.location_name}</td>
                       <td className="px-3 py-2 text-right font-mono font-medium" style={{ color: riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'priority' ? '#B91C1C' : riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'watch' ? '#B45309' : '#6B7280' }} title={SCORE_TOOLTIP}>{loc.display_score ?? '—'}</td>
-                      <td className="px-3 py-2 text-[#4B5563]">{loc.expected_window}</td>
+                      <td className="px-3 py-2 text-[#4B5563]">{loc.observed_window?.label ?? '—'}</td>
                       <td className="px-3 py-2">
                         <span className={`text-[11px] px-1 py-0.5 rounded ${loc.status === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : loc.status === 'Medium' ? 'bg-[#B45309]/10 text-[#B45309]' : 'bg-[#6B7280]/10 text-[#6B7280]'}`}>{loc.status}</span>
                       </td>
