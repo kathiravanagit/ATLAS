@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -6,11 +6,22 @@ from datetime import datetime
 # ─── Request Models ───────────────────────────────────────────────────────────
 
 class ComplaintCreate(BaseModel):
-    victim_name: str
-    crime_type: str
-    amount: float
-    description: str
-    contact: str
+    """A complaint as a cybercrime desk would file it (NCRP shape, not a schema mirror).
+
+    `district` is the jurisdiction key and `incident_at` is T0. `description` is
+    free text kept for the officer: it is never parsed to decide a district,
+    because a complaint that mentions another city in prose must not move between
+    ATM registries.
+    """
+
+    external_ref: str = Field(min_length=1, max_length=64)
+    district: str = Field(min_length=1, max_length=80)
+    category: str = Field(min_length=1, max_length=80)
+    amount: float = Field(gt=0, le=100_000_000)
+    incident_at: datetime
+    description: str = Field(default="", max_length=4000)
+    victim_name: str = Field(default="", max_length=120)
+    contact: str = Field(default="", max_length=64)
 
 
 # ─── Response Models ──────────────────────────────────────────────────────────
@@ -33,7 +44,7 @@ class PredictionLocationResponse(BaseModel):
     atm_id: str
     location_name: str
     risk_score: float
-    expected_window: str
+    observed_window: dict
     distance: str
     reason: str
     status: str

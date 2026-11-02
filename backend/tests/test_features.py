@@ -559,13 +559,17 @@ class TestPredictionAlerts:
         body, subject = main_module._high_risk_message(
             "CASE-001",
             {"atm_id": "PNY-003", "location_name": "White Town",
-             "risk_score": 87, "expected_window": "18:00-20:00"},
+             "risk_score": 87,
+             "observed_window": {"label": "18:00–20:00 UTC", "start": "18:00", "end": "20:00",
+                                 "end_day_offset": 0, "hours": [18, 19, 20], "records": 12}},
             city="Puducherry",
         )
         assert "ATLAS ALERT" in body
         assert "CASE-001" in body and "Risk: HIGH" in body
         assert "PNY-003" in body and "Puducherry" in body
-        assert "18:00-20:00" in body
+        assert "18:00–20:00 UTC" in body
+        # The body describes records observed, not a window that was predicted.
+        assert "Window:" not in body
         # Uncalibrated model scores must not be surfaced as risk percentages.
         assert "%" not in body
         assert subject == "ATLAS HIGH RISK — CASE-001 — Puducherry"
@@ -734,7 +738,7 @@ class TestManualNotify:
         import main as main_module
         db = TestingSessionLocal()
         try:
-            base = {"location_name": "T. Nagar", "expected_window": "18:00-20:00"}
+            base = {"location_name": "T. Nagar", "observed_window": {"label": "18:00–20:00 UTC"}}
             at_boundary = main_module._raise_high_risk_alert(
                 db, "CASE-001",
                 {"atm_id": "ATM-CH-001", "risk_score": main_module.HIGH_RISK_THRESHOLD, **base},

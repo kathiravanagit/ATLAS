@@ -219,7 +219,8 @@ def test_pipeline_alert_carries_case_district(db_session):
         "atm_id": "MUM-001",
         "location_name": "Test Junction",
         "risk_score": 99.0,
-        "expected_window": "18:00-20:00",
+        "observed_window": {"label": "18:00–20:00 UTC", "start": "18:00", "end": "20:00",
+                            "end_day_offset": 0, "hours": [18, 19, 20], "records": 12},
         "risk_area": "priority",
     }, city="Mumbai")
     db_session.commit()
@@ -245,7 +246,8 @@ def test_pipeline_alert_district_follows_the_case_not_the_city_argument(db_sessi
         "atm_id": "KOL-002",
         "location_name": "Test Junction",
         "risk_score": 99.0,
-        "expected_window": "18:00-20:00",
+        "observed_window": {"label": "18:00–20:00 UTC", "start": "18:00", "end": "20:00",
+                            "end_day_offset": 0, "hours": [18, 19, 20], "records": 12},
         "risk_area": "priority",
     }, city="Puducherry")
     db_session.commit()

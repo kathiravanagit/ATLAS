@@ -169,12 +169,16 @@ def test_dashboard_aggregates_resolved_highrisk_and_windows(client, inspector_to
     assert isinstance(data["avg_lead_time"], str) and len(data["avg_lead_time"]) > 0
 
 
-def test_window_lead_hours_parses_and_rolls_over():
+def test_lead_time_is_reported_as_unmeasured_not_as_a_clock():
+    """Lead time needs a confirmed cash-out; a clock is not a forecast.
+
+    The old implementation measured hours from "now" to a hardcoded window start,
+    so the number moved while the page sat open. It is gone, and the dashboard
+    must say so rather than show a plausible-looking duration.
+    """
     import main as main_module
-    assert main_module._window_lead_hours("not-a-window") is None
-    assert main_module._window_lead_hours("") is None
-    hours = main_module._window_lead_hours("18:00-20:00")
-    assert isinstance(hours, float) and 0 < hours <= 24
+    assert not hasattr(main_module, "_window_lead_hours")
+    assert not hasattr(main_module, "_expected_window")
 
 
 def test_read_endpoints_reject_unauthenticated(client):

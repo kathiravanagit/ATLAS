@@ -22,7 +22,7 @@ from models_db import (
 )
 from models import (
     CaseResponse, PredictionResponse, PredictionLocationResponse,
-    AlertResponse, DashboardStatsResponse
+    AlertResponse, DashboardStatsResponse, ComplaintCreate
 )
 from ml_engine import predict_cashout, get_metadata, haversine, compute_shap_values, load_models, hist_norm, local_hotspot, FEATURE_COLS as ML_FEATURE_COLS
 import ml_engine
@@ -322,8 +322,21 @@ def stable_int(value: str) -> int:
     return int.from_bytes(hashlib.sha256(value.encode("utf-8")).digest()[:4], "big")
 
 
-def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms: list) -> list:
-    """Create and query synthetic records once; prediction signals come from DB rows."""
+def _as_utc(moment):
+    """Normalise a datetime to timezone-aware UTC; a naive value is taken as UTC."""
+    if moment is None:
+        return None
+    return moment.replace(tzinfo=timezone.utc) if moment.tzinfo is None else moment.astimezone(timezone.utc)
+
+
+def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms: list, anchor=None) -> list:
+    """Create and query synthetic records once; prediction signals come from DB rows.
+
+    `anchor` is the complaint time for cases that arrive through intake. Without
+    it the fixture uses a fixed 2026-09-01 17:00 base, which is what seeded demo
+    cases and the model-regeneration checks depend on. With it, every record is
+    placed after the complaint so a cash-out time is expressible at all.
+    """
     records = db.query(TransactionRecord).filter(TransactionRecord.case_id == case_id).all()
     if records:
         return records
@@ -346,10 +359,19 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
         db.flush()
 
     seed = stable_int(f"{case_id}:{city_id}")
-    base_time = datetime(2026, 9, 1, 17, tzinfo=timezone.utc)
+    anchored = anchor is not None
+    base_time = _as_utc(anchor) if anchored else datetime(2026, 9, 1, 17, tzinfo=timezone.utc)
     for index in range(12):
         atm = atms[(seed + index) % len(atms)]
         amount = float(12000 + ((seed + index * 7919) % 118000))
+        if anchored:
+            # Cash-out follows the complaint by 30 minutes to 18 hours, taken
+            # from the case hash so a replayed complaint reproduces the same
+            # records. Never from the global RNG, which prediction reseeds.
+            offset = 30 + (stable_int(f"{case_id}:cashout:{index}") % (18 * 60 - 30))
+            occurred_at = base_time + timedelta(minutes=offset)
+        else:
+            occurred_at = base_time + timedelta(hours=(seed + index) % 18)
         db.add(TransactionRecord(
             case_id=case_id,
             from_account=f"SYN-SRC-{(seed + index) % 97:03d}",
@@ -357,7 +379,7 @@ def ensure_synthetic_transactions(db: Session, case_id: str, city_id: str, atms:
             amount=amount,
             atm_id=atm.get("id") if hasattr(atm, "get") else getattr(atm, "atm_id", ""),
             location=atm.get("name") if hasattr(atm, "get") else getattr(atm, "name", ""),
-            occurred_at=base_time + timedelta(hours=(seed + index) % 18),
+            occurred_at=occurred_at,
             source="synthetic-fixture",
         ))
     db.commit()
@@ -449,6 +471,29 @@ def _apply_rank_areas(ranked):
     return ranked
 
 
+def _observed_window(records) -> dict:
+    """What this case's stored cash-out records actually show.
+
+    Descriptive only. It replaces a field that mapped those same records back
+    into a predicted time bucket, so it cannot claim a time the data lacks.
+    """
+    stamps = [r.occurred_at for r in records if getattr(r, "occurred_at", None) is not None]
+    if not stamps:
+        return {"label": "no cash-out records", "start": None, "end": None,
+                "end_day_offset": 0, "hours": [], "records": 0}
+    low, high = min(stamps), max(stamps)
+    day_offset = (high.date() - low.date()).days
+    label = f"{low:%H:%M}–{high:%H:%M}" + (f" (+{day_offset}d)" if day_offset else "") + " UTC"
+    return {
+        "label": label,
+        "start": f"{low:%H:%M}",
+        "end": f"{high:%H:%M}",
+        "end_day_offset": day_offset,
+        "hours": sorted({stamp.hour for stamp in stamps}),
+        "records": len(stamps),
+    }
+
+
 def _persist_prediction(db, result):
     try:
         pred = db.query(Prediction).filter(Prediction.case_id == result["case_id"]).first()
@@ -472,7 +517,7 @@ def _persist_prediction(db, result):
             db.add(RankedLocation(
                 prediction_id=pred.id, reason=snapshot,
                 **{key: location[key] for key in (
-                    "rank", "atm_id", "location_name", "risk_score", "expected_window",
+                    "rank", "atm_id", "location_name", "risk_score",
                     "distance", "status", "latitude", "longitude",
                 )},
             ))
@@ -538,6 +583,104 @@ def district_to_city(district: str):
     return None
 
 
+CITY_ATM_PREFIX = {
+    "puducherry": "PNY", "chennai": "CHN", "delhi": "DEL", "mumbai": "MUM",
+    "bangalore": "BLR", "kolkata": "KOL", "hyderabad": "HYD", "ahmedabad": "AMD",
+}
+
+
+def _city_atm_rows(db: Session, city_id: str) -> list:
+    """ATM rows scored for one city, falling back to the whole registry."""
+    prefix = CITY_ATM_PREFIX.get(city_id, "PNY")
+    rows = db.query(AtmLocation).filter(AtmLocation.atm_id.like(f"{prefix}-%")).all()
+    return rows or db.query(AtmLocation).all()
+
+
+def _iso_utc(value):
+    """ISO-8601 UTC string with an explicit Z, for API responses and comparisons."""
+    moment = _as_utc(value)
+    return moment.isoformat().replace("+00:00", "Z") if moment else None
+
+
+def _next_case_id(db: Session, year: int) -> str:
+    """Next CC-<year>-NNNN id, continuing the existing registry numbering."""
+    prefix = f"CC-{year}-"
+    highest = 0
+    for (case_id,) in db.query(Case.case_id).filter(Case.case_id.like(f"{prefix}%")).all():
+        tail = case_id[len(prefix):]
+        if tail.isdigit():
+            highest = max(highest, int(tail))
+    for offset in range(1, 1000):
+        candidate = f"{prefix}{highest + offset:04d}"
+        if db.query(Case.case_id).filter(Case.case_id == candidate).first() is None:
+            return candidate
+    raise HTTPException(status_code=503, detail="No case id available for this year")
+
+
+# The case registry's crime-category drill-down compares labels exactly, so an
+# intake category has to land on the spelling the registry already uses. Anything
+# outside this list is kept as filed rather than guessed at.
+_CANONICAL_CATEGORIES = {
+    "upi fraud": "UPI Fraud",
+    "card cloning": "Card Cloning",
+    "phishing": "Phishing",
+    "investment fraud": "Investment Fraud",
+    "identity theft": "Identity Theft",
+    "sim swap": "SIM Swap",
+    "qr code fraud": "QR Code Fraud",
+    "loan app fraud": "Loan App Fraud",
+    "card skimming": "Card Skimming",
+}
+
+
+def _canonical_category(raw: str) -> str:
+    """Collapse whitespace and use the registry's label for a known category."""
+    value = " ".join((raw or "").split())
+    return _CANONICAL_CATEGORIES.get(value.lower(), value)
+
+
+def _assert_same_complaint(case, complaint, district: str, incident_at) -> None:
+    """409 when a replay reuses an external_ref with different content.
+
+    Silently accepting the second version would let a caller edit a complaint
+    without an audit trail, and silently returning the first would hide the
+    mismatch. Naming the differing fields is the only answer that stays honest.
+    """
+    stored = {
+        "district": (case.district or "").strip().lower(),
+        "category": (case.crime_type or "").strip().lower(),
+        "amount": round(float(case.amount or 0), 2),
+        "incident_at": _iso_utc(case.created_at),
+    }
+    incoming = {
+        "district": district.strip().lower(),
+        "category": _canonical_category(complaint.category).lower(),
+        "amount": round(float(complaint.amount), 2),
+        "incident_at": _iso_utc(incident_at),
+    }
+    if stored != incoming:
+        raise HTTPException(status_code=409, detail={
+            "message": "external_ref already exists with different fields",
+            "fields": sorted(key for key in stored if stored[key] != incoming[key]),
+        })
+
+
+def _complaint_response(case, city_id: str, prediction, replayed: bool) -> dict:
+    observed = (prediction or {}).get("observed_window") or {"records": 0}
+    return {
+        "status": "replayed" if replayed else "created",
+        "case_id": case.case_id,
+        "external_ref": case.external_ref,
+        "district": case.district,
+        "city": (CITIES.get(city_id) or {}).get("name", city_id),
+        "city_id": city_id,
+        "created_at": _iso_utc(case.created_at),
+        "record_count": observed.get("records", 0),
+        "observed_window": observed,
+        "prediction": prediction,
+    }
+
+
 def get_predictions_for_case(case_id: str, db: Session) -> dict:
     _current_model_fingerprint()  # fail before creating synthetic fixtures
     case = db.query(Case).filter(Case.case_id == case_id).first()
@@ -566,13 +709,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     city = CITIES.get(city_id, CITIES["puducherry"])
     city_center = city["center"]
 
-    # Filter ATMs to only those in the selected city (by ID prefix)
-    city_prefix = {"puducherry": "PNY", "chennai": "CHN", "delhi": "DEL", "mumbai": "MUM",
-                   "bangalore": "BLR", "kolkata": "KOL", "hyderabad": "HYD", "ahmedabad": "AMD"}
-    prefix = city_prefix.get(city_id, "PNY")
-    city_atms = [atm for atm in atm_locations if atm.atm_id.startswith(prefix)]
-    if not city_atms:
-        city_atms = atm_locations  # fallback to all if no match
+    city_atms = _city_atm_rows(db, city_id)
     synthetic_records = ensure_synthetic_transactions(db, case_id, city_id, city_atms)
     record_total = sum(record.amount for record in synthetic_records)
     record_accounts = len({record.to_account for record in synthetic_records})
@@ -592,19 +729,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     amount = case.amount if case and case.amount else record_total
     num_mules = case.linked_accounts if case and case.linked_accounts else record_accounts
     hour = max(6, min(23, int(sum(record.occurred_at.hour for record in synthetic_records) / len(synthetic_records))))
-
-    def _expected_window(h):
-        if 17 <= h < 18:
-            return "17:00-19:00"
-        elif 18 <= h < 19:
-            return "18:00-20:00"
-        elif 19 <= h < 20:
-            return "18:30-20:30"
-        elif 20 <= h < 21:
-            return "19:00-21:00"
-        elif h >= 21:
-            return "20:00-22:00"
-        return "18:00-20:00"
+    observed = _observed_window(synthetic_records)
 
     reasons_map = {
         "high": [
@@ -690,7 +815,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "prediction_features": dict(features),
             "model_output": ml_result,
             "model_info": _location_model_info(ml_result),
-            "expected_window": _expected_window(hour),
+            "observed_window": observed,
             "distance": f"{round(dist_victim, 1)} km",
             "reason": reasons_map[level][atm_hash % len(reasons_map[level])],
             "status": status,
@@ -706,7 +831,6 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
 
     # Evidence values are derived from persisted synthetic records.
     _ev_hours = max(2, min(9, len(synthetic_records) // 2))
-    _ev_pct = 60 + (record_accounts % 5) * 5
     _ev_geo_radius = 2 + (case_hash % 5)
     _ev_geo_count = min(len(synthetic_records), 3 + (record_accounts % 5))
     _ev_geo_total = len(synthetic_records)
@@ -724,9 +848,9 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         },
         "temporal_pattern": {
             "category": "Temporal Pattern",
-            "description": "Historical withdrawals concentrated during evening hours",
+            "description": f"Cash-out records span {observed['label']}",
             "strength": "Strong" if 17 <= hour <= 21 else "Moderate",
-            "details": f"{_ev_pct}% of simulated withdrawals occurred between 17:00-21:00."
+            "details": f"{observed['records']} simulated withdrawals between {observed['start']} and {observed['end']} UTC."
         },
         "geographic_signal": {
             "category": "Geographic Signal",
@@ -759,6 +883,8 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
         "status": "HIGH PRIORITY" if primary["risk_score"] > HIGH_RISK_THRESHOLD else "MEDIUM PRIORITY",
         "primary_location": primary,
         "ranked_locations": ranked,
+        # Descriptive span of this case's stored cash-out records, not a forecast.
+        "observed_window": observed,
         "risk_surface": risk_surface,
         "intervention_zones": build_zones(risk_surface),
         "risk_trend": [10, 18, 27, 44, 67, primary["risk_score"]],
@@ -860,12 +986,13 @@ def _high_risk_message(case_id: str, primary: dict, city: str = "") -> tuple:
     location = f"{primary.get('atm_id')}, {primary.get('location_name')}"
     if city:
         location = f"{location}, {city}"
+    observed = (primary.get("observed_window") or {}).get("label") or "no cash-out records"
     body = (
         "ATLAS ALERT\n"
         f"Case: {case_id}\n"
         "Risk: HIGH\n"
         f"Location: {location}\n"
-        f"Window: {primary.get('expected_window')}\n"
+        f"Observed cash-out records: {observed}\n"
         "Action: Open ATLAS console to review ranked ATMs."
     )
     subject_city = city or primary.get('location_name') or ""
@@ -908,7 +1035,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
             risk_level="High",
             location=f"{primary.get('atm_id')}, {primary.get('location_name')}",
             district=case_district,
-            time_window=primary.get("expected_window", ""),
+            time_window=(primary.get("observed_window") or {}).get("label", ""),
             timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
             acknowledged=False,
         )
@@ -954,7 +1081,7 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
                 "atm_id": primary.get("atm_id"),
                 "location": primary.get("location_name"),
                 "district": case_district,
-                "time_window": primary.get("expected_window"),
+                "time_window": (primary.get("observed_window") or {}).get("label"),
                 "timestamp": alert.timestamp,
             }))
     except RuntimeError:
@@ -1107,6 +1234,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         if _r.atm_id:
             _rec_counts[_r.atm_id] = _rec_counts.get(_r.atm_id, 0) + 1
     _rec_max = max(_rec_counts.values(), default=0)
+    observed = _observed_window(synthetic_records)
 
     ranked = []
     for i, atm in enumerate(atms):
@@ -1144,14 +1272,6 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         ml_result = _predict_or_503(features, case_id=synthetic_case_id)
         score = ml_result["risk_score"]
 
-        _win_hour = prediction_time.hour
-        if _win_hour < 18:
-            _win = "17:00-19:00"
-        elif _win_hour < 20:
-            _win = "18:00-20:00"
-        else:
-            _win = "19:00-21:00"
-
         ranked.append({
             "rank": i + 1,
             "atm_id": atm["id"],
@@ -1160,7 +1280,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             "prediction_features": dict(features),
             "model_output": ml_result,
             "model_info": _location_model_info(ml_result),
-            "expected_window": _win,
+            "observed_window": observed,
             "distance": f"{_dist} km",
             "reason": "Historical pattern match" if score > 60 else "Low activity area",
             "status": "High" if score > HIGH_RISK_THRESHOLD else ("Medium" if score > MEDIUM_RISK_THRESHOLD else "Watch"),
@@ -1177,7 +1297,6 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
 
     _ev_hours = max(2, min(9, len(synthetic_records) // 2))
     _ev_amt = sum(record.amount for record in synthetic_records)
-    _ev_pct = 60 + (len(synthetic_records) % 26)
     _ev_geo_radius = 2 + (city_hash % 5)
     _ev_geo_count = min(len(synthetic_records), 3 + (city_hash % 5))
     _ev_geo_total = len(synthetic_records)
@@ -1197,9 +1316,9 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
             },
             "temporal_pattern": {
                 "category": "Temporal Pattern",
-                "description": f"Matches peak cash-out window ({primary.get('expected_window', '18:00-20:00')})",
+                "description": f"Cash-out records span {observed['label']}",
                 "strength": "Strong",
-                "details": f"{_ev_pct}% of simulated withdrawals occurred between 17:00-21:00."
+                "details": f"{observed['records']} simulated withdrawals between {observed['start']} and {observed['end']} UTC."
             },
             "geographic_signal": {
                 "category": "Geographic Signal",
@@ -1229,6 +1348,7 @@ def get_city_predictions(city_id: str, user: dict = Depends(require_permission("
         "state": city["state"],
         "center": city["center"],
         "ranked_locations": ranked,
+        "observed_window": observed,
         "risk_surface": risk_surface,
         "intervention_zones": build_zones(risk_surface),
         "total_atms": len(atms),
@@ -1272,48 +1392,18 @@ def get_dashboard(user: dict = Depends(require_permission("read")), db: Session 
             TransactionRecord.case_id.in_(high_risk_case_ids)).scalar() or 0
     else:
         mules = 0
-    # Simulated lead time: median hours from now to the next predicted
-    # cash-out window across active cases. Uncomputable without windows.
-    windows = [
-        w for (w,) in db.query(RankedLocation.expected_window)
-        .join(Prediction, RankedLocation.prediction_id == Prediction.id)
-        .join(Case, Prediction.case_id == Case.case_id)
-        .filter(visibility_filter(user), Case.status == "active",
-                RankedLocation.rank == 1).all()
-    ]
-    leads = [_window_lead_hours(w) for w in windows]
-    leads = [h for h in leads if h is not None]
-    if leads:
-        median = sorted(leads)[len(leads) // 2] if len(leads) % 2 else sum(sorted(leads)[len(leads) // 2 - 1:len(leads) // 2 + 1]) / 2
-        total_mins = round(median * 60)
-        avg_lead_time = f"{total_mins // 60}h {total_mins % 60}m" if total_mins >= 60 else f"{total_mins} min"
-    else:
-        avg_lead_time = "Not measured"
+    # Lead time is a measured quantity: the gap between a complaint and a
+    # confirmed cash-out. No such pair exists in this build, and the previous
+    # value was hours from "now" to a hardcoded clock time, which moved without
+    # any new record. Reporting it as unmeasured is the honest state.
+    avg_lead_time = "Not measured — no confirmed cash-out outcomes linked yet"
     return {
         "active_cases": active, "high_risk_locations": high_risk_locs,
         "alerts_today": unacknowledged, "avg_lead_time": avg_lead_time,
         "prevented_fraud": prevented, "resolved_case_amount": int(resolved_amount or 0),
         "mules_flagged": mules,
-        "metrics_note": "Resolved totals, high-risk account counts, and window lead times are computed live from case records — not observed field outcomes; lead times drift with the clock and are simulated, not operational",
+        "metrics_note": "Resolved totals and high-risk account counts are computed live from case records — not observed field outcomes. Lead time is unmeasured until a confirmed cash-out is linked to a complaint.",
     }
-
-
-def _window_lead_hours(window: str):
-    """Hours from now to the next occurrence of a 'HH:MM-HH:MM' window start."""
-    try:
-        start = (window or "").split("-")[0].strip()
-        hh, mm = int(start[:2]), int(start[3:5])
-    except (ValueError, IndexError, AttributeError):
-        return None
-    now = datetime.now(timezone.utc)
-    try:
-        ref = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-    except ValueError:
-        return None
-    if ref <= now:
-        ref += timedelta(days=1)
-    return (ref - now).total_seconds() / 3600
-
 
 
 @app.get("/api/cases")
@@ -1355,6 +1445,113 @@ def get_cases(user: dict = Depends(verify_token), limit: int = Query(default=200
         }
         for c in cases
     ]
+
+
+@app.post("/api/complaints", status_code=201)
+def create_complaint(request: Request, complaint: ComplaintCreate,
+                     user: dict = Depends(require_permission("write")),
+                     csrf: None = Depends(require_csrf),
+                     db: Session = Depends(get_db)):
+    """File a complaint and score it in one request.
+
+    This is the entry point the problem statement starts from. Before it, a case
+    could only arrive by seeding and every prediction took a case_id that already
+    existed.
+
+    `district` is the jurisdiction key and is authoritative: it is never read out
+    of `description`, because a complaint that names another city in prose must
+    not move between ATM registries. `external_ref` is the filer's own reference
+    and the replay key, so a retried request returns the case that already exists
+    instead of filing a second one.
+
+    The creating officer's department owns the case, which is what the existing
+    visibility_filter scopes on. District-level authorization does not exist yet;
+    it is Phase 3 work, and inventing it here would be a check that cannot fail.
+    """
+    district = complaint.district.strip()
+    resolved = district_to_city(district)
+    if resolved is None:
+        known = sorted({data.get("district", "") for data in CITIES.values() if data.get("district")})
+        raise HTTPException(status_code=422, detail={
+            "message": f"Unknown district: {district!r}",
+            "known_districts": known,
+        })
+    city_id, _city_config = resolved
+    incident_at = _as_utc(complaint.incident_at)
+    if incident_at > datetime.now(timezone.utc) + timedelta(days=1):
+        raise HTTPException(status_code=422, detail="incident_at cannot be more than one day in the future")
+
+    external_ref = complaint.external_ref.strip()
+    if not external_ref:
+        raise HTTPException(status_code=422, detail="external_ref cannot be blank")
+    category = _canonical_category(complaint.category)
+    if not category:
+        raise HTTPException(status_code=422, detail="category cannot be blank")
+    existing = db.query(Case).filter(Case.external_ref == external_ref).first()
+    if existing is not None:
+        _assert_same_complaint(existing, complaint, district, incident_at)
+        prediction = get_predictions_for_case(existing.case_id, db)
+        return JSONResponse(
+            status_code=200,
+            content=_complaint_response(existing, city_id, prediction, replayed=True),
+        )
+
+    # Fail before writing anything: a complaint stored without an ATM registry or
+    # a loadable model would sit there unable to ever produce a ranking.
+    if not _city_atm_rows(db, city_id):
+        raise HTTPException(status_code=503, detail="Prediction service unavailable: no ATM reference data")
+    _current_model_fingerprint()
+
+    case_id = _next_case_id(db, incident_at.year)
+    case = Case(
+        case_id=case_id,
+        external_ref=external_ref,
+        crime_type=category,
+        amount=float(complaint.amount),
+        # Severity feature input, derived from the case id so a replay rebuilds
+        # the same value and nothing touches the global RNG.
+        linked_accounts=2 + (stable_int(case_id) % 11),
+        current_risk="Medium",
+        last_updated="Just now",
+        status="active",
+        victim_name=complaint.victim_name.strip(),
+        contact=complaint.contact.strip(),
+        description=complaint.description.strip() or f"{category} complaint filed under {district}",
+        district=district,
+        department=user.get("department") or "",
+        assigned_to=user.get("id"),
+        # The complaint time is T0 for this case, which is what makes a measured
+        # lead time expressible from these rows later.
+        created_at=incident_at,
+    )
+    db.add(case)
+    db.commit()
+
+    add_audit(
+        db,
+        action="Complaint Filed",
+        details=f"{external_ref} — {case.crime_type} ₹{case.amount:,.0f} under {district}",
+        action_type="case",
+        case_id=case_id,
+    )
+
+    # Records are seeded against the complaint time, not the fixed fixture base,
+    # so they describe this complaint rather than a September morning.
+    ensure_synthetic_transactions(db, case_id, city_id, _city_atm_rows(db, city_id), anchor=incident_at)
+    _invalidate_prediction_caches()
+    prediction = get_predictions_for_case(case_id, db)
+
+    primary = (prediction or {}).get("primary_location") or {}
+    if "risk_score" in primary:
+        score = primary["risk_score"]
+        case.current_risk = (
+            "High" if score > HIGH_RISK_THRESHOLD
+            else "Medium" if score > MEDIUM_RISK_THRESHOLD
+            else "Low"
+        )
+        db.commit()
+
+    return JSONResponse(status_code=201, content=_complaint_response(case, city_id, prediction, replayed=False))
 
 
 @app.post("/api/cases/{case_id}/resolve")
@@ -1453,7 +1650,7 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
             risk_level="High",
             location=f"{primary['atm_id']}, {primary['location_name']}",
             district=tx_district,
-            time_window=primary["expected_window"],
+            time_window=(primary.get("observed_window") or {}).get("label", ""),
             timestamp=datetime.now(timezone.utc).strftime("%H:%M:%S"),
             acknowledged=False
         )
@@ -1500,7 +1697,7 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
                     "atm_id": primary["atm_id"],
                     "location": primary["location_name"],
                     "district": tx_district,
-                    "time_window": primary["expected_window"],
+                    "time_window": (primary.get("observed_window") or {}).get("label"),
                     "timestamp": alert.timestamp,
                 }))
         except RuntimeError:

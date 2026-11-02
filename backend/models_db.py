@@ -59,6 +59,9 @@ class Case(Base):
     # via city_data.CITIES, which ATM registry a prediction is scored against.
     # "" = unassigned, which behaves like the old description-string fallback.
     district = Column(String, default="", index=True)
+    # NCRP complaint reference. Unique when present so a retried intake re-reads
+    # the same case instead of filing it twice; NULL for seeded fixtures.
+    external_ref = Column(String, nullable=True, unique=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     predictions = relationship("Prediction", back_populates="case")
@@ -90,7 +93,6 @@ class RankedLocation(Base):
     atm_id = Column(String, nullable=False)
     location_name = Column(String, nullable=False)
     risk_score = Column(Float, nullable=False)
-    expected_window = Column(String, nullable=False)
     distance = Column(String, nullable=False)
     reason = Column(Text, nullable=False)
     status = Column(String, default="Watch")

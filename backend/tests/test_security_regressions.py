@@ -467,9 +467,10 @@ def test_dashboard_computes_live_aggregates(client, headers):
     # aggregates are real zeros, and lead time honestly uncomputable.
     assert data["prevented_fraud"] == 0
     assert data["mules_flagged"] == 0
-    assert data["avg_lead_time"] == "Not measured"
+    assert data["avg_lead_time"].startswith("Not measured")
+    assert "confirmed cash-out" in data["avg_lead_time"]
     assert data["resolved_case_amount"] == 0
-    assert "case records" in data["metrics_note"]
+    assert "Lead time is unmeasured" in data["metrics_note"]
 
 
 def test_seed_pre_encryption_is_normalized_at_runtime(monkeypatch):
