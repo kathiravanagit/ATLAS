@@ -165,13 +165,13 @@ const FEATURES = [
     num: '2',
     icon: <Brain size={22} />,
     title: 'AI Risk Prediction',
-    desc: 'Machine learning models analyze transaction patterns, account networks, and geographic signals to pinpoint cash-out risk — ranked by likelihood.',
+    desc: 'Machine learning models analyse transaction patterns, account networks, and geographic signals to rank cash-out risk across ATMs — relative priority, not a probability.',
   },
   {
     num: '3',
     icon: <MapPin size={22} />,
     title: 'Location Intelligence',
-    desc: 'Ranked ATM locations with confidence scores and time windows, so investigators can deploy with precision instead of guesswork.',
+    desc: 'Ranked ATM locations with the cash-out records already on file, so investigators know where to look first and what evidence supports the ranking.',
   },
   {
     num: '4',
@@ -254,7 +254,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                 className="text-lg text-[#6B7280] leading-relaxed mb-8 max-w-lg"
               >
-                ATLAS gives investigators the lead time they need to prevent cash-out fraud — analyzing complaint data in this synthetic-data prototype and predicting where stolen funds will be withdrawn.
+                ATLAS turns a complaint into a ranked list of ATMs to check first — with the cash-out records behind each ranking, in this synthetic-data prototype.
               </motion.p>
 
               <motion.div

@@ -41,7 +41,7 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 
 ### Notification Channels
 
-High-risk alerts leave the console on two prototype channels — SMTP email and SMS through a TextBee device gateway. Both carry the case, the risk band, the predicted location, and the expected window; the uncalibrated model score is never presented as a probability. Delivery is a demo integration, not a government SMS or email service.
+High-risk alerts leave the console on two prototype channels — SMTP email and SMS through a TextBee device gateway. Both carry the case, the risk band, the predicted location, and the span of cash-out records on file; the uncalibrated model score is never presented as a probability. Delivery is a demo integration, not a government SMS or email service.
 
 | Email alert | SMS alert |
 | --- | --- |
@@ -65,7 +65,7 @@ Explore the ATLAS investigation workflow, from risk intelligence and map-based p
 
 ### What This Is
 
-ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic ATM candidates, displays illustrative time windows, and supports alert triage, human review, and tamper-evident evidence handling. Its binary cash-out classifier is not a validated next-ATM or future-time predictor.
+ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic ATM candidates, describes the cash-out records already on file, and supports alert triage, human review, and tamper-evident evidence handling. Its binary cash-out classifier is not a validated next-ATM or future-time predictor.
 
 ### Honest Scope
 
@@ -258,6 +258,7 @@ python seed.py
 | Method | Endpoint | Description |
 | -------- | ---------- | ------------- |
 | GET | `/api/cases` | List cases (PII decrypted for authorized roles). Optional `crime_type` and `district` filters, both case-insensitive exact match |
+| POST | `/api/complaints` | File an NCRP-shaped complaint: creates the case, anchors synthetic cash-out records to `incident_at`, and returns its ranked prediction. `external_ref` is the replay key (`201` create, `200` replay, `409` mismatch, `422` unknown district) |
 | GET | `/api/alerts` | Active alerts |
 | POST | `/api/alerts` | Create alert |
 | GET | `/api/review/queue` | Pending review items |

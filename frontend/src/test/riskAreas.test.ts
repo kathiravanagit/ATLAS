@@ -26,7 +26,7 @@ describe('riskAreas', () => {
     expect(areaPrimary('background', 12, 12)).toBe('Background · Rank #12 of 12');
     const sub = areaSecondary('priority', 100, 94.9);
     expect(sub).toContain('Display score 100');
-    expect(sub).toContain('Uncalibrated model score 94.9');
+    expect(sub).toContain('Uncalibrated case-severity score 94.9');
     expect(sub).toContain('not a real-world probability');
     expect(sub).not.toMatch(/chance|probability of/i);
   });

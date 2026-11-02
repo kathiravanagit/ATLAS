@@ -76,7 +76,7 @@ export default function PredictionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#1F2937]">Predictions</h2>
-          <p className="text-base text-[#374151] mt-1">Risk scoring and location forecasting · synthetic-data prototype</p>
+          <p className="text-base text-[#374151] mt-1">Ranked cash-out locations · synthetic-data prototype</p>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-[#6B7280] bg-white px-3 py-1.5 rounded-lg border border-[#D1D5DB]">
           <RefreshCw size={10} className={isRefreshing ? 'animate-spin' : ''} />
