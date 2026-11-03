@@ -62,7 +62,7 @@ These controls do not constitute an independent penetration test or production s
 
 ## Prediction inputs and explanations
 
-Candidate features include distance, synthetic crime-density/ATM attributes, observable evening-window fit, amount, linked-account count, hour/day, and derived proximity/velocity values. Some operational inputs are deterministic simulation heuristics, not observed financial evidence.
+Candidate features include distance, synthetic crime-density/ATM attributes, observable evening-window fit, amount, linked-account count, hour/day, and derived proximity/velocity values. ATM type, crime density and withdrawal frequency come from the city registry the ATM row was seeded from; the complaint's position is a deterministic point 0.4–1.6 km from a registry ATM, matching the geometry the artifacts were trained on (`docs/SERVING_ALIGNMENT.md`). Some operational inputs are deterministic simulation heuristics, not observed financial evidence.
 
 Each candidate's exact input vector, estimator output, version and model fingerprint is persisted in an encrypted snapshot envelope in `RankedLocation.reason`. The readable reason is returned separately. `/api/model/shap/{case_id}?atm_id=<id>` retrieves that snapshot and verifies model identity before explaining it.
 

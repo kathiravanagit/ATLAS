@@ -1,3 +1,4 @@
+import math
 import os
 
 from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Request
@@ -596,6 +597,36 @@ def _city_atm_rows(db: Session, city_id: str) -> list:
     return rows or db.query(AtmLocation).all()
 
 
+def _offset_point(lat: float, lng: float, bearing_deg: float, km: float) -> tuple[float, float]:
+    """Point ``km`` from ``(lat, lng)`` along a compass bearing, in degrees.
+
+    Places the synthetic victim and suspect at the scale the training
+    generator used (fraud victim-to-ATM distance p05-p95: 0.39-2.91 km)
+    instead of pinning them to the city centre.
+    """
+    bearing = math.radians(bearing_deg)
+    dlat = km * math.cos(bearing) / 111.32
+    dlng = km * math.sin(bearing) / (111.32 * max(0.2, math.cos(math.radians(lat))))
+    return lat + dlat, lng + dlng
+
+
+def _circular_hour(hours) -> int:
+    """Mean of clock hours on the 24-hour circle.
+
+    An arithmetic mean puts 23:00 and 01:00 near noon. Record windows can
+    cross midnight, so the case hour is aggregated on the circle; the
+    generator's evening band then survives instead of collapsing to daytime.
+    """
+    values = [float(hour) for hour in hours]
+    if not values:
+        return 18
+    angle = math.atan2(
+        sum(math.sin(2 * math.pi * hour / 24.0) for hour in values),
+        sum(math.cos(2 * math.pi * hour / 24.0) for hour in values),
+    )
+    return int(round((angle * 24.0 / (2 * math.pi)) % 24.0)) % 24
+
+
 def _iso_utc(value):
     """ISO-8601 UTC string with an explicit Z, for API responses and comparisons."""
     moment = _as_utc(value)
@@ -707,7 +738,7 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
                     city_id = cid
                     break
     city = CITIES.get(city_id, CITIES["puducherry"])
-    city_center = city["center"]
+    registry = {atm["id"]: atm for atm in city.get("atms", [])}
 
     city_atms = _city_atm_rows(db, city_id)
     synthetic_records = ensure_synthetic_transactions(db, case_id, city_id, city_atms)
@@ -717,19 +748,29 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     model_meta = get_metadata()
     model_accuracy = model_meta.get("accuracy") if model_meta else None
 
-    # Deterministic victim/suspect positions derived from case_id hash
-    victim_offset_x = ((case_hash * 7 + 3) % 200 - 100) / 10000.0
-    victim_offset_y = ((case_hash * 13 + 5) % 200 - 100) / 10000.0
-    victim_lat = city_center[0] + victim_offset_x
-    victim_lng = city_center[1] + victim_offset_y
-    suspect_offset_x = ((case_hash * 17 + 11) % 240 - 120) / 10000.0
-    suspect_offset_y = ((case_hash * 23 + 7) % 240 - 120) / 10000.0
-    suspect_lat = victim_lat + suspect_offset_x
-    suspect_lng = victim_lng + suspect_offset_y
+    # Complaint geometry. The generator placed every victim near the registry
+    # ATM its transaction used (fraud victim-ATM distance p05 0.39 km, p50
+    # 1.43 km). A city-centre victim instead put whole cities outside the
+    # ranker's training region: Hyderabad scored all eight ATMs exactly 0.0 and
+    # the surface fell flat. Anchor the synthetic victim to one deterministic
+    # registry ATM at 0.4-1.6 km (roughly p05-p60 of the trained distance), so
+    # the anchor stays inside the region the ranker learned. Real intake would
+    # carry a geocoded victim point; this fixture has none.
+    anchor = city_atms[stable_int(f"{case_id}:anchor") % len(city_atms)]
+    victim_lat, victim_lng = _offset_point(
+        anchor.latitude, anchor.longitude,
+        stable_int(f"{case_id}:victim-bearing") % 360,
+        0.4 + (stable_int(f"{case_id}:victim-km") % 13) / 10.0,
+    )
+    suspect_lat, suspect_lng = _offset_point(
+        victim_lat, victim_lng,
+        stable_int(f"{case_id}:suspect-bearing") % 360,
+        0.5 + (stable_int(f"{case_id}:suspect-km") % 36) / 10.0,
+    )
     amount = case.amount if case and case.amount else record_total
     num_mules = case.linked_accounts if case and case.linked_accounts else record_accounts
-    hour = max(6, min(23, int(sum(record.occurred_at.hour for record in synthetic_records) / len(synthetic_records))))
     observed = _observed_window(synthetic_records)
+    hour = _circular_hour(observed["hours"])
 
     reasons_map = {
         "high": [
@@ -758,20 +799,41 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
     _txn_counts = dict(db.query(TransactionRecord.atm_id, _sa_func.count(TransactionRecord.id)).filter(TransactionRecord.atm_id.in_(_city_atm_ids)).group_by(TransactionRecord.atm_id).all()) if _city_atm_ids else {}
     _city_hist_max = max(_txn_counts.values(), default=0)
     _dens = {}
+    _reg_risk = {}
+    _reg_type = {}
     for _a in city_atms:
         _ah = stable_int(_a.atm_id) % 10000
-        _dens[_a.atm_id] = (_a.historical_crime if hasattr(_a, 'historical_crime') and _a.historical_crime else 1 + (_ah % 14))
+        _entry = registry.get(_a.atm_id) or {}
+        if getattr(_a, "historical_crime", None):
+            _dens[_a.atm_id] = _a.historical_crime
+        elif _entry.get("risk") is not None:
+            # Training density is base risk x 15 clipped to 1..20. The DB row
+            # has no density column, but the registry the row came from does.
+            _dens[_a.atm_id] = max(1, min(20, int(round(float(_entry["risk"]) * 15))))
+        else:
+            _dens[_a.atm_id] = 1 + (_ah % 14)
+        _reg_risk[_a.atm_id] = _entry.get("risk")
+        _reg_type[_a.atm_id] = _entry.get("type")
     _local_reg = [{"atm_id": _a.atm_id, "lat": _a.latitude, "lng": _a.longitude,
                    "crime_density": _dens[_a.atm_id]} for _a in city_atms]
     _local_map = {e["atm_id"]: local_hotspot(e["atm_id"], _local_reg) for e in _local_reg}
+    # The generator's mule range tops out at 8; intake can file more linked
+    # accounts than the model ever saw, so only the model input is clamped.
+    model_mules = max(1, min(int(num_mules), 8))
     for i, atm in enumerate(city_atms):
         dist_victim = haversine(victim_lat, victim_lng, atm.latitude, atm.longitude)
         dist_suspect = haversine(suspect_lat, suspect_lng, atm.latitude, atm.longitude)
         atm_hash = stable_int(atm.atm_id) % 10000
 
         atm_type_map = {"high_value": 1.0, "commercial": 0.8, "bank": 0.7, "highway": 0.6, "retail": 0.4}
-        atm_type_val = getattr(atm, 'atm_type', None) or getattr(atm, 'type', None)
+        atm_type_val = getattr(atm, 'atm_type', None) or getattr(atm, 'type', None) or _reg_type.get(atm.atm_id)
         atm_type_score = atm_type_map.get(atm_type_val, 0.4 + (atm_hash % 5) * 0.15) if atm_type_val else 0.4 + (atm_hash % 5) * 0.15
+
+        # Withdrawal frequency is an ATM property in training (Poisson draw
+        # from the ATM's base risk); serving had reused the case's mule count.
+        _risk = _reg_risk.get(atm.atm_id)
+        withdrawal_freq = (round(min(num_mules / 8, 0.9), 3) if _risk is None
+                           else round(min(round(float(_risk) * 8) / 10.0, 1.0), 3))
 
         features = {
             "distance_from_victim_km": round(dist_victim, 2),
@@ -779,12 +841,12 @@ def get_predictions_for_case(case_id: str, db: Session) -> dict:
             "time_window_match": 1.0 if 17 <= hour <= 22 else 0.0,
             "atm_type_score": atm_type_score,
             "suspect_distance_km": round(dist_suspect, 2),
-            "recent_withdrawal_freq": round(min(num_mules / 8, 0.9), 3),
+            "recent_withdrawal_freq": withdrawal_freq,
             "amount": round(amount, 2),
-            "num_mule_accounts": num_mules,
+            "num_mule_accounts": model_mules,
             "hour": hour,
             "day_of_week": (case_hash + 1) % 7,
-            "transaction_velocity": round(min(num_mules / 6, 1.0), 3),
+            "transaction_velocity": round(min(model_mules / 6, 1.0), 3),
             "proximity_score": round(max(0, 1 - dist_victim / 8), 3),
             "density_score": round(min(_dens[atm.atm_id] / 15, 1.0), 3),
             "suspect_proximity": round(max(0, 1 - dist_suspect / 10), 3),

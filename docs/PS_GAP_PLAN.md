@@ -1,10 +1,10 @@
 # ATLAS — PS 26184 Gap Plan
 
 **Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
-negative (§2.1). Phases 3–4 are still proposal.** Every measurement below was
-taken against `main` (`5a0493e`) and the synthetic fixtures. No real complaint,
-transaction or outcome data has been seen by this build; see
-`docs/VALIDATION_PLAN.md` for how that would change.
+negative (§2.1). Phase 3.1 is built (§3.1.1). Phases 3.2–4 are still proposal.**
+Every measurement below was taken against `main` (`72699fd`) and the synthetic
+fixtures. No real complaint, transaction or outcome data has been seen by this
+build; see `docs/VALIDATION_PLAN.md` for how that would change.
 
 The problem statement asks for four things. This document states which of them
 the prototype actually does today, then closes them in order of what a judge or
@@ -13,7 +13,7 @@ an investigating officer would probe first.
 | PS capability | Today | Evidence |
 | --- | --- | --- |
 | Receive a complaint | **Done (Phase 1).** `POST /api/complaints` creates the case, anchors its synthetic records to the complaint time, and ranks locations in one request. | §1.1, §1.4. |
-| Rank cash-out locations | **Done**, surface + zones shipped. | `14ef942`, `eb38afb`. |
+| Rank cash-out locations | **Done**, surface + zones shipped; serving geometry re-aligned so all eight demo cities stay banded. | `14ef942`, `eb38afb`; §3.1.1. |
 | Say *when* the cash-out is expected | **Removed (Phase 1); measurement negative (Phase 2).** No predicted window or lead time is shown; screens describe the records on file, and the first cash-out hour is not predictable from complaint-time features. | §1.2, §1.4, §2.1. |
 | Jurisdiction-correct access | **Partly.** Reads scoped; writes unverified. | `visibility_filter`, `require_case`; §3.2. |
 | Alerting at scale | **Partly.** Durable dispatch exists; outbound is unpublished; 8,000/day unmeasured. | §3.3, §3.4. |
@@ -137,15 +137,17 @@ not show; no clock-derived number is presented as a forecast.
 
 ### 1.3 Label `risk_score` as case severity
 
-**The finding.** Serving builds `num_mule_accounts` from `case.linked_accounts`
-(2–12) and `recent_withdrawal_freq` from `min(mules/8, 0.9)` (`main.py:657-659`),
-while training used `num_mules = 1` for ~96% of rows (`generate_data.py:340`).
-Training rows score 9.7–32.2; serving rows score 74–99 for **every** ATM. The
-number therefore tracks the case, not the location: it is severity, not a per-ATM
-chance. That is also why the surface had to be rebuilt on `ranker_score` — the
-model that only sees ATM-level features.
+**The finding.** Serving builds most of the row model's inputs at case level
+(`amount`, `num_mule_accounts`, `hour`, velocity), so every ATM in a case gets a
+similar score. Measured on the fitted artifacts, fraud rows score 68.6–99.2
+(p50 97.1) and legitimate rows 15.1–22.8 (p50 19.1) — the earlier "training rows
+9.7–32.2" figure was the legitimate-row band. A complaint is a reported fraud,
+so a served 88–99 is in band, not a serving bug. The number still tracks the
+case, not the location: it is severity, not a per-ATM chance. That is also why
+the surface is built on `ranker_score`, the model that only sees ATM-level
+features. See `docs/SERVING_ALIGNMENT.md`.
 
-Phase 1 changes wording only; the mechanism is fixed in §3.1.
+Phase 1 changes wording only; the serving inputs are fixed in §3.1.
 
 - One shared sentence in `lib/riskAreas.ts`: the score is our severity judgement
   for the case on synthetic fixtures, not the probability of a cash-out at this
@@ -249,6 +251,40 @@ within-city spread again, and no city falls flat at the band floor the way
 Hyderabad does today (`risk_surface.py` `FLAT_EPS`). Re-verify the surface and the
 DBSCAN zones after the change, because both consume the same payload.
 
+#### 3.1.1 As built
+
+Measurement first (`docs/SERVING_ALIGNMENT.md`) changed the diagnosis. The row
+score was **not** out of band: the fitted model puts fraud rows at p50 97.1
+(p05 68.6), so serving a reported fraud at 88–99 is in distribution. The real
+defect was the ranker surface: with the victim pinned to the city centre every
+Hyderabad ATM fell outside the ranker's 3.07 km positive region, scored exactly
+`0.0`, and the surface was flat.
+
+Four serving-side causes were fixed, all by serving what training saw:
+
+1. The synthetic victim is anchored to a deterministic registry ATM 0.4–1.6 km
+   away (trained fraud distance p05–p60) instead of the city centre; the suspect
+   sits 0.5–4.0 km from the victim.
+2. `hour` is the circular mean of the observed record hours, so a window across
+   midnight no longer averages to daytime and `time_window_match` can fire.
+3. `atm_type_score` and `historical_crime_density` come from the registry's type
+   and risk instead of case-id hashes (`0.55`/`0.85` type values and a `1–14`
+   density were never in the training set).
+4. The model sees `num_mule_accounts` clamped to 1–8 and
+   `recent_withdrawal_freq` from the ATM's registry risk, not the filed linked
+   account count.
+
+Left unchanged on purpose: `atm_cashout_history` (the fixture has only a few
+records per ATM — a cold start, not a bug) and the filed `amount` (a complaint
+fact; clamping it would hide drift).
+
+Re-verified on the seeded 30-case database: the eight district cases
+(`CC-2026-0147`, `0201–0207`) each keep a ranker spread of 0.185–0.839, no
+surface is flat, each keeps at least one priority cell, and DBSCAN still emits
+1–5 zones. `python perturb_ranker.py --no-write` still prints
+`baseline 0.9068`. Protocol guards live in
+`backend/tests/test_serving_alignment.py` (5 tests).
+
 ### 3.2 `role × district` RBAC
 
 Reads are scoped by `visibility_filter` and `require_case`, but on `department`:
@@ -314,6 +350,8 @@ All four were resolved in favour of the recommendation and are reflected in §1.
 ```powershell
 # backend
 cd backend; python -m pytest -q
+# serving alignment: geometry, circular hour, registry attributes, no flat city
+cd backend; python -m pytest tests/test_serving_alignment.py -q
 # frontend
 cd frontend; npm test; npx tsc --noEmit; npm run lint
 # fixture guarantee: prints the sweep without rewriting the committed report;
