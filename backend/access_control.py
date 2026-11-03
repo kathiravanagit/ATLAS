@@ -32,11 +32,20 @@ def visibility_filter(user: dict):
     # Only the unassigned, department-less pool is shared. Assignment is not
     # an escape hatch into another department's cases.
     dept = user.get("department") or ""
-    return or_(
+    visible = or_(
         and_(or_(Case.department == "", Case.department.is_(None)),
              or_(Case.assigned_to == "", Case.assigned_to.is_(None), Case.assigned_to == user.get("id"))),
         Case.department == dept if dept else False,
     )
+    # Jurisdiction. An account with a district only ever sees cases filed under
+    # it; an empty district is a national account (admin already returned, so
+    # this is the headquarters analyst/inspector case). A case with no recorded
+    # district is not in any district and therefore is not visible to a district
+    # officer - guessing a jurisdiction is what this column exists to prevent.
+    district = user.get("district") or ""
+    if district:
+        visible = and_(visible, Case.district == district)
+    return visible
 
 
 def visible_cases(db, user):

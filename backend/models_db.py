@@ -18,6 +18,10 @@ class User(Base):
     role = Column(String, nullable=False, default="analyst")  # inspector, analyst, bank_officer, admin
     badge = Column(String, default="")
     department = Column(String, default="")
+    # Jurisdiction scope. Empty means a national officer (admin, or a
+    # headquarters analyst); a named district restricts this account to cases
+    # filed under that district. Assignment is manual in this prototype.
+    district = Column(String, default="")
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

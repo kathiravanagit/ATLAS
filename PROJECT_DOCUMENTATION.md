@@ -51,7 +51,7 @@ flowchart TD
 - `SECRET_KEY` and `JWT_SECRET_KEY` are aliases; if both are configured they must agree.
 - Password storage is **bcrypt**. PBKDF2 derives the AES key; it is not the password hashing algorithm.
 - Refresh tokens use HttpOnly cookies with rotation/revocation. Access tokens remain in browser local storage, so XSS protection remains important.
-- Centralized department/case visibility and action-specific permissions apply to case-owned reads and writes. Self-service department changes are blocked. Review/evidence actors come from the authenticated identity.
+- Centralized department/case visibility and action-specific permissions apply to case-owned reads and writes. An account that carries a district is additionally restricted to cases filed under it; empty district is a national account. Self-service department changes are blocked. Review/evidence actors come from the authenticated identity.
 - AES-256-GCM protects sensitive ORM writes through bind/result conversion and seals evidence previews. Legacy plaintext and existing ciphertext remain readable. This does not encrypt every database column, raw SQL tool, or external export.
 - Existing plaintext data has **not** been backfilled. Encryption-key rotation needs a planned migration and backups.
 - Static-file paths are resolved and checked for containment. Traversal, absolute paths, and escaping symlinks are rejected.

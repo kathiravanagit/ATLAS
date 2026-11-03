@@ -1,10 +1,10 @@
 # ATLAS — PS 26184 Gap Plan
 
 **Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
-negative (§2.1). Phase 3.1 is built (§3.1.1). Phases 3.2–4 are still proposal.**
-Every measurement below was taken against `main` (`72699fd`) and the synthetic
-fixtures. No real complaint, transaction or outcome data has been seen by this
-build; see `docs/VALIDATION_PLAN.md` for how that would change.
+negative (§2.1). Phases 3.1–3.2 are built (§3.1.1, §3.2.1). Phases 3.3–4 are
+still proposal.** Every measurement below was taken against `main` (`a9be1b4`)
+and the synthetic fixtures. No real complaint, transaction or outcome data has
+been seen by this build; see `docs/VALIDATION_PLAN.md` for how that would change.
 
 The problem statement asks for four things. This document states which of them
 the prototype actually does today, then closes them in order of what a judge or
@@ -15,7 +15,7 @@ an investigating officer would probe first.
 | Receive a complaint | **Done (Phase 1).** `POST /api/complaints` creates the case, anchors its synthetic records to the complaint time, and ranks locations in one request. | §1.1, §1.4. |
 | Rank cash-out locations | **Done**, surface + zones shipped; serving geometry re-aligned so all eight demo cities stay banded. | `14ef942`, `eb38afb`; §3.1.1. |
 | Say *when* the cash-out is expected | **Removed (Phase 1); measurement negative (Phase 2).** No predicted window or lead time is shown; screens describe the records on file, and the first cash-out hour is not predictable from complaint-time features. | §1.2, §1.4, §2.1. |
-| Jurisdiction-correct access | **Partly.** Reads scoped; writes unverified. | `visibility_filter`, `require_case`; §3.2. |
+| Jurisdiction-correct access | **Done for reads and writes.** Department scope plus an account district on every case-owned read and write; complaint intake refuses another district and re-authorizes replays. | `visibility_filter`, `require_case`; §3.2.1. |
 | Alerting at scale | **Partly.** Durable dispatch exists; outbound is unpublished; 8,000/day unmeasured. | §3.3, §3.4. |
 
 ---
@@ -292,9 +292,51 @@ users carry no district field, so there is no district predicate to enforce yet.
 The first step is a `users.district` column and a demo backfill; then the same
 scope applies to writes: `POST /api/alerts`, `POST /api/alerts/{id}/acknowledge`,
 `POST /api/alerts/{id}/notify`, `POST /api/cases/{id}/resolve`,
-`POST /api/cases/{id}/action`, and `POST /api/complaints`. Acceptance: an officer
-in district A cannot create or acknowledge an alert, or file a complaint, for
-district B, and the refusal is a `403` with no side effect.
+`POST /api/cases/{id}/action`, and `POST /api/complaints`.
+
+#### 3.2.1 As built
+
+`users.district` (migration `0008_user_district`, default `""`). Empty means a
+**national** account, which is what every existing user was, so adding the column
+took nothing away. A named district restricts the account to cases filed under
+it; the district name must match `cases.district` exactly, and intake already
+validates it against the eight registry districts.
+
+The predicate lives in `access_control.visibility_filter`: the existing
+department clause is unchanged, and a district account adds
+`Case.district == user.district` as a second condition. That is the whole write
+story, because every case-owned write already resolves its case through
+`require_case`: alerts create/acknowledge/notify, resolve, action, transactions,
+review and field outcomes inherit the scope without a second rule. A case with no
+recorded district is in no district and is therefore invisible to a district
+officer — the alternative is guessing a jurisdiction, which is what the column
+exists to prevent.
+
+Two findings came out of the write audit:
+
+1. **`external_ref` replay bypassed visibility.** The replay path looked the case
+   up by reference, not by an id the caller had been authorised for, and returned
+   that case and its prediction. It now calls `require_case` before replaying, so
+   a reference that belongs to another district or department is refused instead
+   of disclosed.
+2. **The plan's 403 acceptance was an existence oracle.** For a case the officer
+   cannot see, a 403 confirms the id exists. Cross-district case requests
+   therefore answer **404**, matching how reads already behaved; 403 is kept for
+   role denials on cases the officer *can* see, and for intake, where no case
+   exists yet and there is nothing to leak.
+
+Demo: `INS-002` (`inspector.puducherry@atlas.gov`) is scoped to Puducherry; the
+four original demo accounts stay national so the multi-city demo still works.
+
+Limits: district assignment is a seeded/manual data task — there is no admin API
+to move a user between districts, and registration never sets one, so a
+self-registered account is national until someone scopes it. That is the same
+exposure every account had before this revision, not a new bypass.
+
+Verified by `backend/tests/test_district_rbac.py` (11 tests): own-district list,
+cross-district read/resolve/action/alert create/acknowledge/notify refused with
+no side effect, cross-district complaint 403, a replayed reference refused, and the same
+officer still resolving and filing inside Puducherry.
 
 ### 3.3 Signed outbound webhook
 HMAC-SHA256 over `timestamp.body`, retry with backoff, dead-letter on exhaustion —
@@ -352,6 +394,8 @@ All four were resolved in favour of the recommendation and are reflected in §1.
 cd backend; python -m pytest -q
 # serving alignment: geometry, circular hour, registry attributes, no flat city
 cd backend; python -m pytest tests/test_serving_alignment.py -q
+# district RBAC: refusal without side effect, replay re-authorized
+cd backend; python -m pytest tests/test_district_rbac.py -q
 # frontend
 cd frontend; npm test; npx tsc --noEmit; npm run lint
 # fixture guarantee: prints the sweep without rewriting the committed report;

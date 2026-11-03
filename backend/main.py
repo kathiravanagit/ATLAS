@@ -1527,10 +1527,17 @@ def create_complaint(request: Request, complaint: ComplaintCreate,
     instead of filing a second one.
 
     The creating officer's department owns the case, which is what the existing
-    visibility_filter scopes on. District-level authorization does not exist yet;
-    it is Phase 3 work, and inventing it here would be a check that cannot fail.
+    visibility_filter scopes on, and an officer whose account carries a district
+    may only file under that district. National accounts (empty district) file
+    anywhere, which is what the admin demo account does.
     """
     district = complaint.district.strip()
+    officer_district = (user.get("district") or "").strip()
+    if officer_district and district.lower() != officer_district.lower():
+        raise HTTPException(status_code=403, detail={
+            "message": "Complaints can only be filed under your own district",
+            "district": officer_district,
+        })
     resolved = district_to_city(district)
     if resolved is None:
         known = sorted({data.get("district", "") for data in CITIES.values() if data.get("district")})
@@ -1551,6 +1558,10 @@ def create_complaint(request: Request, complaint: ComplaintCreate,
         raise HTTPException(status_code=422, detail="category cannot be blank")
     existing = db.query(Case).filter(Case.external_ref == external_ref).first()
     if existing is not None:
+        # A replay is only for a case this officer can already act on. Before
+        # this check the reference was a way to read another jurisdiction's case
+        # and prediction: the lookup bypassed visibility_filter entirely.
+        require_case(db, user, existing.case_id, "write")
         _assert_same_complaint(existing, complaint, district, incident_at)
         prediction = get_predictions_for_case(existing.case_id, db)
         return JSONResponse(

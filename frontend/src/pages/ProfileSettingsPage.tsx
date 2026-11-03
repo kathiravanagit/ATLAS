@@ -10,6 +10,7 @@ export default function ProfileSettingsPage() {
   const [email, setEmail] = useState('');
   const [badge, setBadge] = useState('');
   const [department, setDepartment] = useState('');
+  const [district, setDistrict] = useState('');
   const [role, setRole] = useState('');
   const [createdAt, setCreatedAt] = useState('');
   const [lastLogin, setLastLogin] = useState('');
@@ -39,6 +40,7 @@ export default function ProfileSettingsPage() {
       setEmail(storedUser.email || '');
       setBadge(storedUser.badge || '');
       setDepartment(storedUser.department || '');
+      setDistrict(storedUser.district || '');
       setRole(storedUser.role || '');
     }
     fetchProfile().then(profile => {
@@ -47,6 +49,7 @@ export default function ProfileSettingsPage() {
         setEmail((profile.email as string) || '');
         setBadge((profile.badge as string) || '');
         setDepartment((profile.department as string) || '');
+        setDistrict((profile.district as string) || '');
         setRole((profile.role as string) || '');
         setCreatedAt(profile.created_at as string || '');
         setLastLogin(profile.last_login as string || '');
@@ -189,11 +192,17 @@ export default function ProfileSettingsPage() {
           </div>
 
           {/* Read-only fields */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-3 border-t border-[#D1D5DB]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 pt-3 border-t border-[#D1D5DB]">
             <div>
               <label className="block text-[10px] text-[#6B7280] uppercase tracking-wider mb-1.5">Role</label>
               <div className="px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#3b82f6] font-mono">
                 {ROLE_LABELS[role] || role}
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] text-[#6B7280] uppercase tracking-wider mb-1.5">Jurisdiction</label>
+              <div className="px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#3b82f6] font-mono">
+                {district || 'National'}
               </div>
             </div>
             <div>

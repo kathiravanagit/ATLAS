@@ -89,7 +89,8 @@ DEMO_CASES = [
 @pytest.fixture(scope="session")
 def demo_user_rows():
     # Hash real passwords once, not four expensive bcrypt hashes per test.
-    return [{**{key: value for key, value in row.items() if key != "password"},
+    # "label" is demo-portal copy, not a users column.
+    return [{**{key: value for key, value in row.items() if key not in ("password", "label")},
              "hashed_password": auth.pwd_context.hash(row["password"])}
             for row in auth.DEMO_USER_SEEDS]
 
@@ -205,6 +206,12 @@ def admin_token(client):
 @pytest.fixture
 def inspector_token(client):
     return _login_token(client, "inspector@atlas.gov", "inspector123")
+
+
+@pytest.fixture
+def district_inspector_token(client):
+    """An inspector whose account is scoped to Puducherry, not national."""
+    return _login_token(client, "inspector.puducherry@atlas.gov", "inspector123")
 
 
 @pytest.fixture

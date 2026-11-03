@@ -71,7 +71,7 @@ ATLAS is an ML-assisted cybercrime investigation prototype. It ranks synthetic A
 
 **What is implemented in this prototype:**
 
-- Shared validated signing-key configuration, JWT rotation, bcrypt, role/action and department checks, CSRF, runtime AES-256-GCM field encryption, and safe static-file containment
+- Shared validated signing-key configuration, JWT rotation, bcrypt, role/action, department and district checks, CSRF, runtime AES-256-GCM field encryption, and safe static-file containment
 - Local cryptographic evidence ledger with tamper-evident verification (not an independent government blockchain)
 - Full-stack application with backend, frontend, migration, and browser regression tests; see validation below
 - Complete baseline migrations and PostgreSQL/PostGIS integration path with an explicit SQLite demo/test mode
@@ -215,16 +215,18 @@ python seed.py
 | ------ | ------- | ---------- |
 | Admin | <admin@atlas.gov> | admin123 |
 | Inspector | <inspector@atlas.gov> | inspector123 |
+| Inspector (Puducherry) | <inspector.puducherry@atlas.gov> | inspector123 |
 | Analyst | <analyst@atlas.gov> | analyst123 |
 | Bank Officer | <bank@atlas.gov> | bank123 |
 
-> These public credentials are seeded only in backend demo mode. Stored passwords use bcrypt in both modes. Never expose a demo backend to real investigation data.
+> These public credentials are seeded only in backend demo mode. Stored passwords use bcrypt in both modes. Never expose a demo backend to real investigation data. The Puducherry inspector is the only district-scoped demo account; the others carry no district and are national, which is what the four-city demo needs.
 
 ### Operational safety
 
 - `/demo` uses bundled city fixtures without API/WebSocket calls; backend-only workflows are visibly disabled.
 - Use `/real` only after backend/database checks succeed. Initial loading and failures never display bundled demo predictions.
 - Case selection fetches case predictions; changing city restores city overview. All API data in this repository remains synthetic.
+- An account with a district sees and acts on that district only. Cross-district case requests answer 404 rather than confirming the case exists; complaint filing outside the account's district is a 403, and a replayed `external_ref` is re-authorized instead of returning another district's case.
 - Every candidate prediction saves its exact input vector, model output, version, and fingerprint. Missing models return a controlled 503.
 - Field outcomes are recorded for human-reviewed evaluation; predictions are not automated enforcement decisions.
 - An authorised future deployment would require PostgreSQL and `alembic upgrade head` before startup; this repository does not provide a production deployment.

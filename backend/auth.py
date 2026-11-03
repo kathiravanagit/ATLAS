@@ -214,6 +214,8 @@ class UserProfile(BaseModel):
     role: str
     badge: str
     department: str
+    # Empty means national scope; a named district restricts the account.
+    district: str = ""
     permissions: list[str]
     created_at: str | None = None
     last_login: str | None = None
@@ -270,18 +272,30 @@ DEMO_USER_SEEDS = [
     # Demo-only credentials for the evaluation build. Seeding is gated on
     # DEMO_MODE and production startup refuses default secrets (see
     # security_config). nosec B105: no production credential here.
+    #
+    # district="" is national scope, which is what these four accounts have
+    # always had. INS-002 is deliberately scoped to one district so the
+    # jurisdiction rule is demonstrable with a real login instead of a test.
     {"id": "INS-001", "name": "Inspector Rajesh Kumar", "email": "inspector@atlas.gov",
      "password": "inspector123",  # nosec B105
-     "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division"},
+     "role": "inspector", "badge": "IPB-2026-0471", "department": "Cybercrime Division",
+     "district": ""},
+    {"id": "INS-002", "name": "Inspector Meena Iyer", "email": "inspector.puducherry@atlas.gov",
+     "password": "inspector123",  # nosec B105
+     "role": "inspector", "badge": "IPB-2026-0482", "department": "Cybercrime Division",
+     "district": "Puducherry", "label": "Inspector (Puducherry)"},
     {"id": "ANL-001", "name": "Analyst Priya Sharma", "email": "analyst@atlas.gov",
      "password": "analyst123",  # nosec B105
-     "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit"},
+     "role": "analyst", "badge": "ANB-2026-0123", "department": "Intelligence Unit",
+     "district": ""},
     {"id": "BNK-001", "name": "Bank Officer Amit Patel", "email": "bank@atlas.gov",
      "password": "bank123",  # nosec B105
-     "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing"},
+     "role": "bank_officer", "badge": "BBF-2026-0089", "department": "Financial Crimes Wing",
+     "district": ""},
     {"id": "ADM-001", "name": "Admin Suresh Nair", "email": "admin@atlas.gov",
      "password": "admin123",  # nosec B105
-     "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division"},
+     "role": "admin", "badge": "ADB-2026-0001", "department": "National Cyber Division",
+     "district": ""},
 ]
 
 
@@ -295,6 +309,7 @@ def seed_demo_users(db: Session):
                 id=u["id"], name=u["name"], email=u["email"],
                 hashed_password=pwd_context.hash(u["password"]),
                 role=u["role"], badge=u["badge"], department=u["department"],
+                district=u.get("district", ""),
             )
             db.add(user)
     db.commit()
@@ -320,6 +335,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security), 
         "role": user.role,
         "badge": user.badge,
         "department": getattr(user, "department", ""),
+        "district": getattr(user, "district", ""),
         "permissions": ROLE_permissions.get(user.role, ["read"]),
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "last_login": user.last_login.isoformat() if user.last_login else None,
@@ -352,6 +368,7 @@ def verify_ws_token(token: str, db: Session) -> Optional[dict]:
             "id": user.id, "name": user.name, "email": user.email,
             "role": user.role, "badge": user.badge,
             "department": getattr(user, "department", ""),
+            "district": getattr(user, "district", ""),
             "permissions": ROLE_permissions.get(user.role, ["read"]),
         }
     except HTTPException:
@@ -448,6 +465,7 @@ def register_auth_routes(app):
                 "id": user.id, "name": user.name, "email": user.email,
                 "role": user.role, "badge": user.badge,
                 "department": getattr(user, "department", ""),
+                "district": getattr(user, "district", ""),
             }
         )
 
@@ -571,6 +589,7 @@ def register_auth_routes(app):
                 "id": user.id, "name": user.name, "email": user.email,
                 "role": user.role, "badge": user.badge,
                 "department": getattr(user, "department", ""),
+                "district": getattr(user, "district", ""),
             }
         )
 
@@ -590,6 +609,7 @@ def register_auth_routes(app):
             id=user["id"], name=user["name"], email=user["email"],
             role=user["role"], badge=user["badge"],
             department=user.get("department", ""),
+            district=user.get("district", ""),
             permissions=user["permissions"],
             created_at=user.get("created_at"),
             last_login=user.get("last_login"),
@@ -631,7 +651,8 @@ def register_auth_routes(app):
         users = db.query(User).all()
         return [
             {"id": u.id, "name": u.name, "email": u.email, "role": u.role,
-             "badge": u.badge, "is_active": u.is_active, "is_approved": u.is_approved,
+             "badge": u.badge, "department": u.department or "", "district": u.district or "",
+             "is_active": u.is_active, "is_approved": u.is_approved,
              "last_login": u.last_login.isoformat() if u.last_login else None}
             for u in users
         ]
@@ -666,7 +687,7 @@ def register_auth_routes(app):
         if not DEMO_MODE:
             raise HTTPException(status_code=404, detail="Not found")
         return [
-            {"label": u["role"].replace("_", " ").title(), "email": u["email"],
+            {"label": u.get("label") or u["role"].replace("_", " ").title(), "email": u["email"],
              "password": u["password"]}
             for u in DEMO_USER_SEEDS
         ]
@@ -679,6 +700,7 @@ def register_auth_routes(app):
             "id": user["id"], "name": user["name"], "email": user["email"],
             "role": user["role"], "badge": user.get("badge", ""),
             "department": user.get("department", ""),
+            "district": user.get("district", ""),
             "permissions": user.get("permissions", ["read"]),
         }
         ticket = generate_ws_ticket(user_info)
