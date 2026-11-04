@@ -278,8 +278,8 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                 <span className="text-base text-[#15803D]">Alert Created</span>
               </div>
               <div className="flex items-center gap-4 text-[11px] text-[#6B7280]">
-                <span className="flex items-center gap-1"><MessageSquare size={10} className="text-[#15803D]" /> SMS dispatched to field team</span>
-                <span className="flex items-center gap-1"><Mail size={10} className="text-[#1D4ED8]" /> Email sent to I4C</span>
+                <span className="flex items-center gap-1"><MessageSquare size={10} className="text-[#15803D]" /> Alert saved — SMS dispatch happens at the backend when the alert is recorded, not here</span>
+                <span className="flex items-center gap-1"><Mail size={10} className="text-[#1D4ED8]" /> Email dispatch likewise records the job, not the send</span>
               </div>
             </div>
           ) : createError ? (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Volume2, VolumeX, X } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { isDemoRoute } from '@/lib/auth';
 
 interface LiveAlertToastProps {
   onAlert?: (alert: Record<string, unknown>) => void;
@@ -105,13 +106,17 @@ export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
   };
 
   // Speaker button tooltip combines mute state, WS status, and audio arm state.
+  // On a demo route there is already data available, so the disconnected banner
+  // is noise, not a status — say what is actually true there.
   const speakerTitle = muted
     ? 'Unmute alert sound'
-    : !connected
-      ? 'WebSocket disconnected — alerts will not arrive'
-      : !soundArmed
-        ? 'Waiting for first interaction to arm audio…'
-        : 'Alert sound active';
+    : isDemoRoute()
+      ? 'Demo mode — no backend connection'
+      : !connected
+        ? 'WebSocket disconnected — alerts will not arrive'
+        : !soundArmed
+          ? 'Waiting for first interaction to arm audio…'
+          : 'Alert sound active';
 
   return (
     <div className="fixed top-20 right-4 z-[9998] w-[340px] space-y-2 pointer-events-none">

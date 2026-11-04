@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { authFetch } from '@/lib/auth';
+import { authFetch, isDemoRoute } from '@/lib/auth';
 
 interface WsMessage {
   type: string;
@@ -16,6 +16,11 @@ export function useWebSocket(url: string) {
 
   const connect = useCallback(() => {
     if (unmountedRef.current) return;
+
+    // Demo routes have no backend, so no ticket exists to redeem. Do not try:
+    // a refresh on a page with no server only produces an error in the
+    // console, which is exactly the noise this hook exists to avoid.
+    if (isDemoRoute()) return;
 
     // Step 1: Get a short-lived ticket (30s, single-use)
     authFetch('/api/auth/ws-ticket')

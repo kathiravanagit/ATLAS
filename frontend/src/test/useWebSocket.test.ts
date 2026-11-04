@@ -135,4 +135,26 @@ describe('useWebSocket', () => {
     result.current.send('ping')
     // send is a no-op when wsRef.current is null — just verify no error thrown
   })
+
+  it('does not request a ticket on a demo route, so no connection error reaches the console', async () => {
+    window.history.replaceState({}, '', '/demo/map')
+    renderHook(() => useWebSocket('/ws/alerts'))
+    await act(async () => { await new Promise(r => setTimeout(r, 10)) })
+    expect(MockWebSocket.instances.length).toBe(0)
+    // fetch is the ticket request; it must not have been called at all
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0)
+    window.history.replaceState({}, '', '/')
+  })
+
+  it('requests a ticket on a real route and never puts the access token in the URL', async () => {
+    window.history.replaceState({}, '', '/real/map')
+    renderHook(() => useWebSocket('/ws/alerts'))
+    await act(async () => { await new Promise(r => setTimeout(r, 10)) })
+    expect(MockWebSocket.instances.length).toBe(1)
+    expect(MockWebSocket.instances[0].url).toContain('/ws/alerts')
+    expect(MockWebSocket.instances[0].url).toContain('ticket=test-ticket-abc123')
+    expect(MockWebSocket.instances[0].url).not.toContain('token=')
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0)
+    window.history.replaceState({}, '', '/')
+  })
 })
