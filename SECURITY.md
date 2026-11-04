@@ -15,7 +15,7 @@ ATLAS is a **Smart India Hackathon 2026 prototype** (problem statement PS-26184)
 - enables self-registration by default and seeds demo users;
 - exposes `/docs`, `/redoc`, `/openapi.json` and the demo-credential endpoint.
 
-**Alert dispatch is not controlled by `DEMO_MODE`.** SMS and email sending are governed separately by `ALERTS_SMS_ENABLED`, `ALERTS_EMAIL_ENABLED`, the cooldown, and the per-day caps in `backend/main.py`.
+**Alert dispatch is not controlled by `DEMO_MODE`.** SMS and email sending are governed separately by `ALERTS_SMS_ENABLED`, `ALERTS_EMAIL_ENABLED`, the cooldown, and the per-day caps in `backend/main.py`. The signed webhook is governed by `ALERTS_WEBHOOK_ENABLED`, its own daily cap, and by `ALERT_WEBHOOK_URL` plus `ALERT_WEBHOOK_SECRET` both being set: with either missing, no webhook job is queued and no unsigned request is ever sent. Outside demo/test the secret must be at least 32 characters.
 
 A deployment handling real data must run with `DEMO_MODE` unset, unique secrets supplied through the environment, `ENCRYPTION_KEY` set, `COOKIE_SECURE=true`, and TLS terminated by a configured certificate or an authorised reverse proxy.
 

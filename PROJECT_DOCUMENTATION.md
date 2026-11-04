@@ -36,7 +36,7 @@ flowchart TD
 | ML | Random Forest/XGBoost binary classification; synthetic training generator and provenance-bound revalidation |
 | Explanations | Exact saved candidate inputs and model identity; ensemble Kernel SHAP with empirical training background, or explicitly non-local importance |
 | Evidence | SHA-256-linked local ledger, Merkle proofs, prototype PoW mining and in-process network simulation |
-| Notifications | Tracked queued SMS/email jobs with optional configured providers; delivery is not implied by enqueueing. Every HIGH (>70) prediction raises an on-screen toast + siren (mutable, browser-generated); a new open alert row also enqueues one TextBee SMS to `INVESTIGATOR_PHONE_NUMBER` plus one SMTP email (prototype channels; India production SMS would need DLT plus an approved gateway). Alert rows dedupe to one open alert per case+ATM with no repeat dispatch until acknowledged/resolved, and predictions never write audit entries |
+| Notifications | Tracked queued SMS/email/webhook jobs with optional configured providers; delivery is not implied by enqueueing. Every HIGH (>70) prediction raises an on-screen toast + siren (mutable, browser-generated); a new open alert row also enqueues one TextBee SMS to `INVESTIGATOR_PHONE_NUMBER`, one SMTP email, and — when `ALERT_WEBHOOK_URL` and `ALERT_WEBHOOK_SECRET` are set — one HMAC-signed webhook (prototype channels; India production SMS would need DLT plus an approved gateway). Alert rows dedupe to one open alert per case+ATM with no repeat dispatch until acknowledged/resolved, and predictions never write audit entries |
 | Spatial | Synthetic city/ATM registry, haversine calculations, optional PostGIS integration |
 
 ### Two distinct console modes

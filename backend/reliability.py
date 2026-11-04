@@ -4,9 +4,9 @@ Reliability helpers: idempotent mutations + durable notification dispatch.
 - Idempotency-Key header: repeat POSTs with the same key return the ORIGINAL
   stored response instead of re-executing side effects (no duplicate alerts,
   transactions, or evidence anchors on client retries).
-- notification_jobs table: SMS/email work is enqueued transactionally with the
-  request and processed by a tracked worker (with retry + dead-letter) instead
-  of fire-and-forget threads. Stepping stone toward Celery/RQ.
+- notification_jobs table: SMS/email/webhook work is enqueued transactionally
+  with the request and processed by a tracked worker (with retry + dead-letter)
+  instead of fire-and-forget threads. Stepping stone toward Celery/RQ.
 """
 import json
 import time
@@ -54,7 +54,7 @@ def store_replay(db, key: str, method: str, path: str, status_code: int, body: d
 
 
 def enqueue_notification(db, kind: str, payload: dict, max_attempts: int = 3) -> int:
-    """Enqueue SMS/email work inside the request transaction. Returns job id."""
+    """Enqueue SMS/email/webhook work inside the request transaction. Returns job id."""
     job = NotificationJob(
         kind=kind, payload=json.dumps(payload),
         status="queued", attempts=0, max_attempts=max_attempts,
@@ -65,7 +65,7 @@ def enqueue_notification(db, kind: str, payload: dict, max_attempts: int = 3) ->
     return job.id
 
 
-def process_notification_jobs(db, send_sms, send_email, batch: int = 20,
+def process_notification_jobs(db, send_sms, send_email, send_webhook=None, batch: int = 20,
                               backoff_base_s: float = 1.0) -> dict:
     """Run one pass over queued jobs with retry + dead-letter. Returns a summary."""
     jobs = db.query(NotificationJob).filter(
@@ -79,8 +79,16 @@ def process_notification_jobs(db, send_sms, send_email, batch: int = 20,
         db.commit()
         try:
             payload = json.loads(job.payload or "{}")
-            ok = send_email(payload["subject"], payload["message"], payload.get("to")) \
-                if job.kind == "email" else send_sms(payload["message"], payload.get("to"))
+            if job.kind == "webhook":
+                if send_webhook is None:
+                    raise RuntimeError("no webhook sender configured")
+                # The payload is the signed envelope; the sender adds the
+                # timestamp and signature, so a stored job can never carry one.
+                ok = send_webhook(payload)
+            elif job.kind == "email":
+                ok = send_email(payload["subject"], payload["message"], payload.get("to"))
+            else:
+                ok = send_sms(payload["message"], payload.get("to"))
         except Exception as exc:  # noqa: BLE001 — provider errors become job state
             ok, err = False, f"{type(exc).__name__}: {exc}"
         else:
@@ -103,10 +111,10 @@ def process_notification_jobs(db, send_sms, send_email, batch: int = 20,
     return summary
 
 
-def run_notification_worker(db_factory, send_sms, send_email):
+def run_notification_worker(db_factory, send_sms, send_email, send_webhook=None):
     """Tracked daemon entrypoint: drain the queue once, then exit."""
     db = db_factory()
     try:
-        return process_notification_jobs(db, send_sms, send_email)
+        return process_notification_jobs(db, send_sms, send_email, send_webhook)
     finally:
         db.close()

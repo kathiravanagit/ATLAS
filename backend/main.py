@@ -58,9 +58,14 @@ def _env_int(name: str, default: int) -> int:
 # toasts only), and enable once for a single stage-demo test.
 ALERTS_SMS_ENABLED = _env_flag("ALERTS_SMS_ENABLED", True)
 ALERTS_EMAIL_ENABLED = _env_flag("ALERTS_EMAIL_ENABLED", True)
+# Webhooks are an integration channel, not a phone: the per-recipient cooldown
+# does not apply, and the cap is much higher. Configuration (URL + secret) is a
+# second gate — without both, nothing is enqueued at all.
+ALERTS_WEBHOOK_ENABLED = _env_flag("ALERTS_WEBHOOK_ENABLED", True)
 # Free-tier safe: 2/day each (~60/month against a 300/month quota).
 ALERTS_SMS_MAX_PER_DAY = _env_int("ALERTS_SMS_MAX_PER_DAY", 2)
 ALERTS_EMAIL_MAX_PER_DAY = _env_int("ALERTS_EMAIL_MAX_PER_DAY", 2)
+ALERTS_WEBHOOK_MAX_PER_DAY = _env_int("ALERTS_WEBHOOK_MAX_PER_DAY", 500)
 ALERTS_COOLDOWN_MINUTES = _env_int("ALERTS_COOLDOWN_MINUTES", 45)
 
 # Risk bands: the single source of truth for the High/Medium presentation
@@ -109,6 +114,7 @@ import threading
 import hashlib
 from sms_client import send_sms_alert
 from email_client import send_email_alert
+from webhook_client import config_status as webhook_config_status, send_webhook as send_webhook_alert
 from encryption import seal, unseal, install_runtime_encryption
 from security_config import SECURITY_CONFIG
 from access_control import require_case, visible_cases, visible_case_ids, visibility_filter, check_action
@@ -988,17 +994,26 @@ def add_audit(db: Session, action: str, details: str, action_type: str = "action
 
 
 def _dispatch_guard(db: Session, kind: str) -> tuple:
-    """(allowed, reason) for enqueueing one sms/email job. Never raises.
+    """(allowed, reason) for enqueueing one sms/email/webhook job. Never raises.
 
-    Single recipient per kind; guards are global per kind: kill-switch flag,
-    cooldown since the last sent job, and per-day cap counting queued,
-    sending and sent jobs. Breaches fail
-    soft (log + dashboard row/toast only, never crash).
+    Single recipient per channel; guards are global per kind: kill-switch flag,
+    cooldown since the last sent job, and per-day cap counting queued, sending
+    and sent jobs. The cooldown is a phone courtesy and applies to SMS/email
+    only; a webhook to a machine has no reason to wait 45 minutes, so it is
+    bounded by its own cap. Breaches fail soft (log + dashboard row/toast only,
+    never crash).
     """
     try:
-        enabled = ALERTS_SMS_ENABLED if kind == "sms" else ALERTS_EMAIL_ENABLED
+        enabled = {"sms": ALERTS_SMS_ENABLED, "email": ALERTS_EMAIL_ENABLED,
+                   "webhook": ALERTS_WEBHOOK_ENABLED}.get(kind, False)
         if not enabled:
             return False, f"{kind} dispatch disabled (ALERTS_{kind.upper()}_ENABLED=false)"
+        if kind == "webhook":
+            # No URL or no secret means no verifiable delivery. Refuse up front
+            # instead of queueing jobs that can only fail.
+            configured, config_reason = webhook_config_status()
+            if not configured:
+                return False, config_reason
         now = datetime.now(timezone.utc)
         sent = db.query(NotificationJob).filter(
             NotificationJob.kind == kind, NotificationJob.status == "sent").all()
@@ -1007,12 +1022,13 @@ def _dispatch_guard(db: Session, kind: str) -> tuple:
             return ts.replace(tzinfo=timezone.utc) if ts is not None and ts.tzinfo is None else ts
         stamps = [_aware(j.updated_at or j.created_at) for j in sent]
         stamps = [s for s in stamps if s is not None]
-        if ALERTS_COOLDOWN_MINUTES > 0 and stamps:
+        if kind != "webhook" and ALERTS_COOLDOWN_MINUTES > 0 and stamps:
             latest = max(stamps)
             elapsed = (now - latest).total_seconds()
             if elapsed < ALERTS_COOLDOWN_MINUTES * 60:
                 return False, f"{kind} cooldown: last dispatch {int(elapsed // 60)}m ago"
-        cap = ALERTS_SMS_MAX_PER_DAY if kind == "sms" else ALERTS_EMAIL_MAX_PER_DAY
+        cap = {"sms": ALERTS_SMS_MAX_PER_DAY, "email": ALERTS_EMAIL_MAX_PER_DAY,
+               "webhook": ALERTS_WEBHOOK_MAX_PER_DAY}.get(kind, 0)
         # Count in-flight (queued/sending) as well as sent: back-to-back
         # predictions must not all pass the guard before the first send lands.
         # This bounds live dispatch to cap/day even under rapid repeats.
@@ -1029,6 +1045,28 @@ def _dispatch_guard(db: Session, kind: str) -> tuple:
     except Exception as exc:
         logger.warning("Dispatch guard error; skipping %s enqueue: %s", kind, exc)
         return False, f"guard error: {exc}"
+
+
+def _alert_webhook_payload(alert, event: str) -> dict:
+    """The signed envelope for one alert.
+
+    Only stored fields are published: a receiver must not be told a score, a
+    probability or a jurisdiction the case does not carry.
+    """
+    return {
+        "event": event,
+        "alert": {
+            "alert_id": alert.alert_id,
+            "case_id": alert.case_id,
+            "message": alert.message,
+            "risk_level": alert.risk_level,
+            "location": alert.location,
+            "district": alert.district or "",
+            "time_window": alert.time_window or "",
+            "timestamp": alert.timestamp,
+            "acknowledged": bool(alert.acknowledged),
+        },
+    }
 
 
 def _transaction_alert_message(amount: float, primary: dict) -> str:
@@ -1111,7 +1149,8 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
         # dashboard row/toast only.
         queued_any = False
         for kind, payload in (("sms", {"message": alert_msg}),
-                              ("email", {"subject": email_subject, "message": alert_msg})):
+                              ("email", {"subject": email_subject, "message": alert_msg}),
+                              ("webhook", _alert_webhook_payload(alert, "alert.created"))):
             allowed, reason = _dispatch_guard(db, kind)
             if allowed:
                 enqueue_notification(db, kind, payload)
@@ -1119,11 +1158,11 @@ def _raise_high_risk_alert(db: Session, case_id: str, primary: dict, city: str =
             else:
                 logger.info("Alert dispatch skipped (%s): %s", kind, reason)
         # Test fixtures process queued jobs explicitly with fake senders; never
-        # dispatch real SMS/email or race fixture teardown in TESTING mode.
+        # dispatch real SMS/email/webhook or race fixture teardown in TESTING mode.
         if queued_any and os.getenv("TESTING") != "1":
             threading.Thread(
                 target=run_notification_worker,
-                args=(SessionLocal, send_sms_alert, send_email_alert),
+                args=(SessionLocal, send_sms_alert, send_email_alert, send_webhook_alert),
                 daemon=True,
             ).start()
     # Broadcast for the on-screen toast + sound. Mirrors the transaction path;
@@ -1738,6 +1777,7 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
             ("sms", {"message": alert_msg}),
             ("email", {"subject": f"High-Risk Cash-Out Alert ({tx.case_id})",
                        "message": alert_msg}),
+            ("webhook", _alert_webhook_payload(alert, "alert.created")),
         ):
             allowed, reason = _dispatch_guard(db, kind)
             if allowed:
@@ -1746,11 +1786,11 @@ def simulate_transaction(request: Request, tx: TransactionCreate, user: dict = D
             else:
                 logger.info("Transaction alert dispatch skipped (%s): %s", kind, reason)
         # Test fixtures process queued jobs explicitly with fake senders; never
-        # dispatch real SMS/email or race fixture teardown in TESTING mode.
+        # dispatch real SMS/email/webhook or race fixture teardown in TESTING mode.
         if queued_any and os.getenv("TESTING") != "1":
             threading.Thread(
                 target=run_notification_worker,
-                args=(SessionLocal, send_sms_alert, send_email_alert),
+                args=(SessionLocal, send_sms_alert, send_email_alert, send_webhook_alert),
                 daemon=True,
             ).start()
 
@@ -1912,6 +1952,7 @@ def notify_officer(alert_id: str, user: dict = Depends(require_permission("read"
         ("sms", {"message": alert.message}),
         ("email", {"subject": f"ATLAS HIGH RISK — {alert.case_id} — {alert.location}",
                    "message": alert.message}),
+        ("webhook", _alert_webhook_payload(alert, "alert.notified")),
     ):
         allowed, reason = _dispatch_guard(db, kind)
         dispatch[kind] = {"queued": False, "reason": reason}
@@ -1921,7 +1962,7 @@ def notify_officer(alert_id: str, user: dict = Depends(require_permission("read"
     if any(r["queued"] for r in dispatch.values()) and os.getenv("TESTING") != "1":
         threading.Thread(
             target=run_notification_worker,
-            args=(SessionLocal, send_sms_alert, send_email_alert),
+            args=(SessionLocal, send_sms_alert, send_email_alert, send_webhook_alert),
             daemon=True,
         ).start()
     queued = [k for k, r in dispatch.items() if r["queued"]]

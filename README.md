@@ -41,7 +41,7 @@ The ATLAS investigation console brings prediction, geospatial intelligence, aler
 
 ### Notification Channels
 
-High-risk alerts leave the console on two prototype channels — SMTP email and SMS through a TextBee device gateway. Both carry the case, the risk band, the predicted location, and the span of cash-out records on file; the uncalibrated model score is never presented as a probability. Delivery is a demo integration, not a government SMS or email service.
+High-risk alerts leave the console on three prototype channels — SMTP email, SMS through a TextBee device gateway, and a signed HTTP webhook for a partner system. All carry the case, the risk band, the predicted location, and the span of cash-out records on file; the uncalibrated model score is never presented as a probability. The webhook is signed so the receiver can prove the alert came from this build (`X-ATLAS-Signature` over `<timestamp>.<body>`, no unsigned fallback). Delivery is a demo integration, not a government SMS or email service.
 
 | Email alert | SMS alert |
 | --- | --- |
@@ -393,9 +393,15 @@ SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM=
 INVESTIGATOR_EMAIL=
+
+# Optional — signed outbound webhook (HMAC-SHA256 over "<timestamp>.<body>")
+# Both values are required; with either missing, nothing is queued and nothing
+# is sent unsigned. The secret must be at least 32 characters outside demo/test.
+ALERT_WEBHOOK_URL=
+ALERT_WEBHOOK_SECRET=
 ```
 
-HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toast, and — once per open case+ATM — a TextBee SMS plus an SMTP email built from the prediction fields. Repeat predictions dispatch nothing new until acknowledged/resolved, and per-kind cooldown (45 min) plus daily caps (2 SMS / 2 email, env-configurable) fail soft to dashboard-only. An officer can also trigger one manual dispatch per open alert via the **Notify officer** button (`POST /api/alerts/{id}/notify`, same guards). Kill-switches `ALERTS_SMS_ENABLED` / `ALERTS_EMAIL_ENABLED` reduce the console to dashboard toasts. Test and CI backends always run with both switches off (plus empty provider keys) so verification never spends quota or spams the investigator number — live dispatch is verified only through deliberate single manual notifies. TextBee is a prototype device gateway and SMTP email a prototype path; production would use authorised LEA/bank/I4C channels, and India production SMS would require DLT plus an approved gateway where applicable. Synthetic data only; decision support, not automated enforcement.
+HIGH-risk predictions (risk_score > 70) raise a dashboard alert, a WebSocket toast, and — once per open case+ATM — a TextBee SMS plus an SMTP email built from the prediction fields. Repeat predictions dispatch nothing new until acknowledged/resolved, and per-kind cooldown (45 min) plus daily caps (2 SMS / 2 email, env-configurable) fail soft to dashboard-only. An officer can also trigger one manual dispatch per open alert via the **Notify officer** button (`POST /api/alerts/{id}/notify`, same guards). Kill-switches `ALERTS_SMS_ENABLED` / `ALERTS_EMAIL_ENABLED` reduce the console to dashboard toasts. When `ALERT_WEBHOOK_URL` and `ALERT_WEBHOOK_SECRET` are both set, the same alerts also go to that URL as a signed webhook (`X-ATLAS-Timestamp` + `X-ATLAS-Signature: sha256=<hex>` over the exact body bytes), retried by the durable queue and dead-lettered after three attempts; it has its own kill-switch (`ALERTS_WEBHOOK_ENABLED`) and daily cap (500), and no cooldown because a machine has no phone to spam. Test and CI backends always run with both switches off (plus empty provider keys) so verification never spends quota or spams the investigator number — live dispatch is verified only through deliberate single manual notifies. TextBee is a prototype device gateway and SMTP email a prototype path; production would use authorised LEA/bank/I4C channels, and India production SMS would require DLT plus an approved gateway where applicable. Synthetic data only; decision support, not automated enforcement.
 
 ---
 
@@ -427,7 +433,7 @@ Actual next-ATM Hit@K, geographic error, and future-window coverage need case-gr
 - Full isolated backend suite: **299 passed, 2 skipped** (run `python -m pytest tests/` for the current total; fresh Windows CPython 3.13 installs from `backend/requirements.txt` pass the same suite).
 - Fresh dependency installation, `pip check`, SHAP import, and bundled estimator loading passed. Windows/Linux wheel resolution passed; Linux runtime was not exercised locally.
 - Frontend: **96 unit tests passed** (run `npm test` for the current total), lint and production build passed; **32 browser tests passed, 1 skipped** (Postgres integration skip), including an isolated real-FastAPI-handler investigation flow.
-- Real-handler browser integration uses TestClient transport and a temporary database; it is not a deployed HTTP/WebSocket/TLS test. No SMS/email delivery occurred.
+- Real-handler browser integration uses TestClient transport and a temporary database; it is not a deployed HTTP/WebSocket/TLS test. No SMS/email/webhook delivery occurred.
 - Skips: Windows symlink privilege and unconfigured PostgreSQL/PostGIS integration. Existing XGBoost pickle-format warnings remain.
 - No legacy-data encryption backfill, further retraining beyond the committed 2026-10-10 artifacts, production deployment, real-data validation, or distributed-concurrency guarantee is claimed. Blockchain nodes are local simulations.
 - Package transitive dependencies are not fully locked. Re-run the documented checks in your submission environment.

@@ -1,8 +1,8 @@
 # ATLAS — PS 26184 Gap Plan
 
 **Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
-negative (§2.1). Phases 3.1–3.2 are built (§3.1.1, §3.2.1). Phases 3.3–4 are
-still proposal.** Every measurement below was taken against `main` (`a9be1b4`)
+negative (§2.1). Phases 3.1–3.3 are built (§3.1.1, §3.2.1, §3.3.1). Phase 3.4
+and 4 are still proposal.** Every measurement below was taken against `main` (`24eb780`)
 and the synthetic fixtures. No real complaint, transaction or outcome data has
 been seen by this build; see `docs/VALIDATION_PLAN.md` for how that would change.
 
@@ -343,6 +343,56 @@ HMAC-SHA256 over `timestamp.body`, retry with backoff, dead-letter on exhaustion
 the durable dispatch already has the queue. No secret in logs, no unsigned
 fallback.
 
+#### 3.3.1 As built
+
+`webhook_client.send_webhook` — third channel beside SMS/email, in the same
+`notification_jobs` queue, so retry, backoff and dead-letter are inherited rather
+than re-implemented:
+
+```
+POST <ALERT_WEBHOOK_URL>
+X-ATLAS-Timestamp: <unix seconds>
+X-ATLAS-Signature: sha256=<hex hmac of "<timestamp>.<exact body bytes>">
+X-ATLAS-Event: alert.created | alert.notified
+```
+
+The timestamp is inside the signed material, so a captured request cannot be
+replayed later without failing a freshness check (300 s, in `verify_signature`,
+the executable statement of the contract used by the tests). Each retry is
+signed again with a fresh timestamp.
+
+Two findings from the audit of the existing carriers:
+
+1. **A missing secret would have been sent by default.** SMS/email both log
+   "skipping" and return False, and the queue retries them — that is the safe
+   failure. For a webhook the same code would have published an alert nobody
+   could authenticate, which is worse than not publishing it. So there is no
+   unsigned fallback: no URL or no secret → `send_webhook` returns False, and
+   `_dispatch_guard` refuses to enqueue at all, so nothing writes doomed jobs.
+2. **The phone's cooldown does not belong to a machine.** Cooldown and caps exist
+   to stop spamming one investigator. A partner endpoint is not a phone, so
+   webhook gets its own cap (500/day) and no cooldown, while SMS/email keep
+   45 min and 2/day.
+
+Secrets are never logged and never stored: logs name the URL host and status;
+the connection error is reduced to its type, and `last_error` never sees the
+secret. The payload is the alert envelope only — `alert_id`, `case_id`, message,
+risk band, location, district, observed span, timestamp, acknowledged — no
+score and no probability. The job row carries no signature; the sender signs at
+send time, so a stored job cannot be replayed as sent.
+
+Limits: one fixed URL and secret per deployment (no per-district routing), no
+inbound verification endpoint, and no idempotency key on the receiver side —
+retries after a 2xx the receiver failed to record can redeliver, which the
+`alert_id` makes safe to deduplicate.
+
+Verified by `backend/tests/test_signed_webhook.py` (13 tests): signature matches
+a hand-rolled HMAC over `timestamp.body`, the timestamp is covered, stale and
+forged signatures fail, nothing leaves the process without a secret or a URL,
+2xx / non-2xx / network error are handled, queue + dead-letter behave, and
+`/api/alerts/{id}/notify` reports the webhook skipped when unconfigured and
+queued when configured.
+
 ### 3.4 8,000 complaints/day
 Replay the intake endpoint at that rate against a local instance and report p50
 and p95, plus where the time goes. Report the number even if it is bad; measuring
@@ -396,6 +446,8 @@ cd backend; python -m pytest -q
 cd backend; python -m pytest tests/test_serving_alignment.py -q
 # district RBAC: refusal without side effect, replay re-authorized
 cd backend; python -m pytest tests/test_district_rbac.py -q
+# signed webhook: signature contract, no unsigned fallback, dead-letter
+cd backend; python -m pytest tests/test_signed_webhook.py -q
 # frontend
 cd frontend; npm test; npx tsc --noEmit; npm run lint
 # fixture guarantee: prints the sweep without rewriting the committed report;

@@ -50,7 +50,10 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
         const d = data.dispatch || {};
         const sms = d.sms?.queued ? 'SMS queued' : `SMS skipped (${d.sms?.reason || 'guard'})`;
         const email = d.email?.queued ? 'Email queued' : `Email skipped (${d.email?.reason || 'guard'})`;
-        setNotifyState(s => ({ ...s, [alertId]: `${sms}; ${email}.` }));
+        // The webhook is silent unless it is actually configured and queued;
+        // its "not configured" reason is integration detail, not officer copy.
+        const webhook = d.webhook?.queued ? '; signed webhook queued' : '';
+        setNotifyState(s => ({ ...s, [alertId]: `${sms}; ${email}${webhook}.` }));
         if (showNotifications) loadJobs();
       })
       .catch(() => setNotifyState(s => ({ ...s, [alertId]: 'Notify unavailable.' })))
@@ -260,7 +263,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
 
           <div className="card p-3 border border-[#D1D5DB]">
             <div className="text-[11px] text-[#6B7280] text-center">
-              Queued notification jobs, when present, are recorded in the backend. SMS (TextBee) and Email (SMTP) delivery requires configured credentials; an alert record alone is not evidence of external delivery.
+              Queued notification jobs, when present, are recorded in the backend. SMS (TextBee), Email (SMTP) and the signed webhook require configured credentials; an alert record alone is not evidence of external delivery.
             </div>
           </div>
         </div>
