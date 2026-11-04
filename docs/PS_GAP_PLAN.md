@@ -1,8 +1,8 @@
 # ATLAS — PS 26184 Gap Plan
 
 **Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
-negative (§2.1). Phases 3.1–3.3 are built (§3.1.1, §3.2.1, §3.3.1). Phase 3.4
-and 4 are still proposal.** Every measurement below was taken against `main` (`24eb780`)
+negative (§2.1). Phases 3.1–3.4 are built (§3.1.1, §3.2.1, §3.3.1, §3.4.1).
+Phase 4 is still proposal.** Every measurement below was taken against `main` (`25ed0d1`)
 and the synthetic fixtures. No real complaint, transaction or outcome data has
 been seen by this build; see `docs/VALIDATION_PLAN.md` for how that would change.
 
@@ -16,7 +16,7 @@ an investigating officer would probe first.
 | Rank cash-out locations | **Done**, surface + zones shipped; serving geometry re-aligned so all eight demo cities stay banded. | `14ef942`, `eb38afb`; §3.1.1. |
 | Say *when* the cash-out is expected | **Removed (Phase 1); measurement negative (Phase 2).** No predicted window or lead time is shown; screens describe the records on file, and the first cash-out hour is not predictable from complaint-time features. | §1.2, §1.4, §2.1. |
 | Jurisdiction-correct access | **Done for reads and writes.** Department scope plus an account district on every case-owned read and write; complaint intake refuses another district and re-authorizes replays. | `visibility_filter`, `require_case`; §3.2.1. |
-| Alerting at scale | **Partly.** Durable dispatch exists; outbound is unpublished; 8,000/day unmeasured. | §3.3, §3.4. |
+| Alerting at scale | **Partly.** Durable dispatch exists; outbound published and signed; 8,000/day measured at ~3× headroom, in-process and SQLite (see the caveats). | §3.3.1, §3.4.1, `docs/LOAD_BENCHMARK.md`. |
 
 ---
 
@@ -398,6 +398,43 @@ Replay the intake endpoint at that rate against a local instance and report p50
 and p95, plus where the time goes. Report the number even if it is bad; measuring
 first is the point.
 
+#### 3.4.1 As measured
+
+`docs/LOAD_BENCHMARK.md`. 1,000 sequential real `POST /api/complaints` against
+a scratch SQLite database, all dispatch disabled:
+
+- 1,000/1,000 ok; p50 **3,399 ms**, p95 **4,021 ms**, p99 4,583 ms, max 6,595 ms
+- Throughput 0.3/s ≈ 24,986/day equivalent; 8,000/day needs 0.093/s, so **~3× headroom** on one process
+- 1,000 cases · 12,000 transaction records · 1,000 predictions · 8,000 ranked locations; DB 70.7 MB
+
+**Where the time goes:** validate 0.02 ms, insert+audit+records 30 ms,
+predict 5,617 ms mean, persist 63 ms, alert 9 ms, respond 3,043 ms. Inside
+predict, `_predict_or_503` → `predict_cashout` is 585 s of 664 s cumulative,
+but the trees contribute only ~16 s of `predict_proba`; the rest is
+`multiprocessing.pool._wait_for_updates` / `thread.join` — thread/process
+synchronisation overhead, not model work. Serialising the same model work
+without a pool is the obvious next step. `_current_model_fingerprint`
+(joblib.hash over both models and the SHAP background) adds ~40 s across
+1,080 calls — cheap next to predict, but as large as all SQL in the request.
+
+**Caveats, which are part of the answer:**
+
+1. In-process, not over HTTP: TestClient calls the ASGI app in one process, so
+   this is code-path latency, not client-observed network latency.
+2. SQLite, not Postgres: this measured the code path, not a database backend.
+   On Postgres the shape changes, and a deployed instance must be re-measured.
+3. One process, one machine. No worker scaling was measured; the next useful
+   run measures *concurrent* intake, not only sequential throughput.
+4. "24,986/day" is the measured rate × 86,400, a capacity equivalence, not an
+   observed day.
+
+**No number was invented and no run was discarded.** The first run of the
+probe died after 1,084 complaints because the access token expired (a real
+30-min JWT) and the remainder were 401s — that was the script's bug, and the
+run is not cited anywhere; it is noted here because the next person will
+re-run this script and should know why it re-logs in. The corrected probe
+re-logs in automatically and reports its session count.
+
 ---
 
 ## 4. Phase 4 — packaging
@@ -448,6 +485,8 @@ cd backend; python -m pytest tests/test_serving_alignment.py -q
 cd backend; python -m pytest tests/test_district_rbac.py -q
 # signed webhook: signature contract, no unsigned fallback, dead-letter
 cd backend; python -m pytest tests/test_signed_webhook.py -q
+# 8,000/day load: 1,000 sequential intakes, report p50/p95 and where the time goes
+# measurement only — writes docs/LOAD_BENCHMARK.md @ 3.4.1, sqlite scratch DB
 # frontend
 cd frontend; npm test; npx tsc --noEmit; npm run lint
 # fixture guarantee: prints the sweep without rewriting the committed report;
