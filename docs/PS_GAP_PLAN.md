@@ -2,7 +2,7 @@
 
 **Status: Phase 1 (1.1–1.3) is built and pushed. Phase 2 is measured and
 negative (§2.1). Phases 3.1–3.4 are built (§3.1.1, §3.2.1, §3.3.1, §3.4.1).
-Phase 4 is still proposal.** Every measurement below was taken against `main` (`25ed0d1`)
+Phase 4 is built (§4.1).** Every measurement below was taken against `main` (`3b0c7f5`)
 and the synthetic fixtures. No real complaint, transaction or outcome data has
 been seen by this build; see `docs/VALIDATION_PLAN.md` for how that would change.
 
