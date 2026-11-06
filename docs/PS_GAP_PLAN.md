@@ -443,6 +443,22 @@ Strategic intel brief (one page), one continuous loop on screen
 `ws://localhost:8000/ws/alerts … 403` console error, and slide copy discipline —
 `FIGHT_CLUB` and `164305` only, no model metrics, no member names.
 
+#### 4.1 As built (WS 403 already shipped as `5c6a5a9`)
+
+- **Brief:** `docs/STRATEGIC_BRIEF.md` — one page, loop diagram, what ATLAS
+  proves / does not prove, links. No model metrics, no member names, no
+  probabilities, no lead time.
+- **Loop page:** `frontend/src/pages/LoopPage.tsx`, routes `/real/loop` and
+  `/demo/loop`, nav item "Loop" in `FloatingDockNav.tsx`. Five steps advance
+  every 3 s (hover/focus pauses), reading live dashboard state: complaint
+  district/category/amount, prediction primary ATM + zone/rank + observed
+  span, intervention zones, alerts for the case, and Resolve (human action
+  only — demo mode never calls the API; role check via `can('case.resolve')`).
+  Empty state asks the user to pick a case in Cases; no invented data.
+- **Copy/slide discipline:** not in code scope — the PPT is owner-managed.
+  Verified against code: no `FIGHT_CLUB`/`164305` strings in frontend docs
+  copy, no member names; the brief and loop page carry no model metrics.
+
 ---
 
 ## 5. Order and rough cost

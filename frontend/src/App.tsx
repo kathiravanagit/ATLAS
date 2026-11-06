@@ -8,6 +8,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import DashboardLayout from './pages/DashboardLayout';
 import OverviewPage from './pages/OverviewPage';
 import CasesPage from './pages/CasesPage';
+import LoopPage from './pages/LoopPage';
 import AlertsPage from './pages/AlertsPage';
 import AuditPage from './pages/AuditPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
@@ -55,6 +56,7 @@ export default function App() {
           {/* Explicit demo console: fallback data only, visibly labelled. */}
           <Route path="/demo" element={<DashboardLayout key="demo" demoMode />}>
             <Route index element={<OverviewPage />} />
+            <Route path="loop" element={<LoopPage />} />
             <Route path="predictions" element={<Suspense fallback={<PageFallback />}><PredictionsPage /></Suspense>} />
             <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
             <Route path="cases" element={<CasesPage />} />
@@ -67,6 +69,7 @@ export default function App() {
           </Route>
           <Route path="/real" element={<RequireAuth><DashboardLayout key="api" /></RequireAuth>}>
             <Route index element={<OverviewPage />} />
+            <Route path="loop" element={<LoopPage />} />
             <Route path="predictions" element={<Suspense fallback={<PageFallback />}><PredictionsPage /></Suspense>} />
             <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
             <Route path="cases" element={<CasesPage />} />

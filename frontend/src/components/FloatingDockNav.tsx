@@ -9,12 +9,14 @@ import {
   IconFileSearch,
   IconClipboardList,
   IconShield,
+  IconRefresh,
   IconChartLine,
   IconHeartbeat,
 } from '@tabler/icons-react';
 
 const NAV_ITEMS = [
   { path: '/real', icon: IconHome, label: 'Overview' },
+  { path: '/real/loop', icon: IconRefresh, label: 'Loop' },
   { path: '/real/predictions', icon: IconBrain, label: 'Predictions' },
   { path: '/real/map', icon: IconMap, label: 'Risk Map' },
   { path: '/real/cases', icon: IconFolderOpen, label: 'Cases' },
@@ -41,7 +43,7 @@ export default function FloatingDockNav({ activeView }: { activeView: string }) 
       icon: (
         <div className="relative flex flex-col items-center justify-center">
           <item.icon className={`h-full w-full ${isActive ? 'text-[#1D4ED8]' : 'text-[#6B7280]'} transition-colors duration-200`} />
-          {isActive && <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#1D4ED8]" />}
+          {isActive && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#1D4ED8]" />}
         </div>
       ),
       href: item.path,
