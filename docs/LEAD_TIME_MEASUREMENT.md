@@ -81,3 +81,17 @@ shown as a distribution, never as one promised number.
 Reproduce: `cd backend && python measure_lead_time.py`. Dataset
 `sha256:e94f0d4c4345d883b7a1093b23ffb2b2fb8c9d77e8a2234e9efc57d76a400388`;
 protocol guards in `backend/tests/test_lead_time_measurement.py`.
+
+## Anchor check (verified 2026-11-06, before the demo re-record)
+
+The negative result above discloses `min(occurred_at) − Case.created_at`; if
+`created_at` were still the DB default (`datetime.now`) while `incident_at` is
+the complainant's stated time, that delta would be measured against the wrong
+anchor and the number would be contaminated. Grep of the intake handler
+(`main.create_complaint`, line ~1637) shows `created_at=incident_at` is set
+**explicitly** on every intake `Case(...)` row, overriding the `models_db.Case`
+default. The anchor is correct; the negative stands on a clean number. Note
+this check does not change the measurement itself — Phase 2 reads the
+training-table rings, not intake rows — but it means a future intake-based
+lead-time rerun can use `created_at` as the complainant's time without a
+migration.
