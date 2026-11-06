@@ -17,6 +17,7 @@ an investigating officer would probe first.
 | Say *when* the cash-out is expected | **Removed (Phase 1); measurement negative (Phase 2).** No predicted window or lead time is shown; screens describe the records on file, and the first cash-out hour is not predictable from complaint-time features. | §1.2, §1.4, §2.1. |
 | Jurisdiction-correct access | **Done for reads and writes.** Department scope plus an account district on every case-owned read and write; complaint intake refuses another district and re-authorizes replays. | `visibility_filter`, `require_case`; §3.2.1. |
 | Alerting at scale | **Partly.** Durable dispatch exists; outbound published and signed; 8,000/day measured at ~3× headroom, in-process and SQLite (see the caveats). | §3.3.1, §3.4.1, `docs/LOAD_BENCHMARK.md`. |
+| Fund blocking | **Request built (not a freeze).** `POST /api/cases/{id}/block-request` records a tokenised account, audits it, and publishes `alert.blocked` over the signed webhook; no bank action is claimed. | §3.5. |
 
 ---
 
@@ -435,6 +436,42 @@ run is not cited anywhere; it is noted here because the next person will
 re-run this script and should know why it re-logs in. The corrected probe
 re-logs in automatically and reports its session count.
 
+### 3.5 Fund-block request
+
+`POST /api/cases/{id}/block-request`, `202`. Answers *"enabling faster fund
+blocking"* the honest way: the endpoint **requests** that one mule account be
+frozen; it does not freeze anything and never claims a bank acted.
+
+- `to_account` is a tokenised reference (`SYN-MULE-042` form); raw account
+  numbers (pure digits ≥8, spaces, email shapes) are `422`. The prototype
+  carries synthetic tokens; the bank replaces the token at its desk.
+- District guard is `require_case(..., 'write')` — cross-district is **404**
+  with no job, no audit, no side effect.
+- On the signed channel, event `alert.blocked`, kind `webhook`, same HMAC /
+  retry / dead-letter path as alerts (§3.3.1). Unconfigured webhook queues
+  nothing, sends nothing unsigned.
+- Human framing on the response and payload: *"Block request recorded for
+  human review; no bank action has been taken."* No probability, no score.
+- Audit `Block Requested` per request. Wire proof for the signed delivery is
+  `backend/tests/test_webhook_wire.py` (real HTTP listener); end-to-end
+  via `tests/test_block_request.py`.
+- **Rides the existing durable dispatch — no parallel path.** `_dispatch_guard`
+  + `enqueue_notification` + `run_notification_worker` is the same code the
+  alert paths call, so bank-down semantics are identical for alerts and
+  block-requests: non-2xx and timeouts retry, exhaustion dead-letters.
+- **Known limit:** `send_webhook` treats any 2xx as delivered and does not
+  inspect the body. A bank answering 200 with `{"status": "rejected"}` would
+  be marked sent here. A refusal must therefore come back non-2xx (or via a
+  follow-up status check) for the queue to act on it. Pinned by
+  `test_block_request_200_with_rejected_body_counts_as_delivered` so a future
+  body-check is a deliberate, reviewable change.
+
+Verified by `backend/tests/test_block_request.py` (11 tests). The lead-time
+anchor was checked at the same time: intake sets `created_at=incident_at`
+explicitly (`main.create_complaint`), so the Phase 2 negative rests on the
+complainant's stated time, not the DB default — see
+`docs/LEAD_TIME_MEASUREMENT.md` "Anchor check".
+
 ---
 
 ## 4. Phase 4 — packaging
@@ -501,6 +538,10 @@ cd backend; python -m pytest tests/test_serving_alignment.py -q
 cd backend; python -m pytest tests/test_district_rbac.py -q
 # signed webhook: signature contract, no unsigned fallback, dead-letter
 cd backend; python -m pytest tests/test_signed_webhook.py -q
+# webhook wire probe: real HTTP listener, wire bytes verify at the receiver
+cd backend; python -m pytest tests/test_webhook_wire.py -q
+# block-request: tokenised account, district guard, alert.blocked, no bank claim
+cd backend; python -m pytest tests/test_block_request.py -q
 # 8,000/day load: 1,000 sequential intakes, report p50/p95 and where the time goes
 # measurement only — writes docs/LOAD_BENCHMARK.md @ 3.4.1, sqlite scratch DB
 # frontend

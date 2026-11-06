@@ -1,5 +1,6 @@
 import math
 import os
+import re
 
 from fastapi import FastAPI, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -1967,6 +1968,105 @@ def notify_officer(alert_id: str, user: dict = Depends(require_permission("read"
         ).start()
     queued = [k for k, r in dispatch.items() if r["queued"]]
     return {"status": "queued" if queued else "skipped", "alert_id": alert_id, "dispatch": dispatch}
+
+
+class BlockRequestCreate(BaseModel):
+    """A fund-block **request** for one mule account on a case.
+
+    `to_account` must be a tokenised account reference (the synthetic form this
+    prototype carries, e.g. `SYN-MULE-042`), never a raw account number. In an
+    authorised deployment the bank replaces the token with its identifier at
+    the desk; the prototype never sees a real account.
+    """
+    to_account: str = Field(min_length=4, max_length=64)
+    reason: str = Field(default="", max_length=500)
+
+
+_TOKEN_RE = re.compile(r"^[A-Z0-9][A-Z0-9-]{2,63}$")
+_RAW_DIGITS_RE = re.compile(r"^\d{8,}$")
+
+
+@app.post("/api/cases/{case_id}/block-request", status_code=202)
+def request_block(case_id: str, req: BlockRequestCreate, request: Request,
+                  user: dict = Depends(require_permission("write")),
+                  csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
+    """Ask the bank to freeze one mule account. Nothing here blocks anything.
+
+    This is a signed **request** for human review, not a fund-freeze. The bank
+    fraud desk decides whether to act; in this prototype the request is recorded
+    on the audit trail (tokenised account only) and, when configured, published
+    as `alert.blocked` over the same signed webhook channel as alerts. Empty
+    webhook configuration queues nothing and sends nothing unsigned.
+    """
+    case = require_case(db, user, case_id, "write")
+
+    to_account = req.to_account.strip().upper()
+    if not _TOKEN_RE.match(to_account) or _RAW_DIGITS_RE.match(to_account):
+        raise HTTPException(
+            status_code=422,
+            detail="to_account must be a tokenised account reference (e.g. SYN-MULE-042), not a raw account number",
+        )
+    reason = req.reason.strip()
+
+    idem_key = idempotency_key_from(request)
+    if idem_key:
+        idem_key = hashlib.sha256(
+            (user["id"] + "|" + case_id + "|" + to_account + "|" + idem_key).encode()).hexdigest()
+        replay = check_replay(db, idem_key, "POST", f"/api/cases/{case_id}/block-request")
+        if replay is not None:
+            return replay
+
+    block_payload = {
+        "event": "alert.blocked",
+        "block_request": {
+            "case_id": case_id,
+            "to_account": to_account,
+            "district": case.district or "",
+            "requested_by": user.get("email") or user.get("id", "unknown"),
+            "requested_at": _iso_utc(datetime.now(timezone.utc)),
+            "reason": reason,
+        },
+    }
+
+    dispatch = {}
+    allowed, guard_reason = _dispatch_guard(db, "webhook")
+    dispatch["webhook"] = {"queued": False, "reason": guard_reason}
+    if allowed:
+        enqueue_notification(db, "webhook", block_payload)
+        dispatch["webhook"] = {"queued": True, "reason": "ok"}
+    else:
+        logger.info("Block-request dispatch skipped (webhook): %s", guard_reason)
+
+    add_audit(
+        db,
+        action="Block Requested",
+        details=(
+            f"Block request for tokenised account {to_account} on case {case_id} "
+            f"by {user.get('name', user.get('id', 'unknown'))} ({user.get('role', '?')})"
+            + (f" — reason: {reason}" if reason else "")
+        ),
+        action_type="case",
+        case_id=case_id,
+    )
+
+    if dispatch["webhook"]["queued"] and os.getenv("TESTING") != "1":
+        threading.Thread(
+            target=run_notification_worker,
+            args=(SessionLocal, send_sms_alert, send_email_alert, send_webhook_alert),
+            daemon=True,
+        ).start()
+
+    body = {
+        "status": "queued" if dispatch["webhook"]["queued"] else "skipped",
+        "case_id": case_id,
+        "to_account": to_account,
+        "district": case.district or "",
+        "dispatch": dispatch,
+        "message": "Block request recorded for human review; no bank action has been taken.",
+    }
+    if idem_key:
+        store_replay(db, idem_key, "POST", f"/api/cases/{case_id}/block-request", 202, body)
+    return body
 
 
 @app.get("/api/locations")
