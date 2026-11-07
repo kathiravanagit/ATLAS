@@ -7,6 +7,7 @@ export type Capability =
   | 'case.assign'
   | 'case.escalate'
   | 'case.resolve'
+  | 'fund.block'
   | 'alert.create'
   | 'review.decide'
   | 'blockchain.operate'
@@ -23,6 +24,7 @@ const MATRIX: Record<Capability, Role[]> = {
   'case.assign': ['inspector', 'admin'],
   'case.escalate': ['inspector', 'admin'],
   'case.resolve': ['inspector', 'admin'],
+  'fund.block': ['inspector', 'analyst', 'bank_officer', 'admin'],
   'alert.create': ['inspector', 'analyst', 'admin'],
   'review.decide': ['inspector', 'analyst', 'admin'],
   'blockchain.operate': ['inspector', 'admin'],

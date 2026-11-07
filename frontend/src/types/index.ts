@@ -179,3 +179,24 @@ export interface AuditEntry {
 
 export type RiskFilter = 'all' | 'High' | 'Medium' | 'Low' | 'Watch';
 export type TimeFilter = 'all' | 'morning' | 'afternoon' | 'evening' | 'night';
+
+export interface MuleAccount {
+  /** Tokenised destination account (e.g. SYN-MULE-042), never a raw number. */
+  to_account: string;
+  /** Largest single transfer to this token on this case. */
+  max_amount: number;
+}
+
+export interface MuleAccountsResponse {
+  case_id: string;
+  accounts: MuleAccount[];
+}
+
+export interface BlockRequestResponse {
+  status: 'queued' | 'skipped';
+  case_id: string;
+  to_account: string;
+  district: string;
+  dispatch: { webhook: { queued: boolean; reason: string } };
+  message: string;
+}

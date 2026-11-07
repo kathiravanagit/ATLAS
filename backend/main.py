@@ -2069,6 +2069,45 @@ def request_block(case_id: str, req: BlockRequestCreate, request: Request,
     return body
 
 
+@app.get("/api/cases/{case_id}/mule-accounts")
+def get_mule_accounts(case_id: str,
+                      user: dict = Depends(require_permission("read")),
+                      db: Session = Depends(get_db)):
+    """Tokenised destination accounts on this case, deterministic order.
+
+    The case UI needs a token to send in a block request without inventing one
+    client-side. This is read-only: distinct `to_account` values from
+    `transaction_records` for the case, ordered ascending by token so "first
+    linked account" means the same thing every time and on every client.
+    `max_amount` is the largest single transfer to that token on this case.
+    An empty list means no transaction rows exist for the case — the caller
+    should disable the action with that reason, not guess a token.
+    """
+    require_case(db, user, case_id, "read")
+    # `to_account` is encrypted at rest, so SQL GROUP BY sees distinct
+    # ciphertexts for the same token. Dedup after decryption (ORM reads).
+    rows = (
+        db.query(TransactionRecord)
+        .filter(TransactionRecord.case_id == case_id)
+        .order_by(TransactionRecord.to_account)
+        .all()
+    )
+    by_account: dict = {}
+    for record in rows:
+        if not record.to_account:
+            continue
+        amount = float(record.amount or 0)
+        if record.to_account not in by_account or amount > by_account[record.to_account]:
+            by_account[record.to_account] = amount
+    return {
+        "case_id": case_id,
+        "accounts": [
+            {"to_account": to_account, "max_amount": by_account[to_account]}
+            for to_account in sorted(by_account)
+        ],
+    }
+
+
 @app.get("/api/locations")
 def get_locations(user: dict = Depends(require_permission("read")), db: Session = Depends(get_db)):
     locations = db.query(AtmLocation).all()

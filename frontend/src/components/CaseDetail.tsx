@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Case, Prediction, EvidenceItem } from '../types';
+import { useState, useEffect } from 'react';
+import { Case, Prediction, EvidenceItem, MuleAccount, BlockRequestResponse } from '../types';
 import { User, Phone, FileText, MapPin, Clock, AlertTriangle, ChevronRight, ExternalLink, Shield, Activity, GitBranch, History, CheckCircle, Circle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import ResolutionModal from './ResolutionModal';
 import { authFetch, getUser, isDemoRoute } from '../lib/auth';
@@ -74,12 +74,78 @@ function maskContact(contact: string): string {
   return contact.slice(0, 3) + '****' + contact.slice(-4);
 }
 
+export function maskToken(token: string): string {
+  if (!token) return '••';
+  return `••${token.slice(-4)}`;
+}
+
 export default function CaseDetail({ caseId, prediction, onShowEvidence, onResolve, caseData }: CaseDetailProps) {
   const [piiRevealed, setPiiRevealed] = useState(false);
   const [accessReason, setAccessReason] = useState('');
   const [showReauth, setShowReauth] = useState(false);
   const [reauthError, setReauthError] = useState('');
   const [resolutionOpen, setResolutionOpen] = useState(false);
+  const [muleAccounts, setMuleAccounts] = useState<MuleAccount[]>([]);
+  const [muleLoading, setMuleLoading] = useState(true);
+  const [muleError, setMuleError] = useState<string | null>(null);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockStatus, setBlockStatus] = useState<{ kind: 'success' | 'queued' | 'failed'; text: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (isDemoRoute()) { setMuleLoading(false); return; }
+    authFetch(`/api/cases/${caseId}/mule-accounts`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled) return;
+        setMuleAccounts(d?.accounts ?? []);
+        setMuleError(d ? null : 'Linked accounts unavailable.');
+      })
+      .catch(() => { if (!cancelled) { setMuleAccounts([]); setMuleError('Linked accounts unavailable.'); } })
+      .finally(() => { if (!cancelled) setMuleLoading(false); });
+    return () => { cancelled = true; };
+  }, [caseId]);
+
+  // Deterministic: first token in backend's ascending order. Never random.
+  const blockAccount = muleAccounts[0]?.to_account ?? null;
+  const blockDisabledReason = isDemoRoute()
+    ? 'Block requests are disabled in the local demo.'
+    : !can('fund.block')
+      ? 'Your role cannot request a fund block.'
+      : muleLoading
+        ? 'Loading linked accounts…'
+        : muleError
+          ? muleError
+          : !blockAccount
+            ? 'No linked accounts on this case.'
+            : null;
+
+  const handleBlockRequest = async () => {
+    if (!blockAccount || blockDisabledReason) return;
+    setBlockBusy(true);
+    setBlockStatus(null);
+    try {
+      const res = await authFetch(`/api/cases/${caseId}/block-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to_account: blockAccount, reason: '' }),
+      });
+      const body = await res.json().catch(() => ({})) as BlockRequestResponse & { detail?: string };
+      if (!res.ok) {
+        setBlockStatus({ kind: 'failed', text: typeof body.detail === 'string' ? body.detail : 'Delivery failed; logged.' });
+        return;
+      }
+      if (body.status === 'queued') {
+        setBlockStatus({ kind: 'success', text: 'Request recorded for human review; no bank action taken.' });
+      } else {
+        setBlockStatus({ kind: 'queued', text: `Queued; delivery pending — channel ${body.dispatch?.webhook?.reason ?? 'unavailable'}.` });
+      }
+    } catch {
+      setBlockStatus({ kind: 'failed', text: 'Delivery failed; logged.' });
+    } finally {
+      setBlockBusy(false);
+    }
+  };
 
   // Live API case data wins; MOCK_CASES only exists in demo builds.
   const info = (caseData && caseData.case_id === caseId
@@ -178,6 +244,36 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
             <div className="text-base font-medium text-[#ef4444]">High</div>
           </div>
         </div>
+      </div>
+
+      {/* Fund-block request — a request for human review, never a freeze */}
+      <div className="card p-5">
+        <h3 className="text-base font-semibold text-[#1F2937] mb-1 flex items-center gap-2">
+          <Shield size={14} /> Fund-block request
+        </h3>
+        <p className="text-xs text-[#6B7280] mb-3">
+          Sends a signed block request to the bank&apos;s fraud desk for human review. It does not block funds.
+        </p>
+        {blockAccount ? (
+          <p className="text-sm text-[#374151] mb-2">Requesting block for account ending {maskToken(blockAccount)}.</p>
+        ) : (
+          <p className="text-sm text-[#374151] mb-2">{blockDisabledReason ?? 'No linked accounts on this case.'}</p>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            disabled={blockDisabledReason !== null || blockBusy}
+            title={blockDisabledReason ?? 'Send signed block request'}
+            onClick={handleBlockRequest}
+            className="px-3 py-1.5 bg-[#8b5cf6]/10 text-sm text-[#8b5cf6] rounded-lg hover:bg-[#8b5cf6]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {blockBusy ? 'Sending…' : 'Request block'}
+          </button>
+        </div>
+        {blockStatus && (
+          <p role="status" className={`text-sm mt-3 ${blockStatus.kind === 'success' ? 'text-[#15803D]' : blockStatus.kind === 'queued' ? 'text-[#B45309]' : 'text-[#B91C1C]'}`}>
+            {blockStatus.text}
+          </p>
+        )}
       </div>
 
       {/* Victim Info - PII Protected */}
