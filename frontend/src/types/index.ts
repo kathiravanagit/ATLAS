@@ -200,3 +200,30 @@ export interface BlockRequestResponse {
   dispatch: { webhook: { queued: boolean; reason: string } };
   message: string;
 }
+
+export interface Campaign {
+  account_token: string;
+  case_count: number;
+  case_ids: string[];
+}
+
+export interface CampaignsResponse {
+  label: string;
+  query: string;
+  min_cases: number;
+  campaigns: Campaign[];
+}
+
+export interface I4CDistrictSummary {
+  district: string;
+  cases_total: number;
+  cases_active: number;
+  cases_resolved: number;
+  alerts_total: number;
+  alerts_pending: number;
+}
+
+export interface I4CSummaryResponse {
+  label: string;
+  districts: I4CDistrictSummary[];
+}

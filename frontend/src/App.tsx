@@ -13,6 +13,8 @@ import AlertsPage from './pages/AlertsPage';
 import AuditPage from './pages/AuditPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import DataPrivacyPage from './pages/DataPrivacyPage';
+import CampaignsPage from './pages/CampaignsPage';
+import I4CPage from './pages/I4CPage';
 import SystemHealthPage from './pages/SystemHealthPage';
 // Heavy visualization routes are code-split so the initial bundle stays lean.
 const PredictionsPage = lazy(() => import('./pages/PredictionsPage'));
@@ -61,6 +63,8 @@ export default function App() {
             <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
             <Route path="cases" element={<CasesPage />} />
             <Route path="alerts" element={<AlertsPage />} />
+            <Route path="campaigns" element={<CampaignsPage />} />
+            <Route path="i4c" element={<I4CPage />} />
             <Route path="data-privacy" element={<DataPrivacyPage />} />
             <Route path="model-card" element={<Suspense fallback={<PageFallback />}><ModelCardPage /></Suspense>} />
             {['evidence', 'audit', 'health', 'profile'].map(page => <Route key={page} path={page} element={
@@ -74,6 +78,8 @@ export default function App() {
             <Route path="map" element={<Suspense fallback={<PageFallback />}><MapPage /></Suspense>} />
             <Route path="cases" element={<CasesPage />} />
             <Route path="alerts" element={<AlertsPage />} />
+            <Route path="campaigns" element={<CampaignsPage />} />
+            <Route path="i4c" element={<I4CPage />} />
             <Route path="evidence" element={<Suspense fallback={<PageFallback />}><EvidencePage /></Suspense>} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="data-privacy" element={<DataPrivacyPage />} />

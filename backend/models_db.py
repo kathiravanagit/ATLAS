@@ -187,6 +187,12 @@ class FieldOutcome(Base):
     outcome = Column(String, nullable=False)  # apprehended, cash_recovered, transaction_prevented, false_positive
     officer_id = Column(String, nullable=False)
     notes = Column(Text, default="")
+    # Outcome-capture labels (nullable: unknown/not asked at resolve time).
+    # These are the validation-plan labels: did the cash-out happen in the
+    # predicted zone, did a requested block succeed, where was it actually seen.
+    was_cashout_in_predicted_zone = Column(Boolean, nullable=True)
+    block_successful = Column(Boolean, nullable=True)
+    actual_location = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

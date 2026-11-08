@@ -53,6 +53,9 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [zone, setZone] = useState<boolean | null>(null);
+  const [blockOk, setBlockOk] = useState<boolean | null>(null);
+  const [actualLocation, setActualLocation] = useState('');
 
   const handleSubmit = async () => {
     if (!selected) return;
@@ -71,6 +74,9 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
           atm_id: atmId,
           outcome: selected,
           notes,
+          was_cashout_in_predicted_zone: zone,
+          block_successful: blockOk,
+          actual_location: actualLocation,
         }),
       });
       if (res.ok) {
@@ -86,6 +92,9 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
     setSelected(null);
     setNotes('');
     setResult(null);
+    setZone(null);
+    setBlockOk(null);
+    setActualLocation('');
     onClose();
   };
 
@@ -192,6 +201,34 @@ export default function ResolutionModal({ isOpen, onClose, caseId, atmId, locati
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Additional details about the field operation..."
                     className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]/20 resize-none h-20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-xs text-[#374151]">
+                    Cash-out in predicted zone?
+                    <select value={zone === null ? '' : String(zone)} onChange={e => setZone(e.target.value === '' ? null : e.target.value === 'true')} className="block mt-1 w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937]">
+                      <option value="">Unknown</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-[#374151]">
+                    Block successful?
+                    <select value={blockOk === null ? '' : String(blockOk)} onChange={e => setBlockOk(e.target.value === '' ? null : e.target.value === 'true')} className="block mt-1 w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937]">
+                      <option value="">Unknown</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-1">Actual location (optional)</div>
+                  <input
+                    value={actualLocation}
+                    onChange={e => setActualLocation(e.target.value)}
+                    placeholder="Where activity was actually seen"
+                    className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
                   />
                 </div>
               </div>

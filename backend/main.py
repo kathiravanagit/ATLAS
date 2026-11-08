@@ -3241,6 +3241,9 @@ class FieldOutcomeRequest(BaseModel):
     atm_id: str
     outcome: str  # apprehended, cash_recovered, transaction_prevented, false_positive
     notes: str = ""
+    was_cashout_in_predicted_zone: bool | None = None
+    block_successful: bool | None = None
+    actual_location: str = Field(default="", max_length=120)
 
 @app.post("/api/field-outcomes")
 def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_permission("write")), csrf: None = Depends(require_csrf), db: Session = Depends(get_db)):
@@ -3254,6 +3257,9 @@ def record_field_outcome(req: FieldOutcomeRequest, user: dict = Depends(require_
         outcome=req.outcome,
         officer_id=user["id"],
         notes=req.notes,
+        was_cashout_in_predicted_zone=req.was_cashout_in_predicted_zone,
+        block_successful=req.block_successful,
+        actual_location=(req.actual_location or "").strip() or None,
     )
     db.add(outcome)
 
@@ -3297,9 +3303,103 @@ def list_field_outcomes(user: dict = Depends(require_permission("read")), db: Se
     outcomes = db.query(FieldOutcome).join(Case).filter(visibility_filter(user)).order_by(FieldOutcome.created_at.desc()).limit(50).all()
     return [
         {"id": o.id, "case_id": o.case_id, "atm_id": o.atm_id, "outcome": o.outcome,
-         "officer_id": o.officer_id, "notes": o.notes, "created_at": o.created_at.isoformat() if o.created_at else None}
+         "officer_id": o.officer_id, "notes": o.notes,
+         "was_cashout_in_predicted_zone": o.was_cashout_in_predicted_zone,
+         "block_successful": o.block_successful,
+         "actual_location": o.actual_location,
+         "created_at": o.created_at.isoformat() if o.created_at else None}
         for o in outcomes
     ]
+
+
+# ─── Cross-complaint campaign query (query, not a model) ────────────────────
+# A campaign here is a destination account that received transfers in at
+# least `min_cases` different cases. No classifier, no scoring: it is a
+# GROUP BY over the transaction records this user can already see. On the
+# synthetic fixtures it will surface the generator's planted mule rings;
+# that is what it is for, and nothing beyond it.
+
+@app.get("/api/campaigns")
+def get_campaigns(min_cases: int = Query(default=2, ge=2, le=50),
+                  user: dict = Depends(require_permission("read")),
+                  db: Session = Depends(get_db)):
+    """Accounts appearing as transfer destinations in >= min_cases cases.
+
+    District-scoped: only transaction rows on cases visible to this user
+    contribute, and only those cases' ids are listed. `to_account` is
+    encrypted at rest, so the grouping happens in Python after decryption
+    (SQL would group ciphertexts and split the same token).
+    """
+    visible = visible_case_ids(db, user)
+    rows = db.query(TransactionRecord).filter(
+        TransactionRecord.case_id.in_(visible)
+    ).all() if visible else []
+    by_account: dict = {}
+    for record in rows:
+        token = record.to_account
+        if not token:
+            continue
+        by_account.setdefault(token, set()).add(record.case_id)
+    campaigns = [
+        {
+            "account_token": token,
+            "case_count": len(case_ids),
+            "case_ids": sorted(case_ids),
+        }
+        for token, case_ids in by_account.items()
+        if len(case_ids) >= min_cases
+    ]
+    campaigns.sort(key=lambda c: (-c["case_count"], c["account_token"]))
+    return {
+        # On the synthetic fixtures the destination token pool is small
+        # (SYN-MULE-### mod 97), so most groups are token reuse across
+        # cases, not evidence of a discovered ring. The label says so; the
+        # query itself stays a plain GROUP BY.
+        "label": "synthetic — destination reuse (fixtures recycle a small token pool, modulo 97)",
+        "query": "group by destination account across cases",
+        "min_cases": min_cases,
+        "campaigns": campaigns,
+    }
+
+
+# ─── I4C aggregation (counts only, no case detail) ──────────────────────────
+
+@app.get("/api/i4c/summary")
+def get_i4c_summary(user: dict = Depends(require_permission("read")),
+                    db: Session = Depends(get_db)):
+    """National roll-up of counts by district. No case detail.
+
+    A district-scoped account is denied outright — the point of this view is
+    the national picture, and a district officer reading it would mean two
+    overlapping truths. Only aggregate counts leave this endpoint.
+    """
+    if (user.get("district") or "").strip():
+        raise HTTPException(
+            status_code=403,
+            detail="National view requires a national account (empty district).",
+        )
+    districts = (
+        db.query(Case.district)
+        .filter(Case.district.is_not(None), Case.district != "")
+        .distinct().order_by(Case.district).all()
+    )
+    district_names = [d for (d,) in districts]
+    rows = []
+    for district in district_names:
+        case_q = db.query(Case).filter(Case.district == district)
+        alert_q = db.query(Alert).filter(Alert.district == district)
+        rows.append({
+            "district": district,
+            "cases_total": case_q.count(),
+            "cases_active": case_q.filter(Case.status == "active").count(),
+            "cases_resolved": case_q.filter(Case.status == "resolved").count(),
+            "alerts_total": alert_q.count(),
+            "alerts_pending": alert_q.filter(Alert.acknowledged == False).count(),  # noqa: E712
+        })
+    return {
+        "label": "synthetic — national aggregation",
+        "districts": rows,
+    }
 
 
 # ─── Pre-Baked Scenario Runner ───────────────────────────────────────────────

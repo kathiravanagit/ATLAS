@@ -472,6 +472,52 @@ explicitly (`main.create_complaint`), so the Phase 2 negative rests on the
 complainant's stated time, not the DB default — see
 `docs/LEAD_TIME_MEASUREMENT.md` "Anchor check".
 
+**As shown in the console:** `CaseDetail.tsx` renders a "Request block" button
+via `authFetch` (so CSRF is included). It does not ask for a token by hand:
+`GET /api/cases/{id}/mule-accounts` returns the case's tokenised destination
+accounts ordered ascending by token (read-only, deduped in Python after
+decryption — SQL `GROUP BY` would split the same token's ciphertexts), and the
+button sends the first one. Display is masked (`account ending ••4821`); the
+button is disabled with a visible reason when there are no linked accounts,
+on the demo route, or for a role without `fund.block`. The bank URL was
+already env-configurable (`ALERT_WEBHOOK_URL`), so the demo points it at
+`backend/bank_listener.py` — a take script, not a feature: it verifies HMAC
+over the exact wire bytes with `webhook_client.verify_signature` and prints
+`signature OK | event: alert.blocked | account: <token>`.
+
+| Status | Rendering |
+|---|---|
+| `202 queued` | *"Request recorded for human review; no bank action taken."* (backend string verbatim) |
+| `skipped` | *"Queued; delivery pending — <channel reason>"* (webhook unconfigured) |
+| network / non-2xx | *"Delivery failed; logged."* |
+
+### 3.6 Campaign query (cross-complaint)
+
+`GET /api/campaigns?min_cases=2`. A destination account appearing in ≥ 2
+different cases — `GROUP BY to_account` with Python dedupe on the decrypted
+value (same encryption reason as `mule-accounts`), ordered by case count then
+token. District scoping applies to the transaction rows *and* to the returned
+`case_ids`: a district officer sees only their own cases' campaigns and only
+those case ids. Labelled `synthetic — destination reuse (fixtures recycle a
+small token pool, modulo 97)` because the generator uses `SYN-MULE-### mod 97`:
+66 hits at `min_cases=2` and 53 at `min_cases=3`, mostly collisions. The
+sanity check decided the copy (" surfaces token reuse, here's why"), not the
+query. No classifier, no scoring.
+
+### 3.7 I4C national aggregation
+
+`GET /api/i4c/summary`. Counts by district only — cases (total/active/resolved)
+and alerts (total/pending) — with no `case_id` anywhere in the response. A
+district-scoped account is denied (403); an empty-district national account
+sees the roll-up. Frontend: `/real/i4c` renders the counts table; no drill-down.
+
+### 3.8 Outcome capture at resolve
+
+`field_outcomes` carries `was_cashout_in_predicted_zone`, `block_successful`,
+and `actual_location` (Alembic `0009_field_outcome_labels`, nullable = unknown)
+so the validation plan has labels to re-run against. The resolve modal asks
+them; `POST /api/field-outcomes` stores them; the list endpoint returns them.
+
 ---
 
 ## 4. Phase 4 — packaging

@@ -12,6 +12,8 @@ import {
   IconRefresh,
   IconChartLine,
   IconHeartbeat,
+  IconUsers,
+  IconGlobe,
 } from '@tabler/icons-react';
 
 const NAV_ITEMS = [
@@ -21,6 +23,8 @@ const NAV_ITEMS = [
   { path: '/real/map', icon: IconMap, label: 'Risk Map' },
   { path: '/real/cases', icon: IconFolderOpen, label: 'Cases' },
   { path: '/real/alerts', icon: IconBell, label: 'Alerts' },
+  { path: '/real/campaigns', icon: IconUsers, label: 'Campaigns' },
+  { path: '/real/i4c', icon: IconGlobe, label: 'I4C' },
   { path: '/real/evidence', icon: IconFileSearch, label: 'Evidence' },
   { path: '/real/audit', icon: IconClipboardList, label: 'Audit Log' },
   { path: '/real/data-privacy', icon: IconShield, label: 'Data & Privacy' },
