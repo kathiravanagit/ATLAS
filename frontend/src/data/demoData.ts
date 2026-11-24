@@ -22,7 +22,7 @@ export function getDemoCity(cityId: string) {
       reason: 'Synthetic city fixture risk signal (not a model inference)', status: 'Fixture',
     }));
   const prediction: Prediction = {
-    case_id: `DEMO-CITY-${cityId}`, status: 'SYNTHETIC CITY OVERVIEW',
+    case_id: `DEMO-CITY-${cityId}`, status: 'City overview',
     primary_location: locations[0], ranked_locations: locations, risk_trend: [], evidence: {},
   };
   return {

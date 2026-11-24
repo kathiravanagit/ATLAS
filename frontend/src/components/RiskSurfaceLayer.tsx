@@ -24,10 +24,10 @@ export const SURFACE_LEVEL_LABEL: Record<RiskCellLevel, string> = {
 // the same level merge into one blob reads as the blurred heat map it replaced.
 // The stroke is what says "this is a discrete H3 cell, these are its neighbours".
 const CELL_STYLE: Record<RiskCellLevel, L.PathOptions> = {
-  priority: { color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 0.26, weight: 1.2, opacity: 0.75 },
-  watch: { color: '#b45309', fillColor: '#f59e0b', fillOpacity: 0.20, weight: 1, opacity: 0.55 },
-  background: { color: '#1d4ed8', fillColor: '#3b82f6', fillOpacity: 0.10, weight: 1, opacity: 0.35 },
-  none: { color: '#9CA3AF', fillColor: '#9CA3AF', fillOpacity: 0, weight: 1, opacity: 0.28, dashArray: '3 7' },
+  priority: { color: '#b91c1c', fillColor: '#B91C1C', fillOpacity: 0.26, weight: 1.2, opacity: 0.75 },
+  watch: { color: '#b45309', fillColor: '#B45309', fillOpacity: 0.20, weight: 1, opacity: 0.55 },
+  background: { color: '#17406F', fillColor: '#17406F', fillOpacity: 0.10, weight: 1, opacity: 0.35 },
+  none: { color: '#8A8D90', fillColor: '#8A8D90', fillOpacity: 0, weight: 1, opacity: 0.28, dashArray: '3 7' },
 };
 
 export function cellStyle(level: RiskCellLevel): L.PathOptions {
@@ -41,7 +41,7 @@ function esc(value: string): string {
 /** Tooltip text. Every claim is one the payload can back up. */
 export function cellTooltip(cell: RiskCell, edgeM: number, bands?: RiskSurface['bands']): string {
   const head = `<strong>${SURFACE_LEVEL_LABEL[cell.level] ?? 'Cell'}</strong>`;
-  const size = `<div style="color:#6B7280;font-size:10px">H3 res cell · ${Math.round(edgeM)} m edge</div>`;
+  const size = `<div style="color:#5F6368;font-size:10px">H3 res cell · ${Math.round(edgeM)} m edge</div>`;
 
   if (cell.score == null) {
     const reach = cell.nearest_m == null ? '' : ` (nearest ${esc(cell.nearest_atm)} is ${Math.round(cell.nearest_m)} m away)`;
@@ -63,8 +63,8 @@ export function cellTooltip(cell: RiskCell, edgeM: number, bands?: RiskSurface['
     // would be worse than saying there is no band to show.
     rows.push(
       cuts.length
-        ? `<div style="color:#6B7280">This city: ${cuts.join(', ')}</div>`
-        : '<div style="color:#6B7280">This city: scores do not separate, so no cell is banded priority.</div>',
+        ? `<div style="color:#5F6368">This city: ${cuts.join(', ')}</div>`
+        : '<div style="color:#5F6368">This city: scores do not separate, so no cell is banded priority.</div>',
     );
   }
   if (cell.nearest_atm) {

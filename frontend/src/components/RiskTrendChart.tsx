@@ -33,66 +33,52 @@ export default function RiskTrendChart({ data }: RiskTrendChartProps) {
 
   return (
     <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-base text-[#1F2937]">Risk Trend — Last 6 Hours</h3>
-          <p className="text-sm text-[#6B7280] mt-0.5">
-            Synthetic demonstration values
-          </p>
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Risk trend</h3>
+          <p className="mt-0.5 text-[12px] text-[#5F6368]">Last 6 hours · demonstration values</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[#6B7280] bg-white px-2 py-1 rounded-lg border border-[#D1D5DB]">
-            Updated {relativeTime}
-          </span>
-          <div className="flex items-center gap-1.5 text-[10px] text-[#6B7280]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#6B7280]"></span>
-            Demo view
-          </div>
-        </div>
+        <span className="shrink-0 rounded-lg border border-[#E2E1DB] bg-white px-2 py-1 text-[11px] text-[#5F6368]">
+          Updated {relativeTime}
+        </span>
       </div>
-      <div className="h-[200px]">
+      <div className={data.length === 0 ? 'py-6' : 'h-[200px]'}>
         {data.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-[11px] text-[#6B7280]">
+          <p className="text-[12px] text-[#8A8D90]">
             No trend data yet — connect the backend to populate this chart.
-          </div>
+          </p>
         ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#1D355B" stopOpacity={0.15}/>
-                <stop offset="95%" stopColor="#1D355B" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E1DB" />
             <XAxis
               dataKey="time"
-              tick={{ fill: '#6B7280', fontSize: 11 }}
-              axisLine={{ stroke: '#E5E7EB' }}
+              tick={{ fill: '#5F6368', fontSize: 11 }}
+              axisLine={{ stroke: '#E2E1DB' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: '#6B7280', fontSize: 11 }}
-              axisLine={{ stroke: '#E5E7EB' }}
+              tick={{ fill: '#5F6368', fontSize: 11 }}
+              axisLine={{ stroke: '#E2E1DB' }}
               tickLine={false}
               domain={[0, 100]}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: '#ffffff',
-                border: '1px solid #D1D5DB',
+                border: '1px solid #D2D1CA',
                 borderRadius: '8px',
                 fontSize: '12px'
               }}
-              labelStyle={{ color: '#6B7280' }}
+              labelStyle={{ color: '#5F6368' }}
               formatter={(value: number) => [`${value}`, 'Risk Score']}
             />
             <Area
               type="monotone"
               dataKey="risk"
-              stroke="#1D355B"
+              stroke="#12355B"
               strokeWidth={1.5}
-              fill="url(#riskGradient)"
+              fill="#F1F1EC"
             />
           </AreaChart>
         </ResponsiveContainer>

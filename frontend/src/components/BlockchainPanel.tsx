@@ -123,14 +123,14 @@ export default function BlockchainPanel() {
     return (
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Boxes size={16} className="text-[#1D4ED8]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Blockchain Evidence Ledger</h3>
+          <Boxes size={16} className="text-[#17406F]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Blockchain Evidence Ledger</h3>
         </div>
         <div className="space-y-3">
-          <div className="h-4 bg-[#F3F4F6] rounded animate-pulse w-1/3" />
+          <div className="h-4 bg-[#EFEFEA] rounded animate-pulse w-1/3" />
           <div className="grid grid-cols-4 gap-2">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-16 bg-[#F3F4F6] rounded animate-pulse" />
+              <div key={i} className="h-16 bg-[#EFEFEA] rounded animate-pulse" />
             ))}
           </div>
         </div>
@@ -142,13 +142,13 @@ export default function BlockchainPanel() {
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Boxes size={16} className="text-[#1D4ED8]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Blockchain Evidence Ledger</h3>
-          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
+          <Boxes size={16} className="text-[#17406F]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Blockchain Evidence Ledger</h3>
+          <span className="text-[11px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded font-mono">
             PoW · SHA-256 · prototype
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+        <div className="flex items-center gap-2 text-[11px] text-[#5F6368]">
           {validation ? (
             validation.valid ? (
               <span className="flex items-center gap-1 text-[#15803D]">
@@ -162,35 +162,35 @@ export default function BlockchainPanel() {
           ) : null}
           <button
             onClick={load}
-            className="p-1 rounded hover:bg-[#F3F4F6] transition-colors"
+            className="p-1 rounded hover:bg-[#EFEFEA] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={12} />
           </button>
         </div>
       </div>
-      <p className="text-[11px] text-[#6B7280] mb-4">
+      <p className="text-[11px] text-[#5F6368] mb-4">
         Prototype proof-of-work ledger — nodes are simulated in-process. A production
         deployment would anchor evidence to an institutionally governed shared ledger.
       </p>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2 mb-4">
-        <div className="bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Height</div>
-          <div className="text-lg font-bold text-[#1F2937] font-mono">{status?.height ?? blocks.length}</div>
+        <div className="bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg p-2.5">
+          <div className="text-[10px] text-[#5F6368] ">Height</div>
+          <div className="text-[15px] font-semibold text-[#1A1C1F] font-mono">{status?.height ?? blocks.length}</div>
         </div>
-        <div className="bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Difficulty</div>
-          <div className="text-lg font-bold text-[#1F2937] font-mono">{status?.difficulty ?? '—'}</div>
+        <div className="bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg p-2.5">
+          <div className="text-[10px] text-[#5F6368] ">Difficulty</div>
+          <div className="text-[15px] font-semibold text-[#1A1C1F] font-mono">{status?.difficulty ?? '—'}</div>
         </div>
-        <div className="bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Pending</div>
-          <div className="text-lg font-bold text-[#1F2937] font-mono">{status?.pending_transactions ?? 0}</div>
+        <div className="bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg p-2.5">
+          <div className="text-[10px] text-[#5F6368] ">Pending</div>
+          <div className="text-[15px] font-semibold text-[#1A1C1F] font-mono">{status?.pending_transactions ?? 0}</div>
         </div>
-        <div className="bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg p-2.5">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Nodes</div>
-          <div className="text-lg font-bold text-[#1F2937] font-mono">{net?.node_count ?? 0}</div>
+        <div className="bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg p-2.5">
+          <div className="text-[10px] text-[#5F6368] ">Nodes</div>
+          <div className="text-[15px] font-semibold text-[#1A1C1F] font-mono">{net?.node_count ?? 0}</div>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ export default function BlockchainPanel() {
         <button
           onClick={handleMine}
           disabled={mining || (status?.pending_transactions ?? 0) === 0}
-          className="px-3 py-1.5 bg-[#1D4ED8] text-white text-[11px] font-medium rounded hover:bg-[#1D355B] disabled:opacity-50 transition-colors flex items-center gap-1"
+          className="px-3 py-1.5 bg-[#17406F] text-white text-[11px] font-medium rounded hover:bg-[#12355B] disabled:opacity-50 transition-colors flex items-center gap-1"
         >
           <Pickaxe size={12} />
           {mining ? 'Mining…' : 'Mine Pending'}
@@ -208,12 +208,12 @@ export default function BlockchainPanel() {
         <button
           onClick={handleConsensus}
           disabled={consensusRunning}
-          className="px-3 py-1.5 bg-[#F3F4F6] text-[#1F2937] text-[11px] font-medium rounded hover:bg-[#E5E7EB] disabled:opacity-50 transition-colors flex items-center gap-1"
+          className="px-3 py-1.5 bg-[#EFEFEA] text-[#1A1C1F] text-[11px] font-medium rounded hover:bg-[#E2E1DB] disabled:opacity-50 transition-colors flex items-center gap-1"
         >
           <Network size={12} />
           {consensusRunning ? 'Running consensus…' : 'Run Consensus'}
         </button>
-        <span className="text-[11px] text-[#6B7280]">
+        <span className="text-[11px] text-[#5F6368]">
           {net?.consensus_reached
             ? 'All nodes on same head'
             : 'Nodes diverged — run consensus'}
@@ -238,12 +238,12 @@ export default function BlockchainPanel() {
 
       {/* Node list */}
       {net && net.nodes.length > 0 && (
-        <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] mb-4">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-2">Network Nodes</div>
+        <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA] mb-4">
+          <div className="text-[10px] text-[#5F6368]  mb-2">Network Nodes</div>
           <div className="grid grid-cols-3 gap-2">
             {net.nodes.map(n => (
-              <div key={n.node_id} className="text-[11px] flex items-center justify-between bg-white border border-[#E5E7EB] rounded px-2 py-1.5">
-                <span className="font-mono text-[#374151] truncate">{n.node_id}</span>
+              <div key={n.node_id} className="text-[11px] flex items-center justify-between bg-white border border-[#E2E1DB] rounded px-2 py-1.5">
+                <span className="font-mono text-[#33373B] truncate">{n.node_id}</span>
                 <span className={`flex items-center gap-1 ${n.chain_valid ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                   h={n.height}
                   {n.chain_valid ? <CheckCircle size={10} /> : <XCircle size={10} />}
@@ -257,7 +257,7 @@ export default function BlockchainPanel() {
       {/* Blocks */}
       <div className="space-y-2 max-h-[420px] overflow-y-auto">
         {blocks.length === 0 && (
-          <div className="text-center py-8 text-[11px] text-[#6B7280]">
+          <div className="text-center py-8 text-[11px] text-[#5F6368]">
             No blocks yet. Anchor evidence to mine the first transaction.
           </div>
         )}
@@ -267,34 +267,34 @@ export default function BlockchainPanel() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i * 0.03, 0.3) }}
-            className="bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] overflow-hidden"
+            className="bg-[#F6F6F3] rounded-lg border border-[#D2D1CA] overflow-hidden"
           >
             <button
               onClick={() => setExpanded(expanded === block.index ? null : block.index)}
-              className="w-full flex items-center gap-3 p-3 hover:bg-[#EFF6FF] transition-colors"
+              className="w-full flex items-center gap-3 p-3 hover:bg-[#FAFAF7] transition-colors"
             >
-              <div className="w-7 h-7 rounded bg-[#1D4ED8]/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-[11px] font-mono text-[#1D4ED8]">#{block.index}</span>
+              <div className="w-7 h-7 rounded bg-[#17406F]/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-[11px] font-mono text-[#17406F]">#{block.index}</span>
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[#1F2937] font-medium">
+                  <span className="text-[11px] text-[#1A1C1F] font-medium">
                     {block.tx_count} tx{block.tx_count === 1 ? '' : 's'}
                   </span>
-                  <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded font-mono">
+                  <span className="text-[11px] text-[#5F6368] bg-[#EFEFEA] px-1.5 py-0.5 rounded font-mono">
                     {block.miner}
                   </span>
                 </div>
-                <div className="text-[11px] text-[#6B7280] mt-0.5">{block.timestamp_human}</div>
+                <div className="text-[11px] text-[#5F6368] mt-0.5">{block.timestamp_human}</div>
               </div>
               <div className="flex items-center gap-2">
-                <Hash size={10} className="text-[#6B7280]" />
-                <span className="text-[11px] text-[#6B7280] font-mono">{trunc(block.hash)}</span>
+                <Hash size={10} className="text-[#5F6368]" />
+                <span className="text-[11px] text-[#5F6368] font-mono">{trunc(block.hash)}</span>
               </div>
               {expanded === block.index ? (
-                <ChevronUp size={12} className="text-[#6B7280]" />
+                <ChevronUp size={12} className="text-[#5F6368]" />
               ) : (
-                <ChevronDown size={12} className="text-[#6B7280]" />
+                <ChevronDown size={12} className="text-[#5F6368]" />
               )}
             </button>
 
@@ -303,42 +303,42 @@ export default function BlockchainPanel() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 transition={{ duration: 0.2 }}
-                className="border-t border-[#D1D5DB] p-3 space-y-2"
+                className="border-t border-[#D2D1CA] p-3 space-y-2"
               >
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div>
-                    <span className="text-[#6B7280]">Nonce: </span>
-                    <span className="text-[#4B5563] font-mono">{block.nonce}</span>
+                    <span className="text-[#5F6368]">Nonce: </span>
+                    <span className="text-[#43474C] font-mono">{block.nonce}</span>
                   </div>
                   <div>
-                    <span className="text-[#6B7280]">Difficulty: </span>
-                    <span className="text-[#4B5563] font-mono">{block.difficulty}</span>
+                    <span className="text-[#5F6368]">Difficulty: </span>
+                    <span className="text-[#43474C] font-mono">{block.difficulty}</span>
                   </div>
                 </div>
                 <div className="text-[11px]">
-                  <span className="text-[#6B7280]">Previous: </span>
-                  <span className="text-[#6B7280] font-mono break-all">{trunc(block.previous_hash)}</span>
+                  <span className="text-[#5F6368]">Previous: </span>
+                  <span className="text-[#5F6368] font-mono break-all">{trunc(block.previous_hash)}</span>
                 </div>
                 <div className="text-[11px]">
-                  <span className="text-[#6B7280]">Hash: </span>
-                  <span className="text-[#1D355B] font-mono break-all">{block.hash}</span>
+                  <span className="text-[#5F6368]">Hash: </span>
+                  <span className="text-[#12355B] font-mono break-all">{block.hash}</span>
                 </div>
                 {block.merkle_root && (
                   <div className="text-[11px]">
-                    <span className="text-[#6B7280]">Merkle root: </span>
-                    <span className="text-[#1D4ED8] font-mono break-all">{block.merkle_root}</span>
+                    <span className="text-[#5F6368]">Merkle root: </span>
+                    <span className="text-[#17406F] font-mono break-all">{block.merkle_root}</span>
                   </div>
                 )}
                 <div className="space-y-1 pt-1">
-                  <div className="text-[10px] text-[#6B7280] uppercase tracking-wider">Transactions</div>
+                  <div className="text-[10px] text-[#5F6368] ">Transactions</div>
                   {block.transactions.map((tx, ti) => (
-                    <div key={tx.tx_hash} className="bg-white border border-[#E5E7EB] rounded px-2 py-1.5 text-[11px]">
+                    <div key={tx.tx_hash} className="bg-white border border-[#E2E1DB] rounded px-2 py-1.5 text-[11px]">
                       <div className="flex items-center justify-between">
-                        <span className="text-[#1F2937] font-medium">{tx.tx_type}</span>
-                        <span className="text-[#6B7280] font-mono">{trunc(tx.tx_hash)}</span>
+                        <span className="text-[#1A1C1F] font-medium">{tx.tx_type}</span>
+                        <span className="text-[#5F6368] font-mono">{trunc(tx.tx_hash)}</span>
                       </div>
                       {tx.case_id && (
-                        <div className="text-[#6B7280] mt-0.5">case: {tx.case_id}</div>
+                        <div className="text-[#5F6368] mt-0.5">case: {tx.case_id}</div>
                       )}
                     </div>
                   ))}

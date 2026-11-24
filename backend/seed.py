@@ -210,20 +210,20 @@ def seed_data(force=False):
 
         # ─── Alerts (14 active + acknowledged) ───────────────────────
         alert_data = [
-            ("ALT-001", "CC-2026-0147", "HIGH-RISK: Case CC-2026-0147 has high predicted cash-out risk at PNY-001 during 18:00-20:00.", "High", "PNY-001, White Town Main Road", "18:00-20:00", False),
-            ("ALT-002", "CC-2026-0145", "CRITICAL: Case CC-2026-0145 - Rs.1,25,000 investment fraud. 6 mule accounts active.", "High", "PNY-006, Kurumbapet Highway", "19:00-21:00", False),
-            ("ALT-003", "CC-2026-0146", "HIGH-RISK: Card cloning alert. PNY-002 shows elevated skimming risk.", "High", "PNY-002, MG Road Commercial", "17:00-19:00", False),
-            ("ALT-004", "CC-2026-0139", "MEDIUM-RISK: Case CC-2026-0139 shows elevated cash-out risk at PNY-002.", "Medium", "PNY-002, MG Road Commercial", "19:00-21:00", False),
-            ("ALT-005", "CC-2026-0143", "MEDIUM-RISK: Identity theft case. Multiple account linkage detected.", "Medium", "PNY-003, Lawspet Junction", "19:30-21:30", True),
-            ("ALT-006", "CC-2026-0138", "HIGH-RISK: SIM swap fraud. Rs.92,000 at risk. Urgent action required.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
-            ("ALT-007", "CC-2026-0142", "WATCH: Case CC-2026-0142 activity detected near PNY-003.", "Watch", "PNY-003, Lawspet Junction", "20:00-22:00", True),
-            ("ALT-008", "CC-2026-0134", "MEDIUM-RISK: Multiple UPI transactions detected. Fund splitting pattern.", "Medium", "PNY-004, Muthialpet Bazaar", "19:00-21:00", True),
-            ("ALT-009", "CC-2026-0132", "HIGH-RISK: Large identity theft case. Rs.1,56,000 at risk.", "High", "PNY-006, Kurumbapet Highway", "20:00-22:00", True),
-            ("ALT-010", "CC-2026-0130", "CRITICAL: Ponzi scheme detected. Rs.2,10,000 across 7 accounts.", "High", "PNY-007, Thattanchavady East", "19:00-21:00", True),
-            ("ALT-011", "CC-2026-0128", "WATCH: Case CC-2026-0128 - new account linkage detected.", "Watch", "PNY-004, Muthialpet Bazaar", "19:00-21:00", True),
-            ("ALT-012", "CC-2026-0127", "MEDIUM-RISK: Card cloning across multiple ATMs detected.", "Medium", "PNY-002, MG Road Commercial", "18:00-20:00", True),
-            ("ALT-013", "CC-2026-0125", "HIGH-RISK: SIM swap fraud. Rs.78,000 at risk.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
-            ("ALT-014", "CC-2026-0147", "UPDATE: Case CC-2026-0147 - new transaction signal; review priority raised.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
+            ("ALT-001", "CC-2026-0147", "Case CC-2026-0147 — cash-out records at PNY-001, White Town Main Road span 18:00-20:00.", "High", "PNY-001, White Town Main Road", "18:00-20:00", False),
+            ("ALT-002", "CC-2026-0145", "Case CC-2026-0145 — Rs.1,25,000 investment fraud, 6 linked accounts.", "High", "PNY-006, Kurumbapet Highway", "19:00-21:00", False),
+            ("ALT-003", "CC-2026-0146", "Case CC-2026-0146 — card-cloning complaint; cash-out records at PNY-002 span 17:00-19:00.", "High", "PNY-002, MG Road Commercial", "17:00-19:00", False),
+            ("ALT-004", "CC-2026-0139", "Case CC-2026-0139 — cash-out records at PNY-002 fall inside the complaint window.", "Medium", "PNY-002, MG Road Commercial", "19:00-21:00", False),
+            ("ALT-005", "CC-2026-0143", "Case CC-2026-0143 — identity-theft complaint; three accounts share a destination at PNY-003.", "Medium", "PNY-003, Lawspet Junction", "19:30-21:30", True),
+            ("ALT-006", "CC-2026-0138", "Case CC-2026-0138 — SIM swap complaint naming Rs.92,000; cash-outs recorded at PNY-001.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
+            ("ALT-007", "CC-2026-0142", "Case CC-2026-0142 — new transaction signal near PNY-003.", "Watch", "PNY-003, Lawspet Junction", "20:00-22:00", True),
+            ("ALT-008", "CC-2026-0134", "Case CC-2026-0134 — UPI transfers split across four accounts; PNY-004 is the nearest ranked location.", "Medium", "PNY-004, Muthialpet Bazaar", "19:00-21:00", True),
+            ("ALT-009", "CC-2026-0132", "Case CC-2026-0132 — identity-theft complaint naming Rs.1,56,000; cash-outs recorded at PNY-006.", "High", "PNY-006, Kurumbapet Highway", "20:00-22:00", True),
+            ("ALT-010", "CC-2026-0130", "Case CC-2026-0130 — investment-fraud complaint naming Rs.2,10,000 across 7 accounts.", "High", "PNY-007, Thattanchavady East", "19:00-21:00", True),
+            ("ALT-011", "CC-2026-0128", "Case CC-2026-0128 — new account linkage recorded.", "Watch", "PNY-004, Muthialpet Bazaar", "19:00-21:00", True),
+            ("ALT-012", "CC-2026-0127", "Case CC-2026-0127 — card-cloning complaint; cash-out records at PNY-002 span 18:00-20:00.", "Medium", "PNY-002, MG Road Commercial", "18:00-20:00", True),
+            ("ALT-013", "CC-2026-0125", "Case CC-2026-0125 — SIM swap complaint naming Rs.78,000; cash-outs recorded at PNY-001.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
+            ("ALT-014", "CC-2026-0147", "Case CC-2026-0147 — new transaction signal; review priority raised.", "High", "PNY-001, White Town Main Road", "18:00-20:00", True),
         ]
 
         alerts = []
@@ -325,7 +325,7 @@ def seed_data(force=False):
             ("Alert Acknowledged", f"ALT-010 acknowledged by {officers[0]} - Ponzi scheme flagged for priority", "alert"),
             ("Alert Generated", "ALT-011 created for CC-2026-0128 - Watch level account linkage", "alert"),
             ("Alert Generated", "ALT-012 created for CC-2026-0127 - MEDIUM-RISK card cloning", "alert"),
-            ("Alert Generated", "ALT-013 created for CC-2026-0125 - HIGH-RISK SIM swap", "alert"),
+            ("Alert Generated", "ALT-013 created for CC-2026-0125 - SIM swap complaint", "alert"),
             ("Alert Generated", "ALT-014 created for CC-2026-0147 - risk score update", "alert"),
             ("Evidence Exported", f"Exported evidence chain for CC-2026-0147 - 5 signals anchored", "evidence"),
             ("Evidence Exported", f"Exported evidence chain for CC-2026-0145 - 5 signals anchored", "evidence"),

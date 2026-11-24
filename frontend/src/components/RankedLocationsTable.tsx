@@ -1,5 +1,5 @@
 import { PredictionLocation, RiskFilter, TimeFilter } from '../types';
-import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
+import { riskArea, SCORE_TOOLTIP, CASE_SEVERITY_NOTE } from '../lib/riskAreas';
 import { TIME_BUCKETS, OBSERVED_HOURS_TIP, matchesTimeBucket } from '../lib/observedHours';
 import { MapPin, Clock, AlertTriangle, ChevronDown, Search } from 'lucide-react';
 import { useState, useMemo } from 'react';
@@ -23,42 +23,36 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
     return matchesRisk && matchesTime && matchesSearch;
   }), [locations, riskFilter, timeFilter, search]);
 
-  const rows = filtered.map((loc) => {
-    const total = filtered.length;
-    const area = riskArea(loc.rank, total, loc.risk_area);
-    return { loc, total, area };
-  });
-
   return (
     <div className="card overflow-hidden">
-      <div className="p-4 border-b border-[#D1D5DB]">
+      <div className="p-4 border-b border-[#D2D1CA]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-lg text-[#1F2937]">Risk Assessment — Ranked Locations</h3>
-            <p className="text-base text-[#6B7280] mt-0.5">
-              Risk-ranked ATM locations; times are the cash-out records on file
+            <h3 className="text-[15px] font-semibold text-[#1A1C1F]">Ranked locations</h3>
+            <p className="mt-0.5 text-[12px] text-[#5F6368]">
+              Risk-ranked ATMs; the times shown are cash-out records on file
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[160px]">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6368]" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search ATM ID or Location..."
-              className="w-full pl-7 pr-2 py-1.5 bg-white border border-[#D1D5DB] rounded-lg text-base text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#1D4ED8]"
+              className="w-full pl-7 pr-2 py-1.5 bg-white border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] placeholder-[#8A8D90] focus:outline-none focus:border-[#17406F]"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-[#EFEFEA] border border-[#D2D1CA] rounded-lg p-0.5">
             {(["all", "High", "Medium", "Watch"] as RiskFilter[]).map(r => (
               <button
                 key={r}
                 onClick={() => setRiskFilter(r)}
                 className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  riskFilter === r ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#1F2937]"
+                  riskFilter === r ? "bg-white text-[#1A1C1F]" : "text-[#5F6368] hover:text-[#1A1C1F]"
                 }`}
               >
                 {r === "all" ? "All Risk" : r}
@@ -66,13 +60,13 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5" title={OBSERVED_HOURS_TIP}>
+          <div className="flex items-center gap-1 bg-[#EFEFEA] border border-[#D2D1CA] rounded-lg p-0.5" title={OBSERVED_HOURS_TIP}>
             {TIME_BUCKETS.map(bucket => (
               <button
                 key={bucket.id}
                 onClick={() => setTimeFilter(bucket.id)}
                 className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  timeFilter === bucket.id ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#1F2937]"
+                  timeFilter === bucket.id ? "bg-white text-[#1A1C1F]" : "text-[#5F6368] hover:text-[#1A1C1F]"
                 }`}
               >
                 {bucket.id === "all" ? "All Times" : bucket.label}
@@ -83,9 +77,9 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
       </div>
 
       <div className="overflow-x-auto sticky-table-container" style={{ maxHeight: 600 }}>
-        <table className="w-full text-lg">
+        <table className="w-full min-w-[820px] text-[13px]">
           <thead>
-            <tr className="text-xs text-[#6B7280] uppercase border-b border-[#D1D5DB]">
+            <tr className="text-xs text-[#5F6368]  border-b border-[#D2D1CA]">
               <th className="text-left px-4 py-2 font-medium">Zone · Rank</th>
               <th className="text-left px-4 py-2 font-medium">ATM ID</th>
               <th className="text-left px-4 py-2 font-medium">Location</th>
@@ -101,11 +95,11 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center">
                   <div className="text-center py-12">
-                    <div className="w-12 h-12 bg-[#F3F4F6] rounded-full flex items-center justify-center mx-auto mb-3">
-                      <MapPin size={20} className="text-[#9CA3AF]" />
+                    <div className="w-12 h-12 bg-[#EFEFEA] rounded-full flex items-center justify-center mx-auto mb-3">
+                      <MapPin size={20} className="text-[#8A8D90]" />
                     </div>
-                    <p className="text-[#4B5563] font-medium text-sm">No locations match your filters</p>
-                    <p className="text-[#9CA3AF] text-[11px] mt-1">Try adjusting your search or risk level</p>
+                    <p className="text-[#43474C] font-medium text-sm">No locations match your filters</p>
+                    <p className="text-[#8A8D90] text-[11px] mt-1">Try adjusting your search or risk level</p>
                   </div>
                 </td>
               </tr>
@@ -119,33 +113,40 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
                   onClick={() => onSelect(loc)}
                   tabIndex={0} aria-label={`Select ${loc.atm_id} for explanation`}
                   onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(loc); } }}
-                  className="border-b border-[#D1D5DB] last:border-0 hover:bg-[#EFF6FF] transition-colors duration-150 cursor-pointer"
+                  className="border-b border-[#D2D1CA] last:border-0 hover:bg-[#FAFAF7] transition-colors duration-150 cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-base text-[#1F2937] font-medium" title={SCORE_TOOLTIP}>{areaPrimary(area, loc.rank, total)}</td>
-                  <td className="px-4 py-3 text-base font-mono font-medium text-[#1F2937]">{loc.atm_id}</td>
-                  <td className="px-4 py-3 text-base text-[#4B5563]">{loc.location_name}</td>
-                  <td className="px-4 py-3 text-center" title={SCORE_TOOLTIP}>
-                    <span className={`text-lg font-bold ${
-                      area === "priority" ? "text-[#B91C1C]" :
-                      area === "watch" ? "text-[#B45309]" :
-                      "text-[#6B7280]"
-                    }`}>
+                  <td className="px-4 py-3">
+                    <div className="num text-[13px] font-medium text-[#1A1C1F]">
+                      #{loc.rank} <span className="text-[#8A8D90]">of {total}</span>
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-[#5F6368]">
+                      {area === "priority" ? "Priority zone" : area === "watch" ? "Watch zone" : "Background"}
+                    </div>
+                  </td>
+                  <td className="num px-4 py-3 text-[13px] font-medium text-[#1A1C1F]">{loc.atm_id}</td>
+                  <td className="px-4 py-3 text-sm text-[#43474C]">{loc.location_name}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="num text-[13px] text-[#43474C]" title={SCORE_TOOLTIP}>
                       {loc.display_score ?? '—'}
                     </span>
-                    <div className="text-[10px] text-[#6B7280]">{areaSecondary(area, loc.display_score, loc.risk_score)}</div>
                   </td>
-                  <td className="px-4 py-3 text-base text-[#4B5563]" title={OBSERVED_HOURS_TIP}>{loc.observed_window?.label ?? '—'}</td>
-                  <td className="px-4 py-3 text-base text-[#4B5563]">{loc.distance}</td>
+                  <td className="px-4 py-3 text-sm text-[#43474C]" title={OBSERVED_HOURS_TIP}>{loc.observed_window?.label ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-[#43474C]">{loc.distance}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                      loc.status === "High" ? "bg-[#B91C1C]/10 text-[#B91C1C]" :
-                      loc.status === "Medium" ? "bg-[#B45309]/10 text-[#B45309]" :
-                      "bg-[#F3F4F6] text-[#6B7280]"
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${
+                      loc.status === "High" ? "text-[#B91C1C]" :
+                      loc.status === "Medium" ? "text-[#B45309]" :
+                      "text-[#5F6368]"
                     }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        loc.status === "High" ? "bg-[#B91C1C]" :
+                        loc.status === "Medium" ? "bg-[#B45309]" :
+                        "bg-[#8A8D90]"
+                      }`} aria-hidden="true" />
                       {loc.status}
                     </span>
                    </td>
-                   <td className="px-4 py-3 text-base text-[#6B7280] max-w-[240px] truncate" title={loc.reason}>
+                   <td className="px-4 py-3 text-sm text-[#5F6368] max-w-[240px] truncate" title={loc.reason}>
                      {loc.reason}
                    </td>
                  </tr>
@@ -156,6 +157,9 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
           </tbody>
          </table>
        </div>
+       <div className="border-t border-[#D2D1CA] px-4 py-2.5 text-[11px] text-[#8A8D90]">
+         {CASE_SEVERITY_NOTE}. Rows are ordered by rank; every row opens its evidence.
+       </div>
      </div>
    );
  }
@@ -163,20 +167,20 @@ export default function RankedLocationsTable({ locations, onSelect }: RankedLoca
  export function RankedLocationsTableSkeleton() {
    return (
      <div className="card overflow-hidden">
-        <div className="p-4 border-b border-[#D1D5DB]">
-          <div className="h-4 w-48 bg-[#E5E7EB] rounded animate-pulse mb-1" />
-          <div className="h-3 w-64 bg-[#E5E7EB] rounded animate-pulse" />
+        <div className="p-4 border-b border-[#D2D1CA]">
+          <div className="h-4 w-48 bg-[#E2E1DB] rounded animate-pulse mb-1" />
+          <div className="h-3 w-64 bg-[#E2E1DB] rounded animate-pulse" />
        </div>
        <div className="p-4 space-y-3">
          {Array.from({ length: 5 }).map((_, i) => (
            <div key={i} className="flex items-center gap-4">
-              <div className="h-4 w-8 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-20 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-24 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-12 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-20 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-16 bg-[#E5E7EB] rounded animate-pulse" />
-              <div className="h-4 w-16 bg-[#E5E7EB] rounded animate-pulse" />
+              <div className="h-4 w-8 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-20 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-24 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-12 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-20 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-16 bg-[#E2E1DB] rounded animate-pulse" />
+              <div className="h-4 w-16 bg-[#E2E1DB] rounded animate-pulse" />
            </div>
          ))}
        </div>

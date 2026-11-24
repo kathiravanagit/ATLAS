@@ -43,7 +43,7 @@ interface MuleNetworkData {
   graph_source?: string;
 }
 
-const CLUSTER_COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#22c55e', '#ec4899', '#06b6d4', '#f97316'];
+const CLUSTER_COLORS = ['#B91C1C', '#B45309', '#17406F', '#5F6368', '#15803D', '#3F6E7A', '#6E5A7A', '#8A6A3B'];
 
 export default function MuleNetworkGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -114,11 +114,11 @@ export default function MuleNetworkGraph() {
 
     const render = () => {
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#F8F9FA';
+      ctx.fillStyle = '#F6F6F3';
       ctx.fillRect(0, 0, w, h);
 
       // Grid
-      ctx.strokeStyle = '#E5E7EB';
+      ctx.strokeStyle = '#E2E1DB';
       ctx.lineWidth = 0.5;
       for (let x = 0; x < w; x += 50) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
@@ -152,7 +152,7 @@ export default function MuleNetworkGraph() {
         ctx.moveTo(tgt.x! - arrLen * Math.cos(angle - 0.35), tgt.y! - arrLen * Math.sin(angle - 0.35));
         ctx.lineTo(tgt.x!, tgt.y!);
         ctx.lineTo(tgt.x! - arrLen * Math.cos(angle + 0.35), tgt.y! - arrLen * Math.sin(angle + 0.35));
-        ctx.strokeStyle = isHighlighted ? '#ef4444' : '#6B7280';
+        ctx.strokeStyle = isHighlighted ? '#B91C1C' : '#5F6368';
         ctx.lineWidth = 1.5;
         ctx.stroke();
       });
@@ -162,42 +162,40 @@ export default function MuleNetworkGraph() {
         const isHovered = hoveredNode === node.id;
         const isSelected = selectedNode?.id === node.id;
         const isSuspicious = data.suspicious_accounts.includes(node.id);
-        const clusterColor = node.cluster ? CLUSTER_COLORS[(node.cluster - 1) % CLUSTER_COLORS.length] : '#6B7280';
+        const clusterColor = node.cluster ? CLUSTER_COLORS[(node.cluster - 1) % CLUSTER_COLORS.length] : '#5F6368';
 
-        // Glow
+        // Selection ring — a stroke, not a glow
         if (isHovered || isSelected || isSuspicious) {
-          const grad = ctx.createRadialGradient(node.x!, node.y!, 0, node.x!, node.y!, 22);
-          grad.addColorStop(0, isSuspicious ? 'rgba(239,68,68,0.25)' : 'rgba(59,130,246,0.15)');
-          grad.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.beginPath();
-          ctx.arc(node.x!, node.y!, 22, 0, Math.PI * 2);
-          ctx.fillStyle = grad;
-          ctx.fill();
+          ctx.arc(node.x!, node.y!, 15, 0, Math.PI * 2);
+          ctx.strokeStyle = isSuspicious ? 'rgba(185,28,28,0.35)' : 'rgba(23,64,111,0.28)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
         }
 
         // Outer ring
         ctx.beginPath();
         ctx.arc(node.x!, node.y!, 11, 0, Math.PI * 2);
-        ctx.fillStyle = isSuspicious ? '#ef4444' : clusterColor;
+        ctx.fillStyle = isSuspicious ? '#B91C1C' : clusterColor;
         ctx.fill();
 
         // Inner
         ctx.beginPath();
         ctx.arc(node.x!, node.y!, 8, 0, Math.PI * 2);
-        ctx.fillStyle = '#F8F9FA';
+        ctx.fillStyle = '#F6F6F3';
         ctx.fill();
 
         // Core dot
         ctx.beginPath();
         ctx.arc(node.x!, node.y!, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = node.risk === 'High' ? '#ef4444' : node.risk === 'Medium' ? '#f59e0b' : '#22c55e';
+        ctx.fillStyle = node.risk === 'High' ? '#B91C1C' : node.risk === 'Medium' ? '#B45309' : '#15803D';
         ctx.fill();
 
         // Label
         if (isHovered || isSelected || data.nodes.length < 25) {
           ctx.font = `${isHovered ? 'bold ' : ''}10px JetBrains Mono, monospace`;
           ctx.textAlign = 'center';
-          ctx.fillStyle = isHovered ? '#ffffff' : isSuspicious ? '#ef4444' : '#6B7280';
+          ctx.fillStyle = isHovered ? '#ffffff' : isSuspicious ? '#B91C1C' : '#5F6368';
           ctx.fillText(node.id.slice(-8), node.x!, node.y! + 22);
         }
       });
@@ -260,11 +258,11 @@ export default function MuleNetworkGraph() {
     return (
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Network size={16} className="text-[#8b5cf6]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Linked Account Analysis</h3>
+          <Network size={16} className="text-[#5F6368]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Linked Account Analysis</h3>
         </div>
-        <div className="h-[420px] bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#8b5cf6] border-t-transparent rounded-full animate-spin" />
+        <div className="h-[420px] bg-[#F6F6F3] rounded-lg border border-[#D2D1CA] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#5F6368] border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -274,21 +272,21 @@ export default function MuleNetworkGraph() {
     <div className="card p-5">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Network size={16} className="text-[#8b5cf6]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Linked Account Analysis</h3>
-          <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
+          <Network size={16} className="text-[#5F6368]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Linked Account Analysis</h3>
+          <span className="text-[10px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded font-mono">
             {data?.total_nodes ?? 0} nodes, {data?.total_edges ?? 0} edges
           </span>
           {data?.graph_source && (
-            <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
+            <span className="text-[10px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded">
               Source: {data.graph_source === 'transaction_records' ? 'transaction records' : 'account-count fallback'}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[#6B7280]">Density: {data?.graph_density ?? 0}</span>
+          <span className="text-[10px] text-[#5F6368]">Density: {data?.graph_density ?? 0}</span>
           {data?.suspicious_accounts && data.suspicious_accounts.length > 0 && (
-            <span className="text-[10px] text-[#ef4444] bg-[#ef4444]/10 px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="text-[10px] text-[#B91C1C] bg-[#B91C1C]/10 px-2 py-0.5 rounded flex items-center gap-1">
               <AlertTriangle size={10} />
               {data.suspicious_accounts.length} suspicious
             </span>
@@ -296,9 +294,9 @@ export default function MuleNetworkGraph() {
         </div>
       </div>
 
-      <p className="text-[11px] text-[#6B7280] mb-4">Illustrative fund-flow view from synthetic case transactions. Not a live bank network. Louvain clusters are for prototype exploration.</p>
+      <p className="text-[11px] text-[#5F6368] mb-4">Illustrative fund-flow view from synthetic case transactions. Not a live bank network. Louvain clusters are for prototype exploration.</p>
 
-      <div className="relative bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] overflow-hidden">
+      <div className="relative bg-[#F6F6F3] rounded-lg border border-[#D2D1CA] overflow-hidden">
         <canvas
           ref={canvasRef}
           className="w-full"
@@ -309,31 +307,31 @@ export default function MuleNetworkGraph() {
         />
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg p-2.5 border border-[#D1D5DB] space-y-1">
-          <div className="text-[11px] text-[#6B7280] font-medium mb-1">How to Read</div>
+        <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg p-2.5 border border-[#D2D1CA] space-y-1">
+          <div className="text-[11px] text-[#5F6368] font-medium mb-1">How to Read</div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-            <span className="text-[11px] text-[#374151]">Red = High Risk Linked Account</span>
+            <div className="w-2 h-2 rounded-full bg-[#B91C1C]" />
+            <span className="text-[11px] text-[#33373B]">Red = High Risk Linked Account</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#f59e0b]" />
-            <span className="text-[11px] text-[#374151]">Amber = Medium Risk Account</span>
+            <div className="w-2 h-2 rounded-full bg-[#B45309]" />
+            <span className="text-[11px] text-[#33373B]">Amber = Medium Risk Account</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-            <span className="text-[11px] text-[#374151]">Green = Low Risk / Verified</span>
+            <div className="w-2 h-2 rounded-full bg-[#15803D]" />
+            <span className="text-[11px] text-[#33373B]">Green = Low Risk / Verified</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-px bg-[#71717a]" />
-            <span className="text-[11px] text-[#374151]">Lines = Fund Transfers</span>
+            <div className="w-4 h-px bg-[#8A8D90]" />
+            <span className="text-[11px] text-[#33373B]">Lines = Fund Transfers</span>
           </div>
-          <div className="border-t border-[#D1D5DB] pt-1 mt-1">
-            <div className="text-[11px] text-[#6B7280] font-medium mb-1">Louvain Clusters</div>
+          <div className="border-t border-[#D2D1CA] pt-1 mt-1">
+            <div className="text-[11px] text-[#5F6368] font-medium mb-1">Louvain Clusters</div>
           </div>
           {(data?.clusters ?? []).slice(0, 6).map((cl, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full" style={{ background: CLUSTER_COLORS[i % CLUSTER_COLORS.length] }} />
-              <span className="text-[11px] text-[#374151]">
+              <span className="text-[11px] text-[#33373B]">
                 C{cl.cluster_id}: {cl.size} accts | Rs.{(cl.total_flow / 1000).toFixed(0)}K flow ({cl.risk_level})
               </span>
             </div>
@@ -344,7 +342,7 @@ export default function MuleNetworkGraph() {
         <div className="absolute top-3 right-3 flex flex-col gap-1">
           <button
             onClick={() => simRef.current?.alpha(0.8).restart()}
-            className="w-7 h-7 bg-white/90 border border-[#D1D5DB] rounded flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] transition-colors"
+            className="w-7 h-7 bg-white/90 border border-[#D2D1CA] rounded flex items-center justify-center text-[#5F6368] hover:text-[#1A1C1F] transition-colors"
             title="Reheat simulation"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
@@ -357,12 +355,12 @@ export default function MuleNetworkGraph() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-3 bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]"
+          className="mt-3 bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA]"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-[#1F2937] font-mono">{selectedNode.id}</div>
-              <div className="text-[10px] text-[#6B7280]">
+              <div className="text-sm font-medium text-[#1A1C1F] font-mono">{selectedNode.id}</div>
+              <div className="text-[10px] text-[#5F6368]">
                 Case: {selectedNode.case} | Balance: Rs.{selectedNode.balance.toLocaleString()}
               </div>
             </div>
@@ -376,9 +374,9 @@ export default function MuleNetworkGraph() {
                 </span>
               )}
               <span className={`text-[11px] px-2 py-0.5 rounded ${
-                selectedNode.risk === 'High' ? 'bg-[#ef4444]/10 text-[#ef4444]' :
-                selectedNode.risk === 'Medium' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
-                'bg-[#22c55e]/10 text-[#22c55e]'
+                selectedNode.risk === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' :
+                selectedNode.risk === 'Medium' ? 'bg-[#B45309]/10 text-[#B45309]' :
+                'bg-[#15803D]/10 text-[#15803D]'
               }`}>
                 {selectedNode.risk}
               </span>

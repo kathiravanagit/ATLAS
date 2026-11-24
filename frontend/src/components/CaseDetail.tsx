@@ -16,17 +16,17 @@ interface CaseDetailProps {
 }
 
 const evidenceIcons: Record<string, React.ReactNode> = {
-  transaction_pattern: <Activity size={14} className="text-[#374151]" />,
-  temporal_pattern: <Clock size={14} className="text-[#374151]" />,
-  geographic_signal: <MapPin size={14} className="text-[#374151]" />,
-  account_network: <GitBranch size={14} className="text-[#374151]" />,
-  historical_similarity: <History size={14} className="text-[#374151]" />,
+  transaction_pattern: <Activity size={14} className="text-[#33373B]" />,
+  temporal_pattern: <Clock size={14} className="text-[#33373B]" />,
+  geographic_signal: <MapPin size={14} className="text-[#33373B]" />,
+  account_network: <GitBranch size={14} className="text-[#33373B]" />,
+  historical_similarity: <History size={14} className="text-[#33373B]" />,
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  new: { label: "New", color: "bg-[#3b82f6]/10 text-[#3b82f6]", icon: <Circle size={12} /> },
-  investigating: { label: "Investigating", color: "bg-[#f59e0b]/10 text-[#f59e0b]", icon: <AlertTriangle size={12} /> },
-  resolved: { label: "Resolved", color: "bg-[#22c55e]/10 text-[#22c55e]", icon: <CheckCircle size={12} /> },
+  new: { label: "New", color: "bg-[#17406F]/10 text-[#17406F]", icon: <Circle size={12} /> },
+  investigating: { label: "Investigating", color: "bg-[#B45309]/10 text-[#B45309]", icon: <AlertTriangle size={12} /> },
+  resolved: { label: "Resolved", color: "bg-[#15803D]/10 text-[#15803D]", icon: <CheckCircle size={12} /> },
 };
 
 // Synthetic fallback detail — only bundled into explicit demo builds (the
@@ -194,32 +194,32 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="font-mono font-bold text-lg text-[#1F2937]">{caseId}</span>
+              <span className="font-mono font-semibold text-[15px] text-[#1A1C1F]">{caseId}</span>
               <span className={`text-[11px] font-medium px-2 py-0.5 rounded flex items-center gap-1 ${statusConfig.investigating.color}`}>
                 {statusConfig.investigating.icon} Investigating
               </span>
             </div>
-            <p className="text-sm text-[#6B7280]">Synthetic complaint record — not filed on the government portal</p>
+            <p className="text-sm text-[#5F6368]">Synthetic complaint record — not filed on the government portal</p>
           </div>
           <div className="flex items-center gap-2">
             <a
               href="https://cybercrime.gov.in"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-[#F3F4F6] text-sm text-[#374151] rounded-lg hover:bg-[#E5E7EB] transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#EFEFEA] text-sm text-[#33373B] rounded-lg hover:bg-[#E2E1DB] transition-colors flex items-center gap-1"
             >
               <ExternalLink size={10} /> Govt Portal
             </a>
             <button
               disabled={isDemoRoute()} title={isDemoRoute() ? 'Backend resolution recording disabled in local demo' : 'Record case resolution'}
                             onClick={() => setResolutionOpen(true)}
-              className="px-3 py-1.5 bg-[#8b5cf6]/10 text-sm text-[#8b5cf6] rounded-lg hover:bg-[#8b5cf6]/20 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#5F6368]/10 text-sm text-[#5F6368] rounded-lg hover:bg-[#5F6368]/20 transition-colors flex items-center gap-1"
             >
               <CheckCircle size={10} /> Record Resolution
             </button>
             <button
               onClick={() => onResolve(caseId)}
-              className="px-3 py-1.5 bg-[#22c55e]/10 text-sm text-[#22c55e] rounded-lg hover:bg-[#22c55e]/20 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#15803D]/10 text-sm text-[#15803D] rounded-lg hover:bg-[#15803D]/20 transition-colors flex items-center gap-1"
             >
               <CheckCircle size={10} /> Mark Resolved
             </button>
@@ -227,44 +227,44 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
         </div>
 
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Crime Type</div>
-            <div className="text-base font-medium text-[#1F2937]">UPI Fraud</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Crime Type</div>
+            <div className="text-sm font-medium text-[#1A1C1F]">UPI Fraud</div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Amount</div>
-            <div className="text-base font-medium text-[#1F2937]">₹48,500</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Amount</div>
+            <div className="text-sm font-medium text-[#1A1C1F]">₹48,500</div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Linked Accounts</div>
-            <div className="text-base font-medium text-[#1F2937]">3</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Linked Accounts</div>
+            <div className="text-sm font-medium text-[#1A1C1F]">3</div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Current Risk</div>
-            <div className="text-base font-medium text-[#ef4444]">High</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Current Risk</div>
+            <div className="text-sm font-medium text-[#B91C1C]">High</div>
           </div>
         </div>
       </div>
 
       {/* Fund-block request — a request for human review, never a freeze */}
       <div className="card p-5">
-        <h3 className="text-base font-semibold text-[#1F2937] mb-1 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#1A1C1F] mb-1 flex items-center gap-2">
           <Shield size={14} /> Fund-block request
         </h3>
-        <p className="text-xs text-[#6B7280] mb-3">
+        <p className="text-xs text-[#5F6368] mb-3">
           Sends a signed block request to the bank&apos;s fraud desk for human review. It does not block funds.
         </p>
         {blockAccount ? (
-          <p className="text-sm text-[#374151] mb-2">Requesting block for account ending {maskToken(blockAccount)}.</p>
+          <p className="text-sm text-[#33373B] mb-2">Requesting block for account ending {maskToken(blockAccount)}.</p>
         ) : (
-          <p className="text-sm text-[#374151] mb-2">{blockDisabledReason ?? 'No linked accounts on this case.'}</p>
+          <p className="text-sm text-[#33373B] mb-2">{blockDisabledReason ?? 'No linked accounts on this case.'}</p>
         )}
         <div className="flex items-center gap-2">
           <button
             disabled={blockDisabledReason !== null || blockBusy}
             title={blockDisabledReason ?? 'Send signed block request'}
             onClick={handleBlockRequest}
-            className="px-3 py-1.5 bg-[#8b5cf6]/10 text-sm text-[#8b5cf6] rounded-lg hover:bg-[#8b5cf6]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 bg-[#5F6368]/10 text-sm text-[#5F6368] rounded-lg hover:bg-[#5F6368]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {blockBusy ? 'Sending…' : 'Request block'}
           </button>
@@ -279,7 +279,7 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
       {/* Victim Info - PII Protected */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-[#1F2937] flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#1A1C1F] flex items-center gap-2">
             <User size={14} /> Victim Information
           </h3>
           <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
               <button
                 disabled={isDemoRoute()} title={isDemoRoute() ? 'Backend-audited victim detail requests disabled in local demo' : 'Request victim details'}
                                 onClick={() => setShowReauth(true)}
-                className="px-2 py-1 bg-[#f59e0b]/10 text-[11px] text-[#f59e0b] rounded flex items-center gap-1 hover:bg-[#f59e0b]/20 transition-colors"
+                className="px-2 py-1 bg-[#B45309]/10 text-[11px] text-[#B45309] rounded flex items-center gap-1 hover:bg-[#B45309]/20 transition-colors"
               >
                 <KeyRound size={10} /> Request victim details
               </button>
@@ -296,7 +296,7 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
             ) : (
               <button
                 onClick={() => setPiiRevealed(false)}
-                className="px-2 py-1 bg-[#F3F4F6] text-[11px] text-[#6B7280] rounded flex items-center gap-1 hover:bg-[#E5E7EB] transition-colors"
+                className="px-2 py-1 bg-[#EFEFEA] text-[11px] text-[#5F6368] rounded flex items-center gap-1 hover:bg-[#E2E1DB] transition-colors"
               >
                 <EyeOff size={10} /> Mask PII
               </button>
@@ -305,20 +305,20 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
         </div>
 
         {showReauth && (
-          <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/30 rounded-lg p-3 mb-3">
-            <p className="text-xs text-[#f59e0b] mb-2">Inspector/admin only — access is audit-logged with your identity and reason (DPDP Act 2023 compliance)</p>
+          <div className="bg-[#B45309]/10 border border-[#B45309]/30 rounded-lg p-3 mb-3">
+            <p className="text-xs text-[#B45309] mb-2">Inspector/admin only — access is audit-logged with your identity and reason (DPDP Act 2023 compliance)</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={accessReason}
                 onChange={e => setAccessReason(e.target.value)}
                 placeholder="Reason for access (e.g. FIR no.)"
-                className="px-3 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#f59e0b]"
+                className="px-3 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] focus:outline-none focus:border-[#B45309]"
               />
-              <button onClick={handleDecrypt} className="px-3 py-1.5 bg-[#f59e0b] text-[#1F2937] text-xs font-medium rounded hover:bg-[#d97706]">
+              <button onClick={handleDecrypt} className="px-3 py-1.5 bg-[#B45309] text-[#1A1C1F] text-xs font-medium rounded hover:bg-[#B45309]">
                 Verify
               </button>
-              <button onClick={() => { setShowReauth(false); setReauthError(''); }} className="px-3 py-1.5 bg-[#F3F4F6] text-xs text-[#6B7280] rounded hover:bg-[#E5E7EB]">
+              <button onClick={() => { setShowReauth(false); setReauthError(''); }} className="px-3 py-1.5 bg-[#EFEFEA] text-xs text-[#5F6368] rounded hover:bg-[#E2E1DB]">
                 Cancel
               </button>
             </div>
@@ -328,65 +328,65 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Name</div>
-            <div className="text-base text-[#374151] flex items-center gap-2">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Name</div>
+            <div className="text-sm text-[#33373B] flex items-center gap-2">
               {piiRevealed ? info.victim_name : maskName(info.victim_name)}
-              {!piiRevealed && <EyeOff size={10} className="text-[#9CA3AF]" />}
+              {!piiRevealed && <EyeOff size={10} className="text-[#8A8D90]" />}
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Contact</div>
-            <div className="text-base text-[#374151] flex items-center gap-2">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Contact</div>
+            <div className="text-sm text-[#33373B] flex items-center gap-2">
               {piiRevealed ? info.contact : maskContact(info.contact)}
-              {!piiRevealed && <EyeOff size={10} className="text-[#9CA3AF]" />}
+              {!piiRevealed && <EyeOff size={10} className="text-[#8A8D90]" />}
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-[#6B7280] uppercase mb-1">Filed Via</div>
-            <div className="text-base text-[#374151] flex items-center gap-1">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Filed Via</div>
+            <div className="text-sm text-[#33373B] flex items-center gap-1">
               <ExternalLink size={10} /> cybercrime.gov.in
             </div>
           </div>
         </div>
         <div className="mt-3">
-          <div className="text-[11px] text-[#6B7280] uppercase mb-1">Description</div>
-          <p className="text-base text-[#374151] bg-white rounded-lg p-3 border border-[#D1D5DB]">{info.description}</p>
+          <div className="text-[11px] text-[#5F6368]  mb-1">Description</div>
+          <p className="text-sm text-[#33373B] bg-white rounded-lg p-3 border border-[#D2D1CA]">{info.description}</p>
         </div>
       </div>
 
       {/* Top Prediction */}
       <div className="card p-5">
-        <h3 className="text-base font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#1A1C1F] mb-3 flex items-center gap-2">
           <MapPin size={14} /> Top Predicted Location
         </h3>
-        <div className="bg-white rounded-xl p-4 border border-[#D1D5DB]">
+        <div className="bg-white rounded-xl p-4 border border-[#D2D1CA]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <span className="text-xl font-bold text-[#1F2937]">{p.atm_id}</span>
-              <span className="text-[#6B7280]">—</span>
-              <span className="text-base text-[#374151]">{p.location_name}</span>
+              <span className="text-xl font-semibold text-[#1A1C1F]">{p.atm_id}</span>
+              <span className="text-[#5F6368]">—</span>
+              <span className="text-sm text-[#33373B]">{p.location_name}</span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
-              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Priority Rank</div>
-              <div className="text-2xl font-bold text-[#1F2937]">#{p.rank} <span className="text-base font-medium text-[#6B7280]">of {caseTotal}</span></div>
-              <div className="text-[11px] text-[#1F2937] font-medium">{areaPrimary(caseArea, p.rank, caseTotal)}</div>
-              <div className="text-[11px] text-[#6B7280]">{areaSecondary(caseArea, p.display_score, p.risk_score)}</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]" title={SCORE_TOOLTIP}>
+              <div className="text-[11px] text-[#5F6368]  mb-1">Priority Rank</div>
+              <div className="text-2xl font-semibold text-[#1A1C1F]">#{p.rank} <span className="text-sm font-medium text-[#5F6368]">of {caseTotal}</span></div>
+              <div className="text-[11px] text-[#1A1C1F] font-medium">{areaPrimary(caseArea, p.rank, caseTotal)}</div>
+              <div className="text-[11px] text-[#5F6368]">{areaSecondary(caseArea, p.display_score, p.risk_score)}</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Cash-out Records</div>
-              <div className="text-lg font-bold text-[#1F2937]">{p.observed_window?.label ?? '—'}</div>
-              <div className="text-[11px] text-[#6B7280]">
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+              <div className="text-[11px] text-[#5F6368]  mb-1">Cash-out Records</div>
+              <div className="text-[15px] font-semibold text-[#1A1C1F]">{p.observed_window?.label ?? '—'}</div>
+              <div className="text-[11px] text-[#5F6368]">
                 {p.observed_window?.records
                   ? `${p.observed_window.records} records · observed, not predicted`
                   : 'No records on file'}
               </div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>
-              <div className="text-lg font-bold text-[#1F2937]">{p.distance}</div>
-              <div className="text-[11px] text-[#6B7280]">From center</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+              <div className="text-[11px] text-[#5F6368]  mb-1">Distance</div>
+              <div className="text-[15px] font-semibold text-[#1A1C1F]">{p.distance}</div>
+              <div className="text-[11px] text-[#5F6368]">From center</div>
             </div>
           </div>
         </div>
@@ -395,32 +395,32 @@ export default function CaseDetail({ caseId, prediction, onShowEvidence, onResol
       {/* Evidence */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-[#1F2937] flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#1A1C1F] flex items-center gap-2">
             <Shield size={14} /> Evidence Signals ({evidence.length})
           </h3>
           <button
             onClick={onShowEvidence}
-            className="text-[11px] text-[#1F2937] bg-[#F3F4F6] hover:bg-[#E5E7EB] px-2 py-1 rounded transition-colors flex items-center gap-1"
+            className="text-[11px] text-[#1A1C1F] bg-[#EFEFEA] hover:bg-[#E2E1DB] px-2 py-1 rounded transition-colors flex items-center gap-1"
           >
             Full View <ChevronRight size={10} />
           </button>
         </div>
         <div className="space-y-2">
           {evidence.map(([key, item]) => (
-            <div key={key} className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-[#D1D5DB]">
-              {evidenceIcons[key] || <Shield size={14} className="text-[#374151]" />}
+            <div key={key} className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-[#D2D1CA]">
+              {evidenceIcons[key] || <Shield size={14} className="text-[#33373B]" />}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm font-medium text-[#1F2937]">{item.category}</span>
+                  <span className="text-sm font-medium text-[#1A1C1F]">{item.category}</span>
                   <span className={`text-[11px] px-1 py-0.5 rounded ${
-                    item.strength === "Strong" ? "bg-[#22c55e]/10 text-[#22c55e]" :
-                    item.strength === "Moderate" ? "bg-[#f59e0b]/10 text-[#f59e0b]" :
-                    "bg-[#F3F4F6] text-[#6B7280]"
+                    item.strength === "Strong" ? "bg-[#15803D]/10 text-[#15803D]" :
+                    item.strength === "Moderate" ? "bg-[#B45309]/10 text-[#B45309]" :
+                    "bg-[#EFEFEA] text-[#5F6368]"
                   }`}>
                     {item.strength}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#6B7280]">{item.description}</p>
+                <p className="text-[11px] text-[#5F6368]">{item.description}</p>
               </div>
             </div>
           ))}

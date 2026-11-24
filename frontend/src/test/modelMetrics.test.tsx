@@ -8,7 +8,6 @@ import ModelCardPage from '../pages/ModelCardPage';
 import SystemHealthPage from '../pages/SystemHealthPage';
 import DriftIndicator from '../components/DriftIndicator';
 import CostRoiCard from '../components/CostRoiCard';
-import AnimatedNumber from '../components/AnimatedNumber';
 import { percent, ratio, formatMetric, featureImportances } from '../lib/metrics';
 import { ConfusionMatrixChart, RocChart } from '../components/ModelMetricCharts';
 
@@ -157,11 +156,6 @@ describe('nullable backend evaluation contracts', () => {
     expect(container.textContent).toContain('₹12,345');
     expect(container.textContent).toContain('0.0x');
     expect(container.textContent).toContain('50 ATMs');
-  });
-
-  it.each([null, undefined, NaN, Infinity])('animated numbers never coerce missing %s to zero', value => {
-    const { container } = render(<AnimatedNumber value={value} suffix="%" />);
-    expect(container.textContent).toBe('Unavailable');
   });
 
   it('numeric helpers distinguish missing values from measured zero', () => {

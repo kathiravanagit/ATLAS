@@ -39,19 +39,19 @@ export default function ScenarioRunner() {
   }
 
   return <section className="card p-5" aria-label="Guided demo scenarios">
-    <h2 className="flex items-center gap-2 text-base font-semibold mb-1"><Play size={18} />Guided Demo Scenarios</h2>
-    <p className="text-sm text-gray-700 mb-4">One click runs complaint → prediction → alert for a curated case.</p>
+    <h2 className="flex items-center gap-2 text-sm font-semibold mb-1"><Play size={18} />Guided Demo Scenarios</h2>
+    <p className="text-sm text-[#43474C] mb-4">One click runs complaint → prediction → alert for a curated case.</p>
     {loading ? <p className="text-sm" role="status">Loading scenarios…</p>
       : error ? <p className="text-sm text-red-800" role="alert">Scenarios unavailable: {error}</p>
-      : !(scenarios?.length) ? <p className="text-sm text-gray-700">No scenarios supplied.</p>
+      : !(scenarios?.length) ? <p className="text-sm text-[#43474C]">No scenarios supplied.</p>
       : <div className="space-y-2">{scenarios.map(s => {
         const open = openId === s.id;
         const active = open && flow && (flow.id === s.id || !flow.id);
         return <div key={s.id} className="rounded border border-gray-300">
           <button onClick={() => void runScenario(s.id)} aria-expanded={open}
-            className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-gray-50">
+            className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-[#F6F6F3]">
             <span><span className="block text-sm font-medium">{s.name}</span>
-              <span className="block text-xs text-gray-700 mt-0.5">{s.description}</span></span>
+              <span className="block text-xs text-[#43474C] mt-0.5">{s.description}</span></span>
             {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {open && <div className="px-3 pb-3">
@@ -59,11 +59,11 @@ export default function ScenarioRunner() {
               : runError ? <p className="text-sm text-red-800" role="alert">{runError}</p>
               : active ? <>
                 <ol className="mt-1 space-y-1.5">{(flow.steps ?? []).map((step, i) =>
-                  <li key={i} className="flex gap-2 text-sm text-gray-700">
-                    <span className="font-mono text-xs mt-0.5 text-gray-500">{i + 1}.</span>{step}
+                  <li key={i} className="flex gap-2 text-sm text-[#43474C]">
+                    <span className="font-mono text-xs mt-0.5 text-[#8A8D90]">{i + 1}.</span>{step}
                   </li>)}
                 </ol>
-                <p className="mt-3 text-sm text-gray-700 flex items-center gap-1.5">
+                <p className="mt-3 text-sm text-[#43474C] flex items-center gap-1.5">
                   <MapPin size={14} />
                   {flow.prediction?.primary_location?.atm_id ?? 'No prediction'} —
 {(() => {

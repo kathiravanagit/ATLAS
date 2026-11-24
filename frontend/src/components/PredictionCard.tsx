@@ -1,5 +1,5 @@
 import { Prediction, PredictionLocation, RiskFilter, TimeFilter } from '../types';
-import { areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
+import { AREA_LABEL, areaPrimary, areaSecondary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { MapPin, Clock, Target, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Shield, Activity, GitBranch, History, Download } from 'lucide-react';
 import { useState } from 'react';
 
@@ -9,11 +9,11 @@ interface PredictionCardProps {
 }
 
 const evidenceIcons: Record<string, React.ReactNode> = {
-  transaction_pattern: <Activity size={14} className="text-[#6B7280]" />,
-  temporal_pattern: <Clock size={14} className="text-[#6B7280]" />,
-  geographic_signal: <MapPin size={14} className="text-[#6B7280]" />,
-  account_network: <GitBranch size={14} className="text-[#6B7280]" />,
-  historical_similarity: <History size={14} className="text-[#6B7280]" />,
+  transaction_pattern: <Activity size={14} className="text-[#5F6368]" />,
+  temporal_pattern: <Clock size={14} className="text-[#5F6368]" />,
+  geographic_signal: <MapPin size={14} className="text-[#5F6368]" />,
+  account_network: <GitBranch size={14} className="text-[#5F6368]" />,
+  historical_similarity: <History size={14} className="text-[#5F6368]" />,
 };
 
 function downloadReport(prediction: Prediction) {
@@ -26,12 +26,12 @@ function downloadReport(prediction: Prediction) {
     return `  ${areaPrimary(locArea, loc.rank, locTotal)} — ${loc.atm_id} (${loc.location_name}, Distance: ${loc.distance})`;
   });
   const lines = [
-    `INTELLIGENCE REPORT — CASH-OUT PREDICTION`,
+    `INTELLIGENCE REPORT — CASH-OUT LOCATION RANKING`,
     `Generated: ${new Date().toISOString()}`,
     `Case ID: ${prediction.case_id}`,
     `Status: ${prediction.status}`,
     ``,
-    `PREDICTED CASH-OUT LOCATION`,
+    `TOP-RANKED LOCATION`,
     `  ATM ID: ${p.atm_id}`,
     `  Location: ${p.location_name}`,
     `  ${areaPrimary(area, p.rank, total)}`,
@@ -74,59 +74,65 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
   const [showEvidence, setShowEvidence] = useState(false);
   const evidence = Object.entries(prediction.evidence);
 
+  const isAlarming = /high|critical|priority/i.test(prediction.status);
+
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-[#B91C1C]" />
-            <span className="text-sm font-medium text-[#B91C1C]">{prediction.status}</span>
+            {isAlarming && <AlertTriangle size={14} className="text-[#B91C1C]" aria-hidden="true" />}
+            <span className={`text-[13px] font-medium ${isAlarming ? 'text-[#B91C1C]' : 'text-[#5F6368]'}`}>
+              {prediction.status}
+            </span>
           </div>
-          <span className="text-sm text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">{prediction.case_id}</span>
+          <span className="num text-[12px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded">{prediction.case_id}</span>
         </div>
       </div>
 
       {/* Main Prediction Focus */}
-      <div className="bg-[#F8F9FA] rounded-xl p-4 border border-[#D1D5DB] mb-4">
-        <div className="text-sm text-[#6B7280] uppercase tracking-wider mb-2">Predicted Cash-Out Location</div>
-        <div className="flex items-center gap-3 mb-3">
-          <MapPin size={18} className="text-[#1F2937]" />
-          <span className="text-2xl font-bold text-[#1F2937]">{p.atm_id}</span>
-          <span className="text-[#6B7280]">—</span>
-          <span className="text-[#4B5563]">{p.location_name}</span>
+      <div className="bg-[#F6F6F3] rounded-xl p-4 border border-[#D2D1CA] mb-4">
+        <div className="text-sm text-[#5F6368] mb-2">Top-ranked location</div>
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <MapPin size={18} className="text-[#1A1C1F]" aria-hidden="true" />
+          <span className="num text-2xl font-semibold text-[#1A1C1F]">{p.atm_id}</span>
+          <span className="text-[#8A8D90]">—</span>
+          <span className="text-[#43474C]">{p.location_name}</span>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
-            <div className="text-xs text-[#4B5563] uppercase tracking-wider mb-1">Priority Rank</div>
-            <div className={`text-2xl font-bold ${
-              area === "priority" ? "text-[#B91C1C]" : area === "watch" ? "text-[#B45309]" : "text-[#6B7280]"
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]" title={SCORE_TOOLTIP}>
+            <div className="text-xs text-[#43474C] mb-1">Rank</div>
+            <div className={`num text-2xl font-semibold ${
+              area === "priority" ? "text-[#12355B]" : "text-[#1A1C1F]"
             }`}>
-              #{p.rank} <span className="text-base font-medium text-[#6B7280]">of {total}</span>
+              #{p.rank} <span className="text-sm font-medium text-[#5F6368]">of {total}</span>
             </div>
-            <div className="text-xs text-[#4B5563] mt-0.5">
-              {areaPrimary(area, p.rank, total)}
+            <div className="text-xs text-[#43474C] mt-0.5">
+              {AREA_LABEL[area]} zone
             </div>
-            <div className="text-[11px] text-[#6B7280] mt-0.5">
-              {areaSecondary(area, p.display_score, p.risk_score)}
+            <div className="text-[11px] text-[#5F6368] mt-0.5">
+              Severity {p.display_score ?? '—'} · synthetic
             </div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Cash-out Records</div>
-            <div className="text-lg font-bold text-[#1F2937]">{p.observed_window?.label ?? '—'}</div>
-            <div className="text-xs text-[#4B5563] mt-0.5">Observed in this case · synthetic</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368] mb-1">Cash-out records</div>
+            <div className="text-[15px] font-semibold text-[#1A1C1F]">{p.observed_window?.label ?? '—'}</div>
+            <div className="text-[11px] text-[#5F6368] mt-0.5">
+              {p.observed_window?.records ? 'Observed in this case · synthetic' : 'No records linked to this case'}
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Distance</div>
-            <div className="text-lg font-bold text-[#1F2937]">{p.distance}</div>
-            <div className="text-[11px] text-[#6B7280] mt-0.5">From center</div>
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368]  mb-1">Distance</div>
+            <div className="text-[15px] font-semibold text-[#1A1C1F]">{p.distance}</div>
+            <div className="text-[11px] text-[#5F6368] mt-0.5">From center</div>
           </div>
         </div>
       </div>
 
       {prediction.disclaimer && (
-        <div className="mb-4 bg-[#FFF7ED] border border-[#FDBA74] rounded-lg px-3 py-2 text-[11px] text-[#9A3412] leading-relaxed">
-          <span className="font-semibold">Disclaimer:</span> {prediction.disclaimer}
+        <div className="mb-4 rounded-lg border border-[#B45309]/25 bg-[#B45309]/5 px-3 py-2 text-[12px] leading-relaxed text-[#7C3A06]">
+          <span className="font-medium">Disclaimer:</span> {prediction.disclaimer}
         </div>
       )}
 
@@ -134,34 +140,34 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
       <div className="mb-4">
         <button
           onClick={() => setShowEvidence(!showEvidence)}
-          className="w-full flex items-center justify-between p-3 bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] hover:border-[#9CA3AF] transition-colors"
+          className="w-full flex items-center justify-between p-3 bg-[#F6F6F3] rounded-lg border border-[#D2D1CA] hover:border-[#8A8D90] transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Shield size={14} className="text-[#1F2937]" />
-            <span className="text-base font-medium text-[#1F2937]">Why this location?</span>
-            <span className="text-[11px] text-[#6B7280] bg-[#E5E7EB] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'No evidence supplied'}</span>
+            <Shield size={14} className="text-[#1A1C1F]" />
+            <span className="text-sm font-medium text-[#1A1C1F]">Why this location?</span>
+            <span className="text-[11px] text-[#5F6368] bg-[#E2E1DB] px-1.5 py-0.5 rounded">{evidence.length > 0 ? `${evidence.length} signals` : 'No evidence supplied'}</span>
           </div>
-          {showEvidence ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
+          {showEvidence ? <ChevronUp size={14} className="text-[#5F6368]" /> : <ChevronDown size={14} className="text-[#5F6368]" />}
         </button>
 
         {showEvidence && (
           <div className="mt-2 space-y-2">
-            {evidence.length === 0 && <p className="text-sm text-gray-700">Evidence unavailable for this prediction. No substitute signals are shown.</p>}
+            {evidence.length === 0 && <p className="text-sm text-[#43474C]">Evidence unavailable for this prediction. No substitute signals are shown.</p>}
                         {evidence.map(([key, item]) => (
-              <div key={key} className="flex items-start gap-3 p-2.5 bg-[#F8F9FA] rounded-lg border border-[#D1D5DB]">
-                {evidenceIcons[key] || <Shield size={14} className="text-[#6B7280]" />}
+              <div key={key} className="flex items-start gap-3 p-2.5 bg-[#F6F6F3] rounded-lg border border-[#D2D1CA]">
+                {evidenceIcons[key] || <Shield size={14} className="text-[#5F6368]" />}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-medium text-[#1F2937]">{item.category}</span>
+                    <span className="text-sm font-medium text-[#1A1C1F]">{item.category}</span>
                     <span className={`text-[11px] px-1 py-0.5 rounded ${
                       item.strength === "Strong" ? "bg-[#15803D]/10 text-[#15803D]" :
                       item.strength === "Moderate" ? "bg-[#B45309]/10 text-[#B45309]" :
-                      "bg-[#F3F4F6] text-[#6B7280]"
+                      "bg-[#EFEFEA] text-[#5F6368]"
                     }`}>
                       {item.strength}
                     </span>
                   </div>
-                  <p className="text-sm text-[#4B5563]">{item.description}</p>
+                  <p className="text-sm text-[#43474C]">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -172,13 +178,13 @@ export default function PredictionCard({ prediction, onShowEvidence }: Predictio
       <div className="flex gap-2">
         <button
           onClick={onShowEvidence}
-          className="flex-1 py-2.5 bg-[#1D4ED8] text-white text-base font-medium rounded-lg hover:bg-[#1D355B] transition-colors flex items-center justify-center gap-2"
+          className="flex-1 py-2.5 bg-[#17406F] text-white text-sm font-medium rounded-lg hover:bg-[#12355B] transition-colors flex items-center justify-center gap-2"
         >
           View Full Evidence <ChevronRight size={14} />
         </button>
         <button
           onClick={() => downloadReport(prediction)}
-          className="py-2.5 px-4 bg-[#F3F4F6] text-[#1F2937] text-base font-medium rounded-lg hover:bg-[#E5E7EB] transition-colors flex items-center justify-center gap-2"
+          className="py-2.5 px-4 bg-[#EFEFEA] text-[#1A1C1F] text-sm font-medium rounded-lg hover:bg-[#E2E1DB] transition-colors flex items-center justify-center gap-2"
           title="Download Intelligence Report"
         >
           <Download size={14} />
@@ -193,19 +199,19 @@ export function PredictionCardSkeleton() {
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-4 w-20 bg-[#E5E7EB] rounded animate-pulse" />
-        <div className="h-4 w-24 bg-[#E5E7EB] rounded animate-pulse" />
+        <div className="h-4 w-20 bg-[#E2E1DB] rounded animate-pulse" />
+        <div className="h-4 w-24 bg-[#E2E1DB] rounded animate-pulse" />
       </div>
-      <div className="bg-[#F8F9FA] rounded-xl p-4 border border-[#D1D5DB] mb-4">
-        <div className="h-3 w-32 bg-[#E5E7EB] rounded animate-pulse mb-2" />
-        <div className="h-8 w-48 bg-[#E5E7EB] rounded animate-pulse mb-3" />
+      <div className="bg-[#F6F6F3] rounded-xl p-4 border border-[#D2D1CA] mb-4">
+        <div className="h-3 w-32 bg-[#E2E1DB] rounded animate-pulse mb-2" />
+        <div className="h-8 w-48 bg-[#E2E1DB] rounded animate-pulse mb-3" />
         <div className="grid grid-cols-3 gap-3">
-          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
-          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
-          <div className="h-20 bg-[#E5E7EB] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E2E1DB] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E2E1DB] rounded-lg animate-pulse" />
+          <div className="h-20 bg-[#E2E1DB] rounded-lg animate-pulse" />
         </div>
       </div>
-      <div className="h-10 bg-[#E5E7EB] rounded-lg animate-pulse" />
+      <div className="h-10 bg-[#E2E1DB] rounded-lg animate-pulse" />
     </div>
   );
 }

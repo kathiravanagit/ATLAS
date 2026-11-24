@@ -4,17 +4,17 @@ export default function DataPrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#1F2937]">Data & Privacy</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Synthetic data, prototype controls, and requirements before deployment</p>
+        <h2 className="text-xl font-semibold text-[#1A1C1F]">Data & Privacy</h2>
+        <p className="text-sm text-[#5F6368] mt-1">Synthetic data, prototype controls, and requirements before deployment</p>
       </div>
 
       {/* Why Synthetic Data */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Database size={18} className="text-[#3b82f6]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Why Synthetic Data?</h3>
+          <Database size={16} strokeWidth={1.6} className="text-[#5F6368]" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Why Synthetic Data?</h3>
         </div>
-        <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
+        <div className="space-y-3 text-sm text-[#5F6368] leading-relaxed">
           <p>
             This prototype uses synthetic fixtures and generated model inputs, not live banking or government records.
             Any use of real personal or financial data would require an appropriate legal basis, permissions,
@@ -33,8 +33,8 @@ export default function DataPrivacyPage() {
             Dataset size, class balance, and geographic coverage depend on the generated artifacts.
             Use supplied model metadata where available; this page does not establish representative fraud rates or operational accuracy.
           </p>
-          <div className="bg-white rounded-lg p-3 border border-[#D1D5DB] text-xs">
-            <strong className="text-[#1F2937]">Note:</strong> Offline model artifacts and the API-connected prototype database serve different purposes.
+          <div className="bg-white rounded-lg p-3 border border-[#D2D1CA] text-xs">
+            <strong className="text-[#1A1C1F]">Note:</strong> Offline model artifacts and the API-connected prototype database serve different purposes.
             The database can store synthetic transaction records, case metadata, prediction snapshots, alerts, and audit records.
             Do not enter real sensitive data into this demonstration.
           </div>
@@ -44,8 +44,8 @@ export default function DataPrivacyPage() {
       {/* Compliance */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Shield size={18} className="text-[#22c55e]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Prototype Controls — Not Legal Compliance</h3>
+          <Shield size={16} strokeWidth={1.6} className="text-[#5F6368]" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Prototype Controls — Not Legal Compliance</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
           {[
@@ -54,12 +54,12 @@ export default function DataPrivacyPage() {
             { title: 'Synthetic Data', desc: 'No live UPI feed is connected. Calibration to public statistics and NPCI compliance have not been verified.', icon: Database },
             { title: 'Evidence Integrity', desc: 'Prototype evidence verification tools do not establish legal admissibility, a complete chain of custody, or regulatory certification.', icon: Shield },
           ].map(item => (
-            <div key={item.title} className="bg-white rounded-lg p-4 border border-[#D1D5DB]">
+            <div key={item.title} className="bg-white rounded-lg p-4 border border-[#D2D1CA]">
               <div className="flex items-center gap-2 mb-2">
-                <item.icon size={14} className="text-[#22c55e]" />
-                <span className="text-sm font-medium text-[#1F2937]">{item.title}</span>
+                <item.icon size={14} strokeWidth={1.6} className="text-[#8A8D90]" aria-hidden="true" />
+                <span className="text-sm font-medium text-[#1A1C1F]">{item.title}</span>
               </div>
-              <p className="text-xs text-[#6B7280] leading-relaxed">{item.desc}</p>
+              <p className="text-xs text-[#5F6368] leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -68,10 +68,10 @@ export default function DataPrivacyPage() {
       {/* Architecture */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Eye size={18} className="text-[#8b5cf6]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Deployment Requirements</h3>
+          <Eye size={16} strokeWidth={1.6} className="text-[#5F6368]" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Deployment Requirements</h3>
         </div>
-        <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
+        <div className="space-y-3 text-sm text-[#5F6368] leading-relaxed">
           <p>
             No real bank integration is implemented. Production deployment would require independently reviewed
             integrations, access controls, privacy safeguards, and operational validation. Potential future research areas, not implemented capabilities, include:
@@ -82,15 +82,15 @@ export default function DataPrivacyPage() {
               { label: 'Differential Privacy', desc: 'Not implemented; no mathematical privacy guarantee is provided' },
               { label: 'Secure Multi-Party', desc: 'Not implemented; would require a reviewed joint-computation protocol' },
             ].map(item => (
-              <div key={item.label} className="bg-white rounded-lg p-3 border border-[#D1D5DB] text-center">
-                <div className="text-xs font-medium text-[#1F2937] mb-1">{item.label}</div>
-                <div className="text-[11px] text-[#6B7280]">{item.desc}</div>
+              <div key={item.label} className="bg-white rounded-lg p-3 border border-[#D2D1CA] text-center">
+                <div className="text-xs font-medium text-[#1A1C1F] mb-1">{item.label}</div>
+                <div className="text-[11px] text-[#5F6368]">{item.desc}</div>
               </div>
             ))}
           </div>
           <p className="mt-3">
-            The prototype uses <strong className="text-[#1F2937]">FastAPI</strong> for the backend and{' '}
-            <strong className="text-[#1F2937]">React + Leaflet</strong> for the frontend.
+            The prototype uses <strong className="text-[#1A1C1F]">FastAPI</strong> for the backend and{' '}
+            <strong className="text-[#1A1C1F]">React + Leaflet</strong> for the frontend.
             Database capabilities depend on deployment configuration; this page does not verify production readiness.
           </p>
         </div>
@@ -99,16 +99,16 @@ export default function DataPrivacyPage() {
       {/* Model Transparency */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <FileText size={18} className="text-[#f59e0b]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Model Transparency</h3>
+          <FileText size={16} strokeWidth={1.6} className="text-[#5F6368]" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Model Transparency</h3>
         </div>
-        <div className="space-y-3 text-sm text-[#6B7280] leading-relaxed">
+        <div className="space-y-3 text-sm text-[#5F6368] leading-relaxed">
           <p>
             Exact-ATM explanations depend on a stored feature snapshot and an available compatible model.
             Local SHAP, global importance fallback, and unavailable explanations are distinct states.
             Global importance is not an additive explanation of an individual prediction; risk scores are not verified calibrated probabilities.
           </p>
-          <div className="bg-white rounded-lg p-4 border border-[#D1D5DB] text-sm">
+          <div className="bg-white rounded-lg p-4 border border-[#D2D1CA] text-sm">
             Explanation values are unavailable on this information page. Open a selected ATM's explanation to inspect
             the actual backend response, base value, units, and method. Local demo fixtures do not provide SHAP attributions.
           </div>
@@ -118,10 +118,10 @@ export default function DataPrivacyPage() {
       {/* Sources */}
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-4">
-          <ExternalLink size={18} className="text-[#06b6d4]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Public References — Not Verified Dataset Provenance</h3>
+          <ExternalLink size={16} strokeWidth={1.6} className="text-[#5F6368]" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Public References — Not Verified Dataset Provenance</h3>
         </div>
-        <div className="space-y-2 text-sm text-[#6B7280]">
+        <div className="space-y-2 text-sm text-[#5F6368]">
           <p>These references are not evidence that the prototype dataset was sourced from, calibrated against, or endorsed by these organizations.</p>
           {[
             { name: 'RBI Annual Report 2023-24 — Bank Fraud Statistics', url: 'https://www.rbi.org.in' },
@@ -130,8 +130,8 @@ export default function DataPrivacyPage() {
             { name: 'OpenStreetMap — ATM Location Data for Indian Cities', url: 'https://www.openstreetmap.org' },
             { name: 'Kaggle Credit Card Fraud Dataset — Model Prototyping Reference', url: 'https://www.kaggle.com' },
           ].map(src => (
-            <div key={src.name} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-[#D1D5DB]">
-              <ExternalLink size={12} className="text-[#06b6d4] flex-shrink-0" />
+            <div key={src.name} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-[#D2D1CA]">
+              <ExternalLink size={12} className="text-[#5F6368] flex-shrink-0" />
               <span className="text-xs">{src.name}</span>
             </div>
           ))}

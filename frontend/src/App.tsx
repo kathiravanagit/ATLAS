@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DashboardLayout from './pages/DashboardLayout';
+import DemoNotice from './components/DemoNotice';
 import OverviewPage from './pages/OverviewPage';
 import CasesPage from './pages/CasesPage';
 import LoopPage from './pages/LoopPage';
@@ -28,11 +29,38 @@ import { getAccessToken, getUser } from './lib/auth';
  * without a valid session. API routes are protected server-side; this guard
  * stops the UI from showing fallback/demo data to an unauthenticated visitor.
  */
+const DEMO_PAGES = {
+  evidence: {
+    title: 'Evidence register',
+    description: 'The register, hash chain and ledger are written by backend actions. The local demo never writes a record, so this screen stays empty rather than showing invented entries.',
+    linkTo: '/demo/predictions',
+    linkLabel: 'See the evidence behind a prediction',
+  },
+  audit: {
+    title: 'Audit log',
+    description: 'Every entry here is signed by the backend when an action is recorded. The demo makes no backend writes, so there is nothing to list.',
+    linkTo: '/demo/cases',
+    linkLabel: 'Open the case registry',
+  },
+  health: {
+    title: 'System health',
+    description: 'Service, database and model health are read from the running API. The demo runs on local fixtures with no service behind it, so no status is reported here.',
+    linkTo: '/demo',
+    linkLabel: 'Back to overview',
+  },
+  profile: {
+    title: 'Profile',
+    description: 'Profile details and jurisdiction scope are stored by the backend auth service. Demo sign-in uses fixture accounts and never contacts a server.',
+    linkTo: '/demo',
+    linkLabel: 'Back to overview',
+  },
+};
+
 function PageFallback() {
   return (
     <div className="p-6 space-y-3" aria-busy="true" aria-label="Loading page">
-      <div className="h-4 bg-[#E5E7EB] rounded animate-pulse w-1/3" />
-      <div className="h-40 bg-[#E5E7EB] rounded-lg animate-pulse" />
+      <div className="h-4 bg-[#E2E1DB] rounded animate-pulse w-1/3" />
+      <div className="h-40 bg-[#E2E1DB] rounded-lg animate-pulse" />
     </div>
   );
 }
@@ -67,9 +95,10 @@ export default function App() {
             <Route path="i4c" element={<I4CPage />} />
             <Route path="data-privacy" element={<DataPrivacyPage />} />
             <Route path="model-card" element={<Suspense fallback={<PageFallback />}><ModelCardPage /></Suspense>} />
-            {['evidence', 'audit', 'health', 'profile'].map(page => <Route key={page} path={page} element={
-              <section className="card p-6"><h1 className="text-xl font-semibold capitalize">{page}</h1><p className="mt-3 text-sm">Backend-backed {page} tools are disabled in local demo. No API requests or mutations are made. Local prediction evidence is available from the prediction card.</p></section>
-            } />)}
+            <Route path="evidence" element={<DemoNotice {...DEMO_PAGES.evidence} />} />
+            <Route path="audit" element={<DemoNotice {...DEMO_PAGES.audit} />} />
+            <Route path="health" element={<DemoNotice {...DEMO_PAGES.health} />} />
+            <Route path="profile" element={<DemoNotice {...DEMO_PAGES.profile} />} />
           </Route>
           <Route path="/real" element={<RequireAuth><DashboardLayout key="api" /></RequireAuth>}>
             <Route index element={<OverviewPage />} />

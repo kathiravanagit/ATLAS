@@ -125,15 +125,15 @@ export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
           onClick={toggleMute}
           title={speakerTitle}
           aria-label={speakerTitle}
-          className={`pointer-events-auto w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-[#D1D5DB] flex items-center justify-center shadow relative transition-colors ${
-            muted ? 'text-[#B91C1C]' : 'text-[#6B7280] hover:text-[#1F2937]'
+          className={`pointer-events-auto relative grid h-8 w-8 place-items-center rounded-lg border border-[#D2D1CA] bg-white transition-colors ${
+            muted ? 'text-[#B91C1C]' : 'text-[#5F6368] hover:text-[#1A1C1F]'
           } ${showArmedPulse ? 'animate-[armed-pulse_0.6s_ease-in-out_2]' : ''}`}
         >
           {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
           {/* WS connection status dot — green = socket open, grey = disconnected */}
           <span
             className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors ${
-              connected ? 'bg-[#15803D]' : 'bg-[#9CA3AF]'
+              connected ? 'bg-[#15803D]' : 'bg-[#8A8D90]'
             }`}
             title={connected ? 'WebSocket connected' : 'WebSocket disconnected'}
           />
@@ -143,27 +143,26 @@ export default function LiveAlertToast({ onAlert }: LiveAlertToastProps) {
         {toasts.map((toast, i) => (
           <motion.div
             key={`${toast.case_id}-${i}`}
-            initial={{ opacity: 0, x: 80, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 80, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="pointer-events-auto bg-white border border-[#D1D5DB] rounded-xl p-4 shadow-lg"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="pointer-events-auto rounded-[12px] border border-[#E2E1DB] bg-white p-3.5 shadow-[0_4px_16px_rgba(26,28,31,0.08)]"
           >
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#B91C1C]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <AlertTriangle size={16} className="text-[#B91C1C]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-[#B91C1C]">HIGH-RISK ALERT</span>
-                  {!connected && (
-                    <span className="text-[11px] text-[#B45309] bg-[#B45309]/10 px-1.5 py-0.5 rounded">OFFLINE</span>
-                  )}
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle size={15} strokeWidth={1.6} className="mt-0.5 shrink-0 text-[#B91C1C]" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#1A1C1F]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#B91C1C]" aria-hidden="true" />
+                    High-risk alert
+                  </span>
+                  {!connected && <span className="text-[11px] text-[#B45309]">offline</span>}
                 </div>
-                <div className="text-sm text-[#1F2937] truncate">{String(toast.message || 'New alert')}</div>
-                <div className="text-[10px] text-[#6B7280] mt-1 font-mono">{String(toast.case_id || '')}</div>
+                <div className="truncate text-[13px] text-[#43474C]">{String(toast.message || 'New alert')}</div>
+                <div className="num mt-1 text-[11px] text-[#8A8D90]">{String(toast.case_id || '')}</div>
               </div>
-              <button onClick={() => dismiss(i)} className="text-[#6B7280] hover:text-[#1F2937] transition-colors flex-shrink-0">
+              <button onClick={() => dismiss(i)} className="shrink-0 text-[#8A8D90] transition-colors hover:text-[#1A1C1F]">
                 <X size={14} />
               </button>
             </div>

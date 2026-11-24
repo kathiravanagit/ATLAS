@@ -1077,8 +1077,8 @@ def _transaction_alert_message(amount: float, primary: dict) -> str:
     is printed (same rule as _high_risk_message).
     """
     return (
-        f"HIGH-RISK: New transaction of ₹{amount:,.0f} detected. "
-        f"Top predicted cash-out at {primary['atm_id']} ({primary['location_name']}) — Risk: HIGH"
+        f"New transaction of ₹{amount:,.0f} recorded. "
+        f"Top ranked location: {primary['atm_id']} ({primary['location_name']}) — risk band HIGH"
     )
 
 

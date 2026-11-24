@@ -8,7 +8,6 @@ import {
   MapPin, Filter, ChevronDown, ChevronUp, AlertTriangle,
   Clock, Shield, Crosshair, RotateCcw, X, Info, Maximize2, Minimize2
 } from 'lucide-react';
-import GlobeTransition from './globe/GlobeTransition';
 import RiskSurfaceLayer from './RiskSurfaceLayer';
 import RiskZoneLayer from './RiskZoneLayer';
 
@@ -24,9 +23,9 @@ interface MapViewProps {
 }
 
 function areaColor(area: RiskArea): string {
-  if (area === 'priority') return '#ef4444';
-  if (area === 'watch') return '#f59e0b';
-  return '#3b82f6';
+  if (area === 'priority') return '#B91C1C';
+  if (area === 'watch') return '#B45309';
+  return '#17406F';
 }
 
 function locArea(loc: PredictionLocation, total: number): RiskArea {
@@ -52,7 +51,7 @@ function createPinIcon(area: RiskArea, rank: number, isSelected: boolean): L.Div
     html: `
       <svg width="${size}" height="${size + 10}" viewBox="0 0 ${size} ${size + 10}" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
         <path d="M${size / 2} ${size + 8}L${size / 2 - 3} ${size + 3}L${size / 2 + 3} ${size + 3}Z" fill="${color}"/>
-        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - strokeW}" fill="#18181b" stroke="${stroke}" stroke-width="${strokeW}"/>
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - strokeW}" fill="#1A1C1F" stroke="${stroke}" stroke-width="${strokeW}"/>
         <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - strokeW - 4}" fill="${color}" opacity="0.15"/>
         <text x="${size / 2}" y="${size / 2 - 1}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="10" font-weight="bold" font-family="'JetBrains Mono', monospace">
           ${rank}
@@ -109,26 +108,26 @@ function ZoomControls({ onRecenter, isFullscreen, onToggleFullscreen }: {
     <div className="absolute bottom-4 right-4 z-[1000] flex flex-col gap-1">
       <button
         onClick={() => map.zoomIn()}
-        className="w-8 h-8 bg-white/90 backdrop-blur border border-[#D1D5DB] rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF] transition-colors"
+        className="w-8 h-8 bg-white border border-[#D2D1CA] rounded-lg flex items-center justify-center text-[#5F6368] hover:text-[#1A1C1F] hover:border-[#8A8D90] transition-colors"
       >
-        <span className="text-lg leading-none">+</span>
+        <span className="text-[15px] leading-none">+</span>
       </button>
       <button
         onClick={() => map.zoomOut()}
-        className="w-8 h-8 bg-white/90 backdrop-blur border border-[#D1D5DB] rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF] transition-colors"
+        className="w-8 h-8 bg-white border border-[#D2D1CA] rounded-lg flex items-center justify-center text-[#5F6368] hover:text-[#1A1C1F] hover:border-[#8A8D90] transition-colors"
       >
-        <span className="text-lg leading-none">−</span>
+        <span className="text-[15px] leading-none">−</span>
       </button>
       <button
         onClick={onRecenter}
-        className="w-8 h-8 bg-white/90 backdrop-blur border border-[#D1D5DB] rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF] transition-colors mt-1"
+        className="w-8 h-8 bg-white border border-[#D2D1CA] rounded-lg flex items-center justify-center text-[#5F6368] hover:text-[#1A1C1F] hover:border-[#8A8D90] transition-colors mt-1"
         title="Recenter"
       >
         <Crosshair size={14} />
       </button>
       <button
         onClick={onToggleFullscreen}
-        className="w-8 h-8 bg-white/90 backdrop-blur border border-[#D1D5DB] rounded-lg flex items-center justify-center text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF] transition-colors"
+        className="w-8 h-8 bg-white border border-[#D2D1CA] rounded-lg flex items-center justify-center text-[#5F6368] hover:text-[#1A1C1F] hover:border-[#8A8D90] transition-colors"
         title={isFullscreen ? 'Exit full screen' : 'Full screen map'}
         aria-pressed={isFullscreen}
       >
@@ -148,7 +147,6 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   const [showSurface, setShowSurface] = useState(true);
   const [showZones, setShowZones] = useState(true);
   const [hoveredAtm, setHoveredAtm] = useState<string | null>(null);
-  const [globeDone, setGlobeDone] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -209,11 +207,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D1D5DB]"
+      className="relative w-full h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden border border-[#D2D1CA]"
     >
-      {!globeDone && (
-        <GlobeTransition locations={locations} onComplete={() => setGlobeDone(true)} />
-      )}
       {/* Map */}
       <MapContainer
         key={`${center[0].toFixed(2)}-${center[1].toFixed(2)}`}
@@ -246,7 +241,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             key={`critical-zone-${loc.atm_id}`}
             center={[loc.latitude, loc.longitude]}
             radius={220}
-            pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.08, weight: 2, opacity: 0.75 }}
+            pathOptions={{ color: '#B91C1C', fillColor: '#B91C1C', fillOpacity: 0.08, weight: 2, opacity: 0.75 }}
           />
         ))}
 
@@ -265,7 +260,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             }}
           >
             <Popup>
-              <div style={{ color: '#18181b', fontSize: '12px', padding: '4px', minWidth: '150px' }} title={SCORE_TOOLTIP}>
+              <div style={{ color: '#1A1C1F', fontSize: '12px', padding: '4px', minWidth: '150px' }} title={SCORE_TOOLTIP}>
                 <strong style={{ fontSize: '14px' }}>{loc.atm_id}</strong><br />
                 <span>{loc.location_name}</span><br />
                 <span style={{ fontWeight: 'bold', color: areaColor(locArea(loc, locations.length)) }}>
@@ -288,37 +283,37 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
       {/* Left Filter Panel */}
       <div className="absolute top-4 left-4 z-[1000] w-72">
-        <div className="bg-white/95 backdrop-blur-xl rounded-xl border border-[#D1D5DB] shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#D2D1CA]  overflow-hidden">
           {/* Header */}
-          <div className="p-4 border-b border-[#D1D5DB]">
+          <div className="p-4 border-b border-[#D2D1CA]">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-base font-semibold text-[#1F2937]">Predicted Cash-Out Locations</h3>
+              <h3 className="text-sm font-semibold text-[#1A1C1F]">Ranked cash-out locations</h3>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="p-1 rounded hover:bg-[#E5E7EB] transition-colors"
+                className="p-1 rounded hover:bg-[#E2E1DB] transition-colors"
               >
-                {showFilters ? <ChevronUp size={14} className="text-[#6B7280]" /> : <ChevronDown size={14} className="text-[#6B7280]" />}
+                {showFilters ? <ChevronUp size={14} className="text-[#5F6368]" /> : <ChevronDown size={14} className="text-[#5F6368]" />}
               </button>
             </div>
-            <p className="text-sm text-[#4B5563]" title={SCORE_TOOLTIP}>
+            <p className="text-sm text-[#43474C]" title={SCORE_TOOLTIP}>
               {stats.total} locations | {stats.priority} priority · {stats.watch} watch · {stats.background} background
             </p>
           </div>
 
           {/* Filter Toggle */}
           <div className="px-4 pt-3">
-            <div className="flex items-center gap-1 bg-white rounded-lg p-0.5 border border-[#D1D5DB]">
+            <div className="flex items-center gap-1 bg-white rounded-lg p-0.5 border border-[#D2D1CA]">
               {(['all', 'priority', 'watch', 'background'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setRiskFilter(f)}
-                  className={`flex-1 py-1.5 text-[10px] rounded-md transition-all ${
+                  className={`flex-1 py-1.5 text-[10px] rounded-md transition-colors ${
                     riskFilter === f
-                      ? f === 'priority' ? 'bg-[#ef4444]/15 text-[#ef4444]' :
-                        f === 'watch' ? 'bg-[#f59e0b]/15 text-[#f59e0b]' :
-                        f === 'background' ? 'bg-[#3b82f6]/15 text-[#3b82f6]' :
-                        'bg-[#F3F4F6] text-[#1F2937]'
-                      : 'text-[#6B7280] hover:text-[#1F2937]'
+                      ? f === 'priority' ? 'bg-[#B91C1C]/15 text-[#B91C1C]' :
+                        f === 'watch' ? 'bg-[#B45309]/15 text-[#B45309]' :
+                        f === 'background' ? 'bg-[#17406F]/15 text-[#17406F]' :
+                        'bg-[#EFEFEA] text-[#1A1C1F]'
+                      : 'text-[#5F6368] hover:text-[#1A1C1F]'
                   }`}
                 >
                   {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -332,7 +327,7 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
             <div className="p-4 space-y-3">
               {/* Observed hours */}
               <div>
-                <label className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1.5 block" title={OBSERVED_HOURS_TIP}>Observed Hours</label>
+                <label className="text-[10px] text-[#5F6368]  mb-1.5 block" title={OBSERVED_HOURS_TIP}>Observed Hours</label>
                 <div className="flex flex-wrap gap-1.5">
                   {TIME_BUCKETS.map(bucket => (
                     <button
@@ -341,8 +336,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                       title={OBSERVED_HOURS_TIP}
                       className={`px-2 py-1 text-[11px] rounded border transition-colors ${
                         timeFilter === bucket.id
-                          ? 'border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]'
-                          : 'border-[#D1D5DB] text-[#6B7280] hover:border-[#9CA3AF]'
+                          ? 'border-[#17406F]/40 bg-[#17406F]/10 text-[#17406F]'
+                          : 'border-[#D2D1CA] text-[#5F6368] hover:border-[#8A8D90]'
                       }`}
                     >
                       {bucket.label}
@@ -354,17 +349,17 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               {/* Risk surface toggle */}
               {hasSurface && surface && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[#6B7280]">
+                  <span className="text-[10px] text-[#5F6368]">
                     Risk surface · H3 res {surface.resolution}
                   </span>
                   <button
                     onClick={() => setShowSurface(!showSurface)}
                     aria-pressed={showSurface}
                     className={`relative w-8 h-[18px] rounded-full transition-colors ${
-                      showSurface ? 'bg-[#3b82f6]' : 'bg-[#F3F4F6]'
+                      showSurface ? 'bg-[#17406F]' : 'bg-[#EFEFEA]'
                     }`}
                   >
-                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${
+                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-colors ${
                       showSurface ? 'left-[14px]' : 'left-[2px]'
                     }`} />
                   </button>
@@ -374,17 +369,17 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               {/* Intervention-zone toggle */}
               {hasZones && zones && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[#6B7280]">
+                  <span className="text-[10px] text-[#5F6368]">
                     Intervention zones · {zones.summary.zones}
                   </span>
                   <button
                     onClick={() => setShowZones(!showZones)}
                     aria-pressed={showZones}
                     className={`relative w-8 h-[18px] rounded-full transition-colors ${
-                      showZones ? 'bg-[#3b82f6]' : 'bg-[#F3F4F6]'
+                      showZones ? 'bg-[#17406F]' : 'bg-[#EFEFEA]'
                     }`}
                   >
-                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all ${
+                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-colors ${
                       showZones ? 'left-[14px]' : 'left-[2px]'
                     }`} />
                   </button>
@@ -392,58 +387,58 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               )}
 
               {/* Risk Legend */}
-              <div className="pt-2 border-t border-[#D1D5DB]" title={SCORE_TOOLTIP}>
-                <div className="text-[10px] text-[#6B7280] uppercase mb-2">Rank Zones</div>
+              <div className="pt-2 border-t border-[#D2D1CA]" title={SCORE_TOOLTIP}>
+                <div className="text-[10px] text-[#5F6368]  mb-2">Rank Zones</div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
-                    <span className="text-[10px] text-[#374151]">Priority (top ranks)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.priority}</span>
+                    <div className="w-3 h-3 rounded-full bg-[#B91C1C]" />
+                    <span className="text-[10px] text-[#33373B]">Priority (top ranks)</span>
+                    <span className="text-[10px] text-[#5F6368] ml-auto">{stats.priority}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-                    <span className="text-[10px] text-[#374151]">Watch (mid ranks)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.watch}</span>
+                    <div className="w-3 h-3 rounded-full bg-[#B45309]" />
+                    <span className="text-[10px] text-[#33373B]">Watch (mid ranks)</span>
+                    <span className="text-[10px] text-[#5F6368] ml-auto">{stats.watch}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
-                    <span className="text-[10px] text-[#374151]">Background (rest)</span>
-                    <span className="text-[10px] text-[#6B7280] ml-auto">{stats.background}</span>
+                    <div className="w-3 h-3 rounded-full bg-[#17406F]" />
+                    <span className="text-[10px] text-[#33373B]">Background (rest)</span>
+                    <span className="text-[10px] text-[#5F6368] ml-auto">{stats.background}</span>
                   </div>
                 </div>
               </div>
 
               {/* Risk surface legend */}
               {hasSurface && surface && (
-                <div className="pt-2 border-t border-[#D1D5DB]">
-                  <div className="text-[10px] text-[#6B7280] uppercase mb-2">
+                <div className="pt-2 border-t border-[#D2D1CA]">
+                  <div className="text-[10px] text-[#5F6368]  mb-2">
                     Risk surface cells
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-sm bg-[#ef4444]/60 border border-[#ef4444]" />
-                      <span className="text-[10px] text-[#374151]">Priority cell</span>
-                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.priority}</span>
+                      <div className="w-3 h-3 rounded-sm bg-[#B91C1C]/60 border border-[#B91C1C]" />
+                      <span className="text-[10px] text-[#33373B]">Priority cell</span>
+                      <span className="text-[10px] text-[#5F6368] ml-auto">{surface.summary.priority}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-sm bg-[#f59e0b]/50 border border-[#f59e0b]" />
-                      <span className="text-[10px] text-[#374151]">Watch cell</span>
-                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.watch}</span>
+                      <div className="w-3 h-3 rounded-sm bg-[#B45309]/50 border border-[#B45309]" />
+                      <span className="text-[10px] text-[#33373B]">Watch cell</span>
+                      <span className="text-[10px] text-[#5F6368] ml-auto">{surface.summary.watch}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-sm bg-[#3b82f6]/25 border border-[#3b82f6]" />
-                      <span className="text-[10px] text-[#374151]">Background cell</span>
-                      <span className="text-[10px] text-[#6B7280] ml-auto">{surface.summary.background}</span>
+                      <div className="w-3 h-3 rounded-sm bg-[#17406F]/25 border border-[#17406F]" />
+                      <span className="text-[10px] text-[#33373B]">Background cell</span>
+                      <span className="text-[10px] text-[#5F6368] ml-auto">{surface.summary.background}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-sm border border-dashed border-[#9CA3AF]" />
-                      <span className="text-[10px] text-[#374151]">No coverage</span>
-                      <span className="text-[10px] text-[#6B7280] ml-auto">
+                      <div className="w-3 h-3 rounded-sm border border-dashed border-[#8A8D90]" />
+                      <span className="text-[10px] text-[#33373B]">No coverage</span>
+                      <span className="text-[10px] text-[#5F6368] ml-auto">
                         {surface.summary.cells - surface.summary.scored}
                       </span>
                     </div>
                   </div>
-                  <div className="text-[10px] text-[#6B7280] mt-2 leading-snug">
+                  <div className="text-[10px] text-[#5F6368] mt-2 leading-snug">
                     {surface.summary.cells} cells · {Math.round(surface.cell_edge_m)} m edge ·
                     smoothed at σ {Math.round(surface.sigma_m)} m from{' '}
                     {surface.basis === 'ranker_score' ? 'ranker scores' : 'row-model scores'}.
@@ -462,8 +457,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
               {/* Intervention zones: the operational read of the surface */}
               {hasZones && zones && (
-                <div className="pt-2 border-t border-[#D1D5DB]">
-                  <div className="text-[10px] text-[#6B7280] uppercase mb-2">
+                <div className="pt-2 border-t border-[#D2D1CA]">
+                  <div className="text-[10px] text-[#5F6368]  mb-2">
                     Intervention zones
                   </div>
                   <div className="space-y-1.5">
@@ -472,16 +467,16 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
                         <div className={`w-3 h-2 border border-dashed ${
                           zone.level === 'priority' ? 'border-[#991b1b]' : 'border-[#92400e]'
                         }`} />
-                        <span className="text-[10px] text-[#374151]">
+                        <span className="text-[10px] text-[#33373B]">
                           {zone.zone_id} · {zone.cells} cells
                         </span>
-                        <span className="text-[10px] text-[#6B7280] ml-auto">
+                        <span className="text-[10px] text-[#5F6368] ml-auto">
                           {zone.priority_cells} priority
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div className="text-[10px] text-[#6B7280] mt-2 leading-snug">
+                  <div className="text-[10px] text-[#5F6368] mt-2 leading-snug">
                     {zones.summary.zones} zone{zones.summary.zones === 1 ? '' : 's'} from{' '}
                     {zones.summary.clustered_cells} adjacent cells · DBSCAN over H3
                     neighbourhoods (eps {zones.eps_hops} cell
@@ -495,9 +490,9 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
               )}
 
               {/* Rank zone explanation */}
-              <div className="pt-2 border-t border-[#D1D5DB]">
-                <div className="text-[10px] text-[#6B7280]">Pin colour</div>
-                <div className="text-[10px] text-[#6B7280] mt-0.5">Blue = background · amber = watch · red = priority zone</div>
+              <div className="pt-2 border-t border-[#D2D1CA]">
+                <div className="text-[10px] text-[#5F6368]">Pin colour</div>
+                <div className="text-[10px] text-[#5F6368] mt-0.5">Blue = background · amber = watch · red = priority zone</div>
               </div>
             </div>
           )}
@@ -507,59 +502,59 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
       {/* Right Detail Panel */}
       {selectedLocation && (
         <div className="absolute top-4 right-4 z-[1000] w-72">
-          <div className="bg-white/95 backdrop-blur-xl rounded-xl border border-[#D1D5DB] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[#D1D5DB]">
+          <div className="bg-white rounded-xl border border-[#D2D1CA]  overflow-hidden">
+            <div className="p-4 border-b border-[#D2D1CA]">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div
                     className="w-2.5 h-2.5 rounded-full animate-pulse"
                     style={{ backgroundColor: areaColor(selectedArea) }}
                   />
-                  <span className="font-mono font-bold text-[#1F2937] text-base">{selectedLocation.atm_id}</span>
+                  <span className="font-mono font-semibold text-[#1A1C1F] text-sm">{selectedLocation.atm_id}</span>
                 </div>
                 <button
                   onClick={() => onSelectLocation(null as any)}
-                  className="p-1 rounded hover:bg-[#E5E7EB] transition-colors"
+                  className="p-1 rounded hover:bg-[#E2E1DB] transition-colors"
                 >
-                  <X size={14} className="text-[#6B7280]" />
+                  <X size={14} className="text-[#5F6368]" />
                 </button>
               </div>
-              <p className="text-sm text-[#374151]">{selectedLocation.location_name}</p>
+              <p className="text-sm text-[#33373B]">{selectedLocation.location_name}</p>
             </div>
 
             <div className="p-4 space-y-3">
               {/* Rank Zone */}
-              <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
+              <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]" title={SCORE_TOOLTIP}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">Rank Zone</span>
+                  <span className="text-[10px] text-[#5F6368] ">Rank Zone</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    selectedArea === 'priority' ? 'bg-[#ef4444]/10 text-[#ef4444]' :
-                    selectedArea === 'watch' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
-                    'bg-[#3b82f6]/10 text-[#3b82f6]'
+                    selectedArea === 'priority' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' :
+                    selectedArea === 'watch' ? 'bg-[#B45309]/10 text-[#B45309]' :
+                    'bg-[#17406F]/10 text-[#17406F]'
                   }`}>
                     {AREA_LABEL[selectedArea]}
                   </span>
                 </div>
-                <div className={`text-3xl font-bold ${
-                  selectedArea === 'priority' ? 'text-[#ef4444]' :
-                  selectedArea === 'watch' ? 'text-[#f59e0b]' :
-                  'text-[#3b82f6]'
+                <div className={`text-3xl font-semibold ${
+                  selectedArea === 'priority' ? 'text-[#B91C1C]' :
+                  selectedArea === 'watch' ? 'text-[#B45309]' :
+                  'text-[#17406F]'
                 }`}>
-                  #{selectedLocation.rank} <span className="text-base font-medium text-[#6B7280]">of {selectedTotal}</span>
+                  #{selectedLocation.rank} <span className="text-sm font-medium text-[#5F6368]">of {selectedTotal}</span>
                 </div>
-                <div className="text-[11px] text-[#4B5563] mt-1">
+                <div className="text-[11px] text-[#43474C] mt-1">
                   {areaPrimary(selectedArea, selectedLocation.rank, selectedTotal)}
                 </div>
-                <div className="text-[10px] text-[#6B7280] mt-0.5">
+                <div className="text-[10px] text-[#5F6368] mt-0.5">
                   {areaSecondary(selectedArea, selectedLocation.display_score, selectedLocation.risk_score)}
                 </div>
-                {/* Progress bar */}
-                <div className="mt-2 h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden">
+                {/* Score bar */}
+                <div className="mt-2 h-1.5 bg-[#EFEFEA] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full"
                     style={{
                       width: `${selectedLocation.display_score ?? 0}%`,
-                      background: `linear-gradient(90deg, ${areaColor(selectedArea)}, ${areaColor(selectedArea)}aa)`,
+                      background: areaColor(selectedArea),
                     }}
                   />
                 </div>
@@ -567,33 +562,33 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white rounded-lg p-2.5 border border-[#D1D5DB]">
+                <div className="bg-white rounded-lg p-2.5 border border-[#D2D1CA]">
                   <div className="flex items-center gap-1 mb-1">
-                    <Clock size={10} className="text-[#6B7280]" />
-                    <span className="text-[11px] text-[#6B7280] uppercase" title={OBSERVED_HOURS_TIP}>Cash-out records</span>
+                    <Clock size={10} className="text-[#5F6368]" />
+                    <span className="text-[11px] text-[#5F6368] " title={OBSERVED_HOURS_TIP}>Cash-out records</span>
                   </div>
-                  <div className="text-sm font-medium text-[#1F2937]">{selectedLocation.observed_window?.label ?? '—'}</div>
+                  <div className="text-sm font-medium text-[#1A1C1F]">{selectedLocation.observed_window?.label ?? '—'}</div>
                 </div>
-                <div className="bg-white rounded-lg p-2.5 border border-[#D1D5DB]">
+                <div className="bg-white rounded-lg p-2.5 border border-[#D2D1CA]">
                   <div className="flex items-center gap-1 mb-1">
-                    <MapPin size={10} className="text-[#6B7280]" />
-                    <span className="text-[11px] text-[#6B7280] uppercase">Distance</span>
+                    <MapPin size={10} className="text-[#5F6368]" />
+                    <span className="text-[11px] text-[#5F6368] ">Distance</span>
                   </div>
-                  <div className="text-sm font-medium text-[#1F2937]">{selectedLocation.distance}</div>
+                  <div className="text-sm font-medium text-[#1A1C1F]">{selectedLocation.distance}</div>
                 </div>
               </div>
 
               {/* Reason */}
-              <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
+              <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
                 <div className="flex items-center gap-1 mb-1.5">
-                  <Shield size={10} className="text-[#6B7280]" />
-                  <span className="text-[11px] text-[#6B7280] uppercase">AI Reasoning</span>
+                  <Shield size={10} className="text-[#5F6368]" />
+                  <span className="text-[11px] text-[#5F6368] ">AI Reasoning</span>
                 </div>
-                <p className="text-sm text-[#374151] leading-relaxed">{selectedLocation.reason}</p>
+                <p className="text-sm text-[#33373B] leading-relaxed">{selectedLocation.reason}</p>
               </div>
 
               {/* Rank */}
-              <div className="flex items-center justify-between text-[10px] text-[#6B7280]">
+              <div className="flex items-center justify-between text-[10px] text-[#5F6368]">
                 <span>{areaPrimary(selectedArea, selectedLocation.rank, selectedTotal)}</span>
                 <span className="font-mono">{selectedLocation.status}</span>
               </div>
@@ -604,18 +599,18 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
 
       {/* Bottom Stats Bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]">
-        <div className="bg-white/95 backdrop-blur-xl rounded-xl border border-[#D1D5DB] px-4 py-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 w-max max-w-[90vw]">
+        <div className="bg-white rounded-xl border border-[#D2D1CA] px-4 py-2 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 w-max max-w-[90vw]">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#1D4ED8]" />
-            <span className="text-xs font-medium text-[#374151]">Synthetic predictions</span>
+            <div className="w-2 h-2 rounded-full bg-[#17406F]" />
+            <span className="text-xs font-medium text-[#33373B]">Synthetic fixtures</span>
           </div>
-          <div className="text-[10px] text-[#6B7280]" title={SCORE_TOOLTIP}>
-            <span className="text-[#1F2937] font-medium">{stats.total}</span> locations
+          <div className="text-[10px] text-[#5F6368]" title={SCORE_TOOLTIP}>
+            <span className="text-[#1A1C1F] font-medium">{stats.total}</span> locations
           </div>
-          <div className="text-[10px] text-[#6B7280]">
-            <span className="text-[#ef4444] font-medium">{stats.priority}</span> priority ·{' '}
-            <span className="text-[#f59e0b] font-medium">{stats.watch}</span> watch ·{' '}
-            <span className="text-[#3b82f6] font-medium">{stats.background}</span> background
+          <div className="text-[10px] text-[#5F6368]">
+            <span className="text-[#B91C1C] font-medium">{stats.priority}</span> priority ·{' '}
+            <span className="text-[#B45309] font-medium">{stats.watch}</span> watch ·{' '}
+            <span className="text-[#17406F] font-medium">{stats.background}</span> background
           </div>
         </div>
       </div>
@@ -623,13 +618,13 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
       {/* No results */}
       {filtered.length === 0 && (
         <div className="absolute inset-0 z-[999] flex items-center justify-center pointer-events-none">
-          <div className="bg-white/90 backdrop-blur-xl rounded-xl border border-[#D1D5DB] px-6 py-4 text-center">
-            <Info size={20} className="text-[#6B7280] mx-auto mb-2" />
-            <p className="text-base text-[#6B7280]">No locations match filters</p>
-            <p className="text-[10px] text-[#6B7280] mt-1">Try adjusting risk or time filters</p>
+          <div className="bg-white rounded-xl border border-[#D2D1CA] px-6 py-4 text-center">
+            <Info size={20} className="text-[#5F6368] mx-auto mb-2" />
+            <p className="text-sm text-[#5F6368]">No locations match filters</p>
+            <p className="text-[10px] text-[#5F6368] mt-1">Try adjusting risk or time filters</p>
             <button
               onClick={() => { setRiskFilter('all'); setTimeFilter('all'); }}
-              className="pointer-events-auto mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 transition-colors"
+              className="pointer-events-auto mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#17406F]/40 bg-[#17406F]/10 text-[#17406F] hover:bg-[#17406F]/20 transition-colors"
             >
               Reset Filters
             </button>
@@ -638,8 +633,8 @@ export default function MapView({ locations, selectedLocation, onSelectLocation,
       )}
 
       {/* Provenance label */}
-      <div className="absolute top-2 right-2 z-[999] text-xs text-[#374151] bg-white/95 border border-gray-300 px-2 py-1 rounded">
-        Synthetic prediction snapshot · not live operational data
+      <div className="absolute top-2 right-2 z-[999] text-xs text-[#33373B] bg-white/95 border border-gray-300 px-2 py-1 rounded">
+        Synthetic fixture snapshot · not live operational data
       </div>
     </div>
   );

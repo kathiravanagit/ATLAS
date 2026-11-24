@@ -138,25 +138,25 @@ export default function NlpComplaintTriage() {
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-1">
-        <MessageSquare size={16} className="text-[#f59e0b]" />
-        <h3 className="text-base font-semibold text-[#1F2937]">Complaint triage (prototype)</h3>
-        <span className="text-[10px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">Simulation</span>
+        <MessageSquare size={16} className="text-[#B45309]" />
+        <h3 className="text-sm font-semibold text-[#1A1C1F]">Complaint triage (prototype)</h3>
+        <span className="text-[10px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded">Simulation</span>
       </div>
-      <p className="text-[11px] text-[#6B7280] mb-4">Statistical TF-IDF classifier on illustrative templates — not real complaint training data</p>
+      <p className="text-[11px] text-[#5F6368] mb-4">Statistical TF-IDF classifier on illustrative templates — not real complaint training data</p>
 
       {/* Input */}
       <div className="flex gap-2 mb-3">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
-          className="flex-1 px-3 py-2 bg-[#F8F9FA] border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] focus:outline-none focus:border-[#9CA3AF] resize-none"
+          className="flex-1 px-3 py-2 bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] focus:outline-none focus:border-[#8A8D90] resize-none"
           rows={2}
           placeholder="Paste or type a cybercrime complaint..."
         />
         <button
           onClick={() => handleAnalyze(input)}
           disabled={analyzing || !input.trim()}
-          className="px-4 py-2 bg-[#f59e0b] text-[#1F2937] text-sm font-medium rounded-lg hover:bg-[#d97706] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
+          className="px-4 py-2 bg-[#B45309] text-[#1A1C1F] text-sm font-medium rounded-lg hover:bg-[#B45309] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
         >
           <Send size={12} />
           {analyzing ? 'Analyzing...' : 'Triage'}
@@ -165,13 +165,13 @@ export default function NlpComplaintTriage() {
 
       {/* Quick demos */}
       <div className="mb-4">
-        <div className="text-[10px] text-[#6B7280] mb-1.5">Quick demo complaints:</div>
+        <div className="text-[10px] text-[#5F6368] mb-1.5">Quick demo complaints:</div>
         <div className="flex flex-wrap gap-1.5">
           {DEMO_COMPLAINTS.map((demo, i) => (
             <button
               key={i}
               onClick={() => { setInput(demo); handleAnalyze(demo); }}
-              className="text-[11px] text-[#374151] bg-white border border-[#D1D5DB] px-2 py-1 rounded hover:bg-[#E5E7EB] hover:text-[#1F2937] transition-colors truncate max-w-[200px]"
+              className="text-[11px] text-[#33373B] bg-white border border-[#D2D1CA] px-2 py-1 rounded hover:bg-[#E2E1DB] hover:text-[#1A1C1F] transition-colors truncate max-w-[200px]"
               title={demo}
             >
               {demo.slice(0, 40)}...
@@ -182,10 +182,10 @@ export default function NlpComplaintTriage() {
 
       {/* Analyzing animation */}
       {analyzing && (
-        <div className="bg-[#F8F9FA] rounded-lg p-8 border border-[#D1D5DB] flex items-center justify-center">
+        <div className="bg-[#F6F6F3] rounded-lg p-8 border border-[#D2D1CA] flex items-center justify-center">
           <div className="text-center">
-            <Bot size={24} className="text-[#f59e0b] animate-pulse mx-auto mb-2" />
-            <div className="text-[11px] text-[#6B7280]">NLP model analyzing complaint...</div>
+            <Bot size={22} strokeWidth={1.6} className="mx-auto mb-2 text-[#8A8D90]" />
+            <div className="text-[11px] text-[#5F6368]">NLP model analyzing complaint...</div>
           </div>
         </div>
       )}
@@ -201,21 +201,21 @@ export default function NlpComplaintTriage() {
           {/* Priority + Category */}
           <div className="flex items-center gap-3">
             <div className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-              result.priority === 'Critical' ? 'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20' :
-              result.priority === 'High' ? 'bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20' :
-              result.priority === 'Medium' ? 'bg-[#3b82f6]/10 text-[#3b82f6] border border-[#3b82f6]/20' :
-              'bg-[#F3F4F6] text-[#6B7280] border border-[#71717a]'
+              result.priority === 'Critical' ? 'bg-[#B91C1C]/10 text-[#B91C1C] border border-[#B91C1C]/20' :
+              result.priority === 'High' ? 'bg-[#B45309]/10 text-[#B45309] border border-[#B45309]/20' :
+              result.priority === 'Medium' ? 'bg-[#17406F]/10 text-[#17406F] border border-[#17406F]/20' :
+              'bg-[#EFEFEA] text-[#5F6368] border border-[#8A8D90]'
             }`}>
               {result.priority === 'Critical' && <AlertTriangle size={12} className="inline mr-1" />}
               {result.priority}
             </div>
             <div className="flex-1">
-              <div className="text-sm text-[#1F2937] font-medium">{result.category}</div>
-              <div className="text-[10px] text-[#6B7280]">Keyword Match: {((result.model_score ?? result.keyword_match_score) * 100).toFixed(0)}% <span className="text-[#9CA3AF]">({result.classifier ? 'statistical model' : 'heuristic'})</span></div>
+              <div className="text-sm text-[#1A1C1F] font-medium">{result.category}</div>
+              <div className="text-[10px] text-[#5F6368]">Keyword Match: {((result.model_score ?? result.keyword_match_score) * 100).toFixed(0)}% <span className="text-[#8A8D90]">({result.classifier ? 'statistical model' : 'heuristic'})</span></div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-[#1F2937] font-medium">{result.estimated_loss}</div>
-              <div className="text-[10px] text-[#6B7280] flex items-center gap-1 justify-end">
+              <div className="text-sm text-[#1A1C1F] font-medium">{result.estimated_loss}</div>
+              <div className="text-[10px] text-[#5F6368] flex items-center gap-1 justify-end">
                 <Clock size={9} /> {result.timeline}
               </div>
             </div>
@@ -223,17 +223,17 @@ export default function NlpComplaintTriage() {
 
           {/* Entities */}
           {result.entities.length > 0 && (
-            <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-2">Extracted Entities</div>
+            <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA]">
+              <div className="text-[10px] text-[#5F6368]  mb-2">Extracted Entities</div>
               <div className="flex flex-wrap gap-2">
                 {result.entities.map((ent, i) => (
-                  <div key={i} className="flex items-center gap-1.5 bg-white border border-[#D1D5DB] px-2 py-1 rounded text-[10px]">
-                    {ent.type === 'AMOUNT' && <span className="text-[#f59e0b]">&#8377;</span>}
-                    {ent.type === 'BANK' && <Tag size={9} className="text-[#3b82f6]" />}
-                    {ent.type === 'LOCATION' && <MapPin size={9} className="text-[#22c55e]" />}
-                    {ent.type === 'PLATFORM' && <FileText size={9} className="text-[#8b5cf6]" />}
-                    <span className="text-[#6B7280]">{ent.type}:</span>
-                    <span className="text-[#1F2937]">{ent.value}</span>
+                  <div key={i} className="flex items-center gap-1.5 bg-white border border-[#D2D1CA] px-2 py-1 rounded text-[10px]">
+                    {ent.type === 'AMOUNT' && <span className="text-[#B45309]">&#8377;</span>}
+                    {ent.type === 'BANK' && <Tag size={9} className="text-[#17406F]" />}
+                    {ent.type === 'LOCATION' && <MapPin size={9} className="text-[#15803D]" />}
+                    {ent.type === 'PLATFORM' && <FileText size={9} className="text-[#5F6368]" />}
+                    <span className="text-[#5F6368]">{ent.type}:</span>
+                    <span className="text-[#1A1C1F]">{ent.value}</span>
                   </div>
                 ))}
               </div>
@@ -241,15 +241,15 @@ export default function NlpComplaintTriage() {
           )}
 
           {/* Suggested action */}
-          <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Suggested Action</div>
-            <div className="text-sm text-[#22c55e]">{result.suggested_action}</div>
+          <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[10px] text-[#5F6368]  mb-1">Suggested Action</div>
+            <div className="text-sm text-[#15803D]">{result.suggested_action}</div>
           </div>
 
           {/* Original text */}
-          <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-            <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mb-1">Original Complaint</div>
-            <p className="text-[11px] text-[#374151] italic">"{result.complaint_text}"</p>
+          <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA]">
+            <div className="text-[10px] text-[#5F6368]  mb-1">Original Complaint</div>
+            <p className="text-[11px] text-[#33373B] italic">"{result.complaint_text}"</p>
           </div>
         </motion.div>
       )}

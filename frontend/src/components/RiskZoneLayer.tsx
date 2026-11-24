@@ -19,8 +19,8 @@ export const ZONE_LABEL: Record<InterventionZone['level'], string> = {
 };
 
 const ZONE_STYLE: Record<InterventionZone['level'], L.PathOptions> = {
-  priority: { color: '#991b1b', fillColor: '#ef4444', fillOpacity: 0.03, weight: 1.8, opacity: 0.8, dashArray: '8 7' },
-  watch: { color: '#92400e', fillColor: '#f59e0b', fillOpacity: 0.02, weight: 1.6, opacity: 0.7, dashArray: '5 7' },
+  priority: { color: '#991b1b', fillColor: '#B91C1C', fillOpacity: 0.03, weight: 1.8, opacity: 0.8, dashArray: '8 7' },
+  watch: { color: '#92400e', fillColor: '#B45309', fillOpacity: 0.02, weight: 1.6, opacity: 0.7, dashArray: '5 7' },
 };
 
 export function zoneStyle(level: InterventionZone['level']): L.PathOptions {
@@ -51,7 +51,7 @@ export function zoneTooltip(zone: InterventionZone): string {
   if (zone.top_atm) {
     rows.push(`<div>Top ATM <strong>${esc(zone.top_atm)}</strong>${zone.atm_count > 0 ? ` · ${zone.atm_count} ATM${zone.atm_count === 1 ? '' : 's'} in zone` : ''}</div>`);
   }
-  rows.push('<div style="color:#6B7280;font-size:10px;margin-top:4px">Adjacent priority/watch cells. An area to check, not a predicted crime location.</div>');
+  rows.push('<div style="color:#5F6368;font-size:10px;margin-top:4px">Adjacent priority/watch cells. An area to check, not a predicted crime location.</div>');
   return head + rows.join('');
 }
 

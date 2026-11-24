@@ -55,10 +55,10 @@ export default function ExplainabilityPanel({ caseId, atmId, demoMode = false, r
   return (
     <section className="card p-5" aria-label="Selected ATM explainability">
       <button className="w-full flex items-center justify-between gap-2" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
-        <span className="flex items-center gap-2 text-base font-semibold"><Brain size={18} />Model Explainability</span>
+        <span className="flex items-center gap-2 text-sm font-semibold"><Brain size={18} />Model explainability</span>
         {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
-      <p className="mt-2 text-sm text-[#374151]">{caseId} · {atmId}</p>
+      <p className="mt-2 text-sm text-[#33373B]">{caseId} · {atmId}</p>
       {demoMode ? <p className="mt-3 text-sm text-amber-800">Local fixture only — SHAP and base value are unavailable. No feature contributions are invented.</p>
         : error ? <p className="mt-3 text-sm text-red-800" role="alert">Explanation unavailable: {error} No synthetic substitute is shown.</p>
         : !data ? <p className="mt-3 text-sm" role="status">Loading selected ATM explanation…</p>
@@ -66,17 +66,17 @@ export default function ExplainabilityPanel({ caseId, atmId, demoMode = false, r
           <p className="mt-3 text-sm font-medium">{data.shap_available ? 'SHAP explanation' : 'Importance fallback — not SHAP'} · {data.shap_method}</p>
           <p className="mt-2 text-sm" title={SCORE_TOOLTIP}>Base value: <span className="font-mono">{data.base_value ?? 'Unavailable'}</span> · Case-severity score: <span className="font-mono">{data.risk_score}</span> (uncalibrated internals, not a probability)</p>
           {data.base_value == null && <p className="mt-2 text-sm text-amber-800">No base value supplied; an additive explanation cannot be reconstructed.</p>}
-          <p className="mt-2 text-sm text-gray-700">Explained model: {data.explained_model ?? 'Unavailable'} · Units: {data.explanation_units ?? 'Unavailable'}</p>
+          <p className="mt-2 text-sm text-[#43474C]">Explained model: {data.explained_model ?? 'Unavailable'} · Units: {data.explanation_units ?? 'Unavailable'}</p>
           {isMeasured(data.explanation_probability) && <p className="mt-2 text-sm">Explained probability: {formatMetric(data.explanation_probability, 6)} · score scale: {formatMetric(data.explanation_probability * 100, 2)}</p>}
           {isMeasured(reconstructed) && data.explanation_units === 'probability' && <p className="mt-2 text-sm">Base + signed contributions: {formatMetric(reconstructed, 6)} probability ({formatMetric(reconstructed * 100, 2)} on score scale).</p>}
-          {data.explanation_reason && <p className="mt-2 text-sm text-gray-700">{data.explanation_reason}</p>}
+          {data.explanation_reason && <p className="mt-2 text-sm text-[#43474C]">{data.explanation_reason}</p>}
           {!data.shap_available && <p className="mt-2 text-sm text-amber-800">Importance-based contributions are not additive SHAP attributions.</p>}
           {expanded && <div className="mt-4 space-y-3">
-            <p className="text-sm text-[#374151]">{data.shap_available ? 'Signed local contributions in the reported output units; probability units scale by 100 to score units.' : 'Global feature importance only — unsigned model-level diagnostics, not contributions to this ATM’s score.'}</p>
+            <p className="text-sm text-[#33373B]">{data.shap_available ? 'Signed local contributions in the reported output units; probability units scale by 100 to score units.' : 'Global feature importance only — unsigned model-level diagnostics, not contributions to this ATM’s score.'}</p>
             {data.feature_contributions.length === 0 && <p className="text-sm">No contributions returned.</p>}
             {data.feature_contributions.map(f => <div key={f.feature} className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="w-40 text-[#374151]" title={f.feature}>{f.label ?? f.feature}</span>
-              <div className="flex-1 min-w-16 h-3 rounded bg-gray-100"><div className={`h-full rounded ${data.shap_available && (f.contribution ?? 0) < 0 ? 'bg-green-700' : 'bg-blue-700'}`} style={{ width: `${Math.abs(magnitude(f) ?? 0) / max * 100}%` }} /></div>
+              <span className="w-40 text-[#33373B]" title={f.feature}>{f.label ?? f.feature}</span>
+              <div className="flex-1 min-w-16 h-3 rounded bg-[#EFEFEA]"><div className={`h-full rounded ${data.shap_available && (f.contribution ?? 0) < 0 ? 'bg-green-700' : 'bg-blue-700'}`} style={{ width: `${Math.abs(magnitude(f) ?? 0) / max * 100}%` }} /></div>
               <span className="font-mono">{data.shap_available && (f.contribution ?? 0) > 0 ? '+' : ''}{magnitude(f)}</span>
             </div>)}
           </div>}

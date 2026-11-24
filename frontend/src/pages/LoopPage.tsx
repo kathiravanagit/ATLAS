@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useLocation, Link } from 'react-router-dom';
 import { useDashboard } from '../context/DashboardContext';
 import { isDemoRoute } from '@/lib/auth';
@@ -91,17 +90,17 @@ export default function LoopPage() {
   const current: StepKey = STEPS[active].key;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-[#1F2937]">The Loop</h2>
-        <p className="text-base text-[#374151] mt-1">
+        <h2 className="text-xl font-semibold text-[#1A1C1F]">The Loop</h2>
+        <p className="text-sm text-[#33373B] mt-1">
           One case, five stages. Every value below is the live dashboard state for the selected case — nothing is invented.
         </p>
       </div>
 
       {!activeCase && (
         <p role="note" className="card p-5 text-sm">
-          Select a case in <Link to={`${base}/cases`} className="underline text-[#1D4ED8]">Cases</Link> to start the loop.
+          Select a case in <Link to={`${base}/cases`} className="underline text-[#17406F]">Cases</Link> to start the loop.
         </p>
       )}
 
@@ -123,41 +122,40 @@ export default function LoopPage() {
                     onFocus={() => setHovered(true)}
                     onBlur={() => setHovered(false)}
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                      isActive ? 'border-[#1D4ED8] bg-[#1D4ED8]/5 text-[#1F2937] font-medium'
-                        : done ? 'border-[#D1D5DB] bg-white text-[#4B5563]'
-                        : 'border-[#D1D5DB] bg-white text-[#6B7280]'
+                      isActive ? 'border-[#17406F] bg-[#17406F]/5 text-[#1A1C1F] font-medium'
+                        : done ? 'border-[#D2D1CA] bg-white text-[#43474C]'
+                        : 'border-[#D2D1CA] bg-white text-[#5F6368]'
                     }`}
                   >
                     <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-semibold ${
-                      isActive ? 'bg-[#1D4ED8] text-white' : done ? 'bg-[#15803D] text-white' : 'bg-[#F3F4F6] text-[#6B7280]'
+                      isActive ? 'bg-[#17406F] text-white' : done ? 'bg-[#15803D] text-white' : 'bg-[#EFEFEA] text-[#5F6368]'
                     }`}>
                       {i + 1}
                     </span>
                     <span className="text-left leading-tight">
                       <span className="block">{s.label}</span>
-                      <span className="block text-[10px] text-[#6B7280] font-normal">{s.note}</span>
+                      <span className="block text-[10px] text-[#5F6368] font-normal">{s.note}</span>
                     </span>
                   </button>
-                  {i < STEPS.length - 1 && <span aria-hidden className="text-[#D1D5DB]">→</span>}
+                  {i < STEPS.length - 1 && <span aria-hidden className="text-[#D2D1CA]">→</span>}
                 </li>
               );
             })}
           </ol>
 
-          <AnimatePresence mode="wait">
-            <motion.div key={current} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }} className="card p-5">
+          <div className="card p-5">
               {current === 'complaint' && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#1F2937]">1 · Complaint</h3>
-                  <p className="text-sm text-[#6B7280] mt-1">The filing that opened the case.</p>
+                  <h3 className="text-sm font-semibold text-[#1A1C1F]">1 · Complaint</h3>
+                  <p className="text-sm text-[#5F6368] mt-1">The filing that opened the case.</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Case</div><div className="text-sm font-mono font-medium text-[#1F2937]">{activeCase.case_id}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">District</div><div className="text-sm font-medium text-[#1F2937]">{activeCase.district || '—'}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Category</div><div className="text-sm font-medium text-[#1F2937]">{activeCase.crime_type}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Amount</div><div className="text-sm font-medium text-[#1F2937]">₹{activeCase.amount.toLocaleString()}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Case</div><div className="text-sm font-mono font-medium text-[#1A1C1F]">{activeCase.case_id}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">District</div><div className="text-sm font-medium text-[#1A1C1F]">{activeCase.district || '—'}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Category</div><div className="text-sm font-medium text-[#1A1C1F]">{activeCase.crime_type}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Amount</div><div className="text-sm font-medium text-[#1A1C1F]">₹{activeCase.amount.toLocaleString()}</div></div>
                   </div>
-                  <label className="text-sm text-[#374151] block mt-4">Change case
-                    <select value={activeCase.case_id} onChange={e => handleCaseSelect(e.target.value)} className="ml-2 px-2 py-1.5 text-xs bg-white border border-[#D1D5DB] rounded-lg text-[#1F2937]">
+                  <label className="text-sm text-[#33373B] block mt-4">Change case
+                    <select value={activeCase.case_id} onChange={e => handleCaseSelect(e.target.value)} className="ml-2 px-2 py-1.5 text-xs bg-white border border-[#D2D1CA] rounded-lg text-[#1A1C1F]">
                       {cases.map(c => <option key={c.case_id} value={c.case_id}>{c.case_id} — {c.district || ''}</option>)}
                     </select>
                   </label>
@@ -166,27 +164,27 @@ export default function LoopPage() {
 
               {current === 'prediction' && primary && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#1F2937]">2 · Prediction</h3>
-                  <p className="text-sm text-[#6B7280] mt-1">{SCORE_TOOLTIP}</p>
+                  <h3 className="text-sm font-semibold text-[#1A1C1F]">2 · Prediction</h3>
+                  <p className="text-sm text-[#5F6368] mt-1">{SCORE_TOOLTIP}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Primary ATM</div><div className="text-sm font-mono font-medium text-[#1F2937]">{primary.atm_id}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Zone · Rank</div><div className="text-sm font-medium text-[#1F2937]">{areaPrimary(riskArea(primary.rank, prediction.ranked_locations.length, primary.risk_area), primary.rank, prediction.ranked_locations.length)}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Observed span</div><div className="text-sm font-medium text-[#1F2937]">{primary.observed_window?.label ?? '—'}</div></div>
-                    <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]"><div className="text-[11px] text-[#6B7280] uppercase">Candidates</div><div className="text-sm font-medium text-[#1F2937]">{prediction.ranked_locations.length}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Primary ATM</div><div className="text-sm font-mono font-medium text-[#1A1C1F]">{primary.atm_id}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Zone · Rank</div><div className="text-sm font-medium text-[#1A1C1F]">{areaPrimary(riskArea(primary.rank, prediction.ranked_locations.length, primary.risk_area), primary.rank, prediction.ranked_locations.length)}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Observed span</div><div className="text-sm font-medium text-[#1A1C1F]">{primary.observed_window?.label ?? '—'}</div></div>
+                    <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]"><div className="text-[11px] text-[#5F6368] ">Candidates</div><div className="text-sm font-medium text-[#1A1C1F]">{prediction.ranked_locations.length}</div></div>
                   </div>
                 </div>
               )}
 
               {current === 'zone' && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#1F2937]">3 · Zone</h3>
-                  <p className="text-sm text-[#6B7280] mt-1">{zones.length > 0 ? zoneSummary(prediction) : 'No intervention zones are built for this prediction.'}</p>
+                  <h3 className="text-sm font-semibold text-[#1A1C1F]">3 · Zone</h3>
+                  <p className="text-sm text-[#5F6368] mt-1">{zones.length > 0 ? zoneSummary(prediction) : 'No intervention zones are built for this prediction.'}</p>
                   <div className="mt-4 space-y-2">
                     {zones.slice(0, 3).map(z => (
-                      <div key={z.zone_id} className="flex items-center gap-3 text-sm bg-white rounded-lg p-3 border border-[#D1D5DB]">
+                      <div key={z.zone_id} className="flex items-center gap-3 text-sm bg-white rounded-lg p-3 border border-[#D2D1CA]">
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${z.level === 'priority' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : 'bg-[#B45309]/10 text-[#B45309]'}`}>{z.level}</span>
-                        <span className="font-mono text-[#1F2937]">{z.top_atm}</span>
-                        <span className="text-[#6B7280]">{z.cells} cells · {z.atm_count} ATMs</span>
+                        <span className="font-mono text-[#1A1C1F]">{z.top_atm}</span>
+                        <span className="text-[#5F6368]">{z.cells} cells · {z.atm_count} ATMs</span>
                       </div>
                     ))}
                   </div>
@@ -195,16 +193,16 @@ export default function LoopPage() {
 
               {current === 'alert' && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#1F2937]">4 · Alert</h3>
-                  <p className="text-sm text-[#6B7280] mt-1">
+                  <h3 className="text-sm font-semibold text-[#1A1C1F]">4 · Alert</h3>
+                  <p className="text-sm text-[#5F6368] mt-1">
                     {caseAlerts.length === 0 ? 'No alert has been raised for this case.' : `${caseAlerts.length} alert(s) for ${activeCase.case_id}.`}
                   </p>
                   <ul className="mt-4 space-y-2">
                     {caseAlerts.map(a => (
-                      <li key={a.alert_id} className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${a.risk_level === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : 'bg-[#F3F4F6] text-[#6B7280]'}`}>{a.risk_level}</span>
-                        <span className="text-sm text-[#1F2937] ml-2">{a.message}</span>
-                        <span className="text-xs text-[#6B7280] block mt-1">{a.location} · {a.time_window}</span>
+                      <li key={a.alert_id} className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${a.risk_level === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : 'bg-[#EFEFEA] text-[#5F6368]'}`}>{a.risk_level}</span>
+                        <span className="text-sm text-[#1A1C1F] ml-2">{a.message}</span>
+                        <span className="text-xs text-[#5F6368] block mt-1">{a.location} · {a.time_window}</span>
                       </li>
                     ))}
                   </ul>
@@ -213,8 +211,8 @@ export default function LoopPage() {
 
               {current === 'resolve' && (
                 <div>
-                  <h3 className="text-base font-semibold text-[#1F2937]">5 · Resolve</h3>
-                  <p className="text-sm text-[#6B7280] mt-1">Resolution is a human action — the model never resolves a case on its own.</p>
+                  <h3 className="text-sm font-semibold text-[#1A1C1F]">5 · Resolve</h3>
+                  <p className="text-sm text-[#5F6368] mt-1">Resolution is a human action — the model never resolves a case on its own.</p>
                   <div className="mt-4">
                     <button
                       type="button"
@@ -226,19 +224,18 @@ export default function LoopPage() {
                     </button>
                     {note && <p role="status" className="text-sm mt-3">{note}</p>}
                     <div className="mt-4">
-                      <Link to={`${base}/cases`} className="text-sm text-[#1D4ED8] underline">Open in Case Registry</Link>
+                      <Link to={`${base}/cases`} className="text-sm text-[#17406F] underline">Open in Case Registry</Link>
                     </div>
                   </div>
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+          </div>
 
-          <p className="text-xs text-[#6B7280]">
+          <p className="text-xs text-[#5F6368]">
             Stepper advances every {STEP_MS / 1000}s and pauses on hover. Every value above comes from the live dashboard state.
           </p>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

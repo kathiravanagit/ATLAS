@@ -12,7 +12,6 @@ vi.mock('../components/RiskZoneLayer', async (importOriginal) => ({
   default: () => null,
 }));
 vi.mock('../components/RiskSurfaceLayer', () => ({ default: () => null }));
-vi.mock('../components/globe/GlobeTransition', () => ({ default: () => null }));
 vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   TileLayer: () => null, Circle: () => null, Popup: () => null, Marker: () => null,

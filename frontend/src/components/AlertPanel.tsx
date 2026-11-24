@@ -113,10 +113,10 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-base text-[#1F2937]">
-            {showNotifications ? "Notification Log" : showHistory ? "Alert History" : "Active Alerts"}
+          <h3 className="font-semibold text-sm text-[#1A1C1F]">
+            {showNotifications ? "Notification log" : showHistory ? "Alert history" : "Active alerts"}
           </h3>
-          <span className="text-sm text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
+          <span className="text-sm text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded">
             {showNotifications ? `${jobs.length} dispatch jobs` : `${pendingCount} pending`}
           </span>
         </div>
@@ -124,14 +124,14 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
           <button
             disabled={isDemoRoute()} aria-label="Notification log"
                         onClick={() => { setShowNotifications(!showNotifications); setShowHistory(false); }}
-            className={`p-1.5 rounded-lg transition-colors ${showNotifications ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
+            className={`p-1.5 rounded-lg transition-colors ${showNotifications ? "bg-[#17406F] text-white" : "bg-[#EFEFEA] hover:bg-[#E2E1DB] text-[#5F6368]"}`}
             title={isDemoRoute() ? 'Backend dispatch log disabled in local demo' : 'Notification Log'}
           >
             <Send size={12} />
           </button>
           <button
             onClick={() => { setShowHistory(!showHistory); setShowNotifications(false); }}
-            className={`p-1.5 rounded-lg transition-colors ${showHistory ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
+            className={`p-1.5 rounded-lg transition-colors ${showHistory ? "bg-[#17406F] text-white" : "bg-[#EFEFEA] hover:bg-[#E2E1DB] text-[#5F6368]"}`}
             title="Toggle History"
           >
             <History size={12} />
@@ -139,7 +139,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
           <button
             disabled={isDemoRoute()}
                         onClick={() => setShowCreate(!showCreate)}
-            className={`p-1.5 rounded-lg transition-colors ${showCreate ? "bg-[#1D4ED8] text-white" : "bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280]"}`}
+            className={`p-1.5 rounded-lg transition-colors ${showCreate ? "bg-[#17406F] text-white" : "bg-[#EFEFEA] hover:bg-[#E2E1DB] text-[#5F6368]"}`}
             title="Create Alert"
             aria-label="Create alert"
             style={can('alert.create') ? undefined : { display: 'none' }}
@@ -150,13 +150,13 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
       </div>
 
       {!showHistory && !showNotifications && (
-        <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5 mb-2">
+        <div className="flex items-center gap-1 bg-[#EFEFEA] border border-[#D2D1CA] rounded-lg p-0.5 mb-2">
           {(["all", "pending", "acknowledged"] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-2 py-1 text-[11px] rounded-md transition-colors ${
-                filter === f ? "bg-white text-[#1F2937] shadow-sm" : "text-[#6B7280] hover:text-[#1F2937]"
+                filter === f ? "bg-white text-[#1A1C1F]" : "text-[#5F6368] hover:text-[#1A1C1F]"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -168,47 +168,38 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
       {showNotifications && (
         <div className="space-y-2">
           {/* Notification Delivery Summary */}
-          <div className="card p-4 border-l-2 border-l-[#1D4ED8]">
+          <div className="card p-4 border-l-2 border-l-[#17406F]">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-[#1F2937]">Alert & Notification System</div>
+              <div className="text-sm font-medium text-[#1A1C1F]">Alert & Notification System</div>
               <button
                 onClick={loadJobs}
-                className="p-1 rounded hover:bg-[#E5E7EB] text-[#6B7280] transition-colors"
+                className="p-1 rounded hover:bg-[#E2E1DB] text-[#5F6368] transition-colors"
                 title="Refresh dispatch log"
                 aria-label="Refresh notification log"
               >
                 <RefreshCw size={12} className={jobsLoading ? 'animate-spin' : ''} />
               </button>
             </div>
-            <div className="text-[11px] text-[#6B7280] mb-3">
+            <div className="text-[11px] text-[#5F6368] mb-3">
               Dispatch log from <span className="font-mono">notification_jobs</span>. HIGH-risk predictions and
               high-risk transaction simulations enqueue SMS/email jobs when a new alert row is committed
               (once per open case+ATM); repeats dispatch nothing new until acknowledged/resolved. These are
               separate commits, not one atomic transaction. Job status records retries and dead-letter failures;
               external delivery requires configured TextBee/SMTP credentials and is not guaranteed.
             </div>
-            <div className="grid grid-cols-4 gap-2 mb-1">
-              <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
-                <MessageSquare size={14} className="text-[#15803D] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.kind === 'sms').length}</div>
-                <div className="text-[11px] text-[#6B7280]">SMS Jobs</div>
-              </div>
-              <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
-                <Mail size={14} className="text-[#1D4ED8] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.kind === 'email').length}</div>
-                <div className="text-[11px] text-[#6B7280]">Email Jobs</div>
-              </div>
-              <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
-                <CheckCircle size={14} className="text-[#15803D] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{jobs.filter(j => j.status === 'sent').length}</div>
-                <div className="text-[11px] text-[#6B7280]">Sent</div>
-              </div>
-              <div className="bg-white rounded-lg p-2 border border-[#D1D5DB] text-center">
-                <Send size={14} className="text-[#B45309] mx-auto mb-1" />
-                <div className="text-sm font-bold text-[#1F2937]">{pendingCount}</div>
-                <div className="text-[11px] text-[#6B7280]">Active Alerts</div>
-              </div>
-            </div>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+              {[
+                { label: 'SMS jobs', value: jobs.filter(j => j.kind === 'sms').length },
+                { label: 'Email jobs', value: jobs.filter(j => j.kind === 'email').length },
+                { label: 'Sent', value: jobs.filter(j => j.status === 'sent').length },
+                { label: 'Active alerts', value: pendingCount },
+              ].map(item => (
+                <div key={item.label}>
+                  <dd className="num text-[15px] font-medium text-[#1A1C1F]">{item.value}</dd>
+                  <dt className="mt-0.5 text-[11px] text-[#5F6368]">{item.label}</dt>
+                </div>
+              ))}
+            </dl>
           </div>
 
           {/* Real dispatch rows from the API */}
@@ -220,24 +211,24 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
             </div>
           )}
           {!jobsError && jobs.length === 0 && !jobsLoading && (
-            <div className="card p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] text-center">
+            <div className="card p-3 border border-[#D2D1CA]">
+              <div className="text-[11px] text-[#5F6368] text-center">
                 No notification jobs recorded — alert creation alone does not establish that a job was queued.
               </div>
             </div>
           )}
           {jobs.map(job => (
-            <div key={job.id} className="card p-3 border-l-2 border-l-[#D1D5DB]">
+            <div key={job.id} className="card p-3 border-l-2 border-l-[#D2D1CA]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {job.kind === 'sms' ? (
                     <MessageSquare size={12} className="text-[#15803D]" />
                   ) : (
-                    <Mail size={12} className="text-[#1D4ED8]" />
+                    <Mail size={12} className="text-[#17406F]" />
                   )}
-                  <span className="text-[11px] font-mono text-[#1F2937]">job #{job.id}</span>
-                  <span className="text-[11px] text-[#6B7280]">→</span>
-                  <span className="text-[11px] text-[#4B5563] uppercase">{job.kind}</span>
+                  <span className="text-[11px] font-mono text-[#1A1C1F]">job #{job.id}</span>
+                  <span className="text-[11px] text-[#5F6368]">→</span>
+                  <span className="text-[11px] text-[#43474C] ">{job.kind}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-[11px] px-1.5 py-0.5 rounded ${
@@ -247,7 +238,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                   }`}>
                     {job.status}
                   </span>
-                  <span className="text-[11px] text-[#6B7280]">
+                  <span className="text-[11px] text-[#5F6368]">
                     attempt {job.attempts}/{job.max_attempts}
                   </span>
                 </div>
@@ -256,13 +247,13 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                 <div className="mt-1.5 text-[11px] text-[#B91C1C]">{job.last_error}</div>
               )}
               {job.created_at && (
-                <div className="mt-1 text-[11px] text-[#6B7280]">{job.created_at}</div>
+                <div className="mt-1 text-[11px] text-[#5F6368]">{job.created_at}</div>
               )}
             </div>
           ))}
 
-          <div className="card p-3 border border-[#D1D5DB]">
-            <div className="text-[11px] text-[#6B7280] text-center">
+          <div className="card p-3 border border-[#D2D1CA]">
+            <div className="text-[11px] text-[#5F6368] text-center">
               Queued notification jobs, when present, are recorded in the backend. SMS (TextBee), Email (SMTP) and the signed webhook require configured credentials; an alert record alone is not evidence of external delivery.
             </div>
           </div>
@@ -270,37 +261,37 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
       )}
 
       {showCreate && (
-        <div className="card p-4 border-l-2 border-l-[#1D355B]">
+        <div className="card p-4 border-l-2 border-l-[#12355B]">
           {created ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 py-2">
                 <CheckCircle size={16} className="text-[#15803D]" />
-                <span className="text-base text-[#15803D]">Alert Created</span>
+                <span className="text-sm text-[#15803D]">Alert Created</span>
               </div>
-              <div className="flex items-center gap-4 text-[11px] text-[#6B7280]">
+              <div className="flex items-center gap-4 text-[11px] text-[#5F6368]">
                 <span className="flex items-center gap-1"><MessageSquare size={10} className="text-[#15803D]" /> Alert saved — SMS dispatch happens at the backend when the alert is recorded, not here</span>
-                <span className="flex items-center gap-1"><Mail size={10} className="text-[#1D4ED8]" /> Email dispatch likewise records the job, not the send</span>
+                <span className="flex items-center gap-1"><Mail size={10} className="text-[#17406F]" /> Email dispatch likewise records the job, not the send</span>
               </div>
             </div>
           ) : createError ? (
             <div className="flex items-center gap-2 py-2">
               <AlertTriangle size={16} className="text-[#B91C1C]" />
-              <span className="text-base text-[#B91C1C]">Failed to create alert. Backend may be offline.</span>
+              <span className="text-sm text-[#B91C1C]">Failed to create alert. Backend may be offline.</span>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-sm font-medium text-[#1F2937]">Create New Alert</div>
+              <div className="text-sm font-medium text-[#1A1C1F]">Create New Alert</div>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   placeholder="Case ID"
                   value={newAlert.case_id}
                   onChange={e => setNewAlert(p => ({ ...p, case_id: e.target.value }))}
-                  className="px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
+                  className="px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:outline-none focus:border-[#17406F]"
                 />
                 <select
                   value={newAlert.risk_level}
                   onChange={e => setNewAlert(p => ({ ...p, risk_level: e.target.value }))}
-                  className="px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] focus:outline-none focus:border-[#1D4ED8]"
+                  className="px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] focus:outline-none focus:border-[#17406F]"
                 >
                   <option value="High">High Risk</option>
                   <option value="Medium">Medium Risk</option>
@@ -311,26 +302,26 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                 placeholder="Location (e.g. ATM-027, White Town)"
                 value={newAlert.location}
                 onChange={e => setNewAlert(p => ({ ...p, location: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
+                className="w-full px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:outline-none focus:border-[#17406F]"
               />
               <input
                 placeholder="Observed cash-out records (e.g. 18:05–20:00 UTC)"
                 value={newAlert.time_window}
                 onChange={e => setNewAlert(p => ({ ...p, time_window: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
+                className="w-full px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:outline-none focus:border-[#17406F]"
               />
               <textarea
                 placeholder="Alert message..."
                 value={newAlert.message}
                 onChange={e => setNewAlert(p => ({ ...p, message: e.target.value }))}
                 rows={2}
-                className="w-full px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] resize-none"
+                className="w-full px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:outline-none focus:border-[#17406F] resize-none"
               />
               <button
                 onClick={handleCreate}
-                className="w-full py-1.5 bg-[#1D4ED8] text-white text-sm font-medium rounded hover:bg-[#1D355B] transition-colors"
+                className="w-full py-1.5 bg-[#17406F] text-white text-sm font-medium rounded hover:bg-[#12355B] transition-colors"
               >
-                Create Alert → Store & Notify
+                Create alert and notify
               </button>
             </div>
           )}
@@ -341,36 +332,36 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
         <div
           key={alert.alert_id}
           className={`card p-4 border-l-2 ${
-            alert.acknowledged ? "border-l-[#D1D5DB] opacity-50" :
+            alert.acknowledged ? "border-l-[#D2D1CA] opacity-50" :
             alert.risk_level === "High" ? "border-l-[#B91C1C]" :
             alert.risk_level === "Medium" ? "border-l-[#B45309]" :
-            "border-l-[#9CA3AF]"
+            "border-l-[#8A8D90]"
           }`}
         >
           <div className="flex items-start gap-3">
             <div className={`mt-0.5 ${
-              alert.acknowledged ? "text-[#6B7280]" :
+              alert.acknowledged ? "text-[#5F6368]" :
               alert.risk_level === "High" ? "text-[#B91C1C]" :
               alert.risk_level === "Medium" ? "text-[#B45309]" :
-              "text-[#6B7280]"
+              "text-[#5F6368]"
             }`}>
               {alert.acknowledged ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[11px] font-medium uppercase px-1.5 py-0.5 rounded ${
+                <span className={`text-[11px] font-medium  px-1.5 py-0.5 rounded ${
                   alert.risk_level === "High" ? "bg-[#B91C1C]/10 text-[#B91C1C]" :
                   alert.risk_level === "Medium" ? "bg-[#B45309]/10 text-[#B45309]" :
-                  "bg-[#F3F4F6] text-[#6B7280]"
+                  "bg-[#EFEFEA] text-[#5F6368]"
                 }`}>
                   {alert.risk_level}
                 </span>
-                <span className="text-[11px] text-[#6B7280] flex items-center gap-1">
+                <span className="text-[11px] text-[#5F6368] flex items-center gap-1">
                   <Clock size={10} /> {alert.timestamp}
                 </span>
               </div>
-              <p className="text-base text-[#4B5563] mb-2">{alert.message}</p>
-              <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+              <p className="text-sm text-[#43474C] mb-2">{alert.message}</p>
+              <div className="flex items-center gap-2 text-[11px] text-[#5F6368]">
                 <span>Location: {alert.location}</span>
                 <span>·</span>
                 <span>Records: {alert.time_window}</span>
@@ -382,7 +373,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                   <span className="text-[11px] flex items-center gap-0.5 text-[#15803D]">
                     <MessageSquare size={8} /> SMS delivery unverified
                   </span>
-                  <span className="text-[11px] flex items-center gap-0.5 text-[#1D4ED8]">
+                  <span className="text-[11px] flex items-center gap-0.5 text-[#17406F]">
                     <Mail size={8} /> Email delivery unverified
                   </span>
                 </div>
@@ -392,7 +383,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                 {!alert.acknowledged && (
                   <button
                     onClick={() => onAcknowledge(alert.alert_id)}
-                    className="text-[11px] text-[#1F2937] bg-[#F3F4F6] hover:bg-[#E5E7EB] px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+                    className="text-[11px] text-[#1A1C1F] bg-[#EFEFEA] hover:bg-[#E2E1DB] px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
                   >
                     <CheckCircle size={10} /> Acknowledge
                   </button>
@@ -401,7 +392,7 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                   <button
                     onClick={() => handleNotify(alert.alert_id)}
                     disabled={notifyBusy === alert.alert_id}
-                    className="text-[11px] text-[#1F2937] bg-[#F3F4F6] hover:bg-[#E5E7EB] px-2 py-0.5 rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                    className="text-[11px] text-[#1A1C1F] bg-[#EFEFEA] hover:bg-[#E2E1DB] px-2 py-0.5 rounded flex items-center gap-1 transition-colors disabled:opacity-50"
                     title="Queue one SMS + one email for this alert (kill-switch, cooldown and daily-cap guarded)"
                     style={can('case.acknowledge') ? undefined : { display: 'none' }}
                   >
@@ -409,10 +400,10 @@ export default function AlertPanel({ alerts, onAcknowledge }: AlertPanelProps) {
                   </button>
                 )}
                 {notifyState[alert.alert_id] && (
-                  <span className="text-[11px] text-[#6B7280]">{notifyState[alert.alert_id]}</span>
+                  <span className="text-[11px] text-[#5F6368]">{notifyState[alert.alert_id]}</span>
                 )}
                 {alert.acknowledged && (
-                  <span className="text-[11px] text-[#6B7280] flex items-center gap-1">
+                  <span className="text-[11px] text-[#5F6368] flex items-center gap-1">
                     <CheckCircle size={10} /> Acknowledged at {alert.acknowledged_at}
                   </span>
                 )}

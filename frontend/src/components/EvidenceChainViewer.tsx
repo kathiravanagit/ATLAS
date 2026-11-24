@@ -93,14 +93,14 @@ export default function EvidenceChainViewer() {
     return (
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Link2 size={16} className="text-[#1D4ED8]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Evidence Register & Hash Chain Verification</h3>
+          <Link2 size={16} className="text-[#17406F]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Evidence Register & Hash Chain Verification</h3>
         </div>
         <div className="space-y-3">
-          <div className="h-4 bg-[#F3F4F6] rounded animate-pulse w-1/3"></div>
-          <div className="h-8 bg-[#F3F4F6] rounded animate-pulse w-1/2"></div>
+          <div className="h-4 bg-[#EFEFEA] rounded animate-pulse w-1/3"></div>
+          <div className="h-8 bg-[#EFEFEA] rounded animate-pulse w-1/2"></div>
           <div className="grid grid-cols-3 gap-2">
-            {[1,2,3].map(i => <div key={i} className="h-16 bg-[#F3F4F6] rounded animate-pulse"></div>)}
+            {[1,2,3].map(i => <div key={i} className="h-16 bg-[#EFEFEA] rounded animate-pulse"></div>)}
           </div>
         </div>
       </div>
@@ -111,13 +111,13 @@ export default function EvidenceChainViewer() {
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Link2 size={16} className="text-[#1D4ED8]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Evidence Register & Hash Chain Verification</h3>
-          <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded font-mono">
+          <Link2 size={16} className="text-[#17406F]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Evidence Register & Hash Chain Verification</h3>
+          <span className="text-[11px] text-[#5F6368] bg-[#EFEFEA] px-2 py-0.5 rounded font-mono">
             Merkle Tree
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-[#6B7280]">
+        <div className="flex items-center gap-3 text-[11px] text-[#5F6368]">
           <span>{chain?.stats.total_blocks ?? 0} blocks</span>
           <span>{chain?.stats.cases_covered.length ?? 0} cases</span>
         </div>
@@ -125,29 +125,29 @@ export default function EvidenceChainViewer() {
 
       {/* Merkle root */}
       {chain?.stats.merkle_root && (
-        <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] mb-4">
-          <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1">Merkle Root</div>
-          <div className="text-[11px] text-[#1D4ED8] font-mono break-all">{chain.stats.merkle_root}</div>
+        <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA] mb-4">
+          <div className="text-[11px] text-[#5F6368]  mb-1">Merkle Root</div>
+          <div className="text-[11px] text-[#17406F] font-mono break-all">{chain.stats.merkle_root}</div>
         </div>
       )}
 
       {/* Anchor new evidence */}
-      <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] mb-4">
+      <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA] mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Anchor size={12} className="text-[#1D4ED8]" />
-          <span className="text-[11px] font-medium text-[#1F2937]">Anchor New Evidence</span>
+          <Anchor size={12} className="text-[#17406F]" />
+          <span className="text-[11px] font-medium text-[#1A1C1F]">Anchor New Evidence</span>
         </div>
         <div className="grid grid-cols-3 gap-2 mb-2">
           <input
             value={form.case_id}
             onChange={e => setForm(prev => ({ ...prev, case_id: e.target.value }))}
-            className="px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#1D4ED8]"
+            className="px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-[11px] text-[#1A1C1F] focus:outline-none focus:border-[#17406F]"
             placeholder="Case ID"
           />
           <select
             value={form.evidence_type}
             onChange={e => setForm(prev => ({ ...prev, evidence_type: e.target.value }))}
-            className="px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none"
+            className="px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-[11px] text-[#1A1C1F] focus:outline-none"
           >
             <option value="transaction_log">Transaction Log</option>
             <option value="call_record">Call Record</option>
@@ -159,7 +159,7 @@ export default function EvidenceChainViewer() {
           <input
             value={form.officer_id}
             onChange={e => setForm(prev => ({ ...prev, officer_id: e.target.value }))}
-            className="px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#1D4ED8]"
+            className="px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-[11px] text-[#1A1C1F] focus:outline-none focus:border-[#17406F]"
             placeholder="Officer ID"
           />
         </div>
@@ -167,14 +167,14 @@ export default function EvidenceChainViewer() {
           <textarea
             value={form.content}
             onChange={e => setForm(prev => ({ ...prev, content: e.target.value }))}
-            className="flex-1 px-2 py-1.5 bg-white border border-[#D1D5DB] rounded text-[11px] text-[#1F2937] focus:outline-none focus:border-[#1D4ED8] resize-none"
+            className="flex-1 px-2 py-1.5 bg-white border border-[#D2D1CA] rounded text-[11px] text-[#1A1C1F] focus:outline-none focus:border-[#17406F] resize-none"
             rows={2}
             placeholder="Evidence content to anchor..."
           />
           <button
             onClick={handleAnchor}
             disabled={anchoring || !form.content.trim()}
-            className="px-4 py-2 bg-[#1D4ED8] text-white text-[11px] font-medium rounded hover:bg-[#1D355B] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
+            className="px-4 py-2 bg-[#17406F] text-white text-[11px] font-medium rounded hover:bg-[#12355B] disabled:opacity-50 transition-colors flex items-center gap-1 self-end"
           >
             <Anchor size={12} />
             {anchoring ? 'Anchoring...' : 'Anchor'}
@@ -185,7 +185,7 @@ export default function EvidenceChainViewer() {
       {/* Chain blocks */}
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {(chain?.blocks ?? []).length === 0 && (
-          <div className="text-center py-8 text-[11px] text-[#6B7280]">
+          <div className="text-center py-8 text-[11px] text-[#5F6368]">
             No evidence anchored yet. Use the form above to anchor first evidence.
           </div>
         )}
@@ -195,27 +195,27 @@ export default function EvidenceChainViewer() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="bg-[#F8F9FA] rounded-lg border border-[#D1D5DB] overflow-hidden"
+            className="bg-[#F6F6F3] rounded-lg border border-[#D2D1CA] overflow-hidden"
           >
             <button
               onClick={() => setExpandedBlock(expandedBlock === block.block_id ? null : block.block_id)}
-              className="w-full flex items-center gap-3 p-3 hover:bg-[#EFF6FF] transition-colors"
+              className="w-full flex items-center gap-3 p-3 hover:bg-[#FAFAF7] transition-colors"
             >
-              <div className="w-7 h-7 rounded bg-[#1D4ED8]/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-[11px] font-mono text-[#1D4ED8]">#{block.block_id}</span>
+              <div className="w-7 h-7 rounded bg-[#17406F]/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-[11px] font-mono text-[#17406F]">#{block.block_id}</span>
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-[#1F2937] font-medium">{block.evidence_type}</span>
-                  <span className="text-[11px] text-[#6B7280] bg-[#F3F4F6] px-1.5 py-0.5 rounded font-mono">{block.case_id}</span>
+                  <span className="text-[11px] text-[#1A1C1F] font-medium">{block.evidence_type}</span>
+                  <span className="text-[11px] text-[#5F6368] bg-[#EFEFEA] px-1.5 py-0.5 rounded font-mono">{block.case_id}</span>
                 </div>
-                <div className="text-[11px] text-[#6B7280] mt-0.5">{block.timestamp_human}</div>
+                <div className="text-[11px] text-[#5F6368] mt-0.5">{block.timestamp_human}</div>
               </div>
               <div className="flex items-center gap-2">
-                <Hash size={10} className="text-[#6B7280]" />
-                <span className="text-[11px] text-[#6B7280] font-mono">{truncateHash(block.block_hash)}</span>
+                <Hash size={10} className="text-[#5F6368]" />
+                <span className="text-[11px] text-[#5F6368] font-mono">{truncateHash(block.block_hash)}</span>
               </div>
-              {expandedBlock === block.block_id ? <ChevronUp size={12} className="text-[#6B7280]" /> : <ChevronDown size={12} className="text-[#6B7280]" />}
+              {expandedBlock === block.block_id ? <ChevronUp size={12} className="text-[#5F6368]" /> : <ChevronDown size={12} className="text-[#5F6368]" />}
             </button>
 
             {expandedBlock === block.block_id && (
@@ -223,34 +223,34 @@ export default function EvidenceChainViewer() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 transition={{ duration: 0.2 }}
-                className="border-t border-[#D1D5DB] p-3 space-y-2"
+                className="border-t border-[#D2D1CA] p-3 space-y-2"
               >
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div>
-                    <span className="text-[#6B7280]">Content: </span>
-                    <span className="text-[#4B5563]">{block.content_preview}</span>
+                    <span className="text-[#5F6368]">Content: </span>
+                    <span className="text-[#43474C]">{block.content_preview}</span>
                   </div>
                   <div>
-                    <span className="text-[#6B7280]">Officer: </span>
-                    <span className="text-[#4B5563]">{block.officer_id}</span>
+                    <span className="text-[#5F6368]">Officer: </span>
+                    <span className="text-[#43474C]">{block.officer_id}</span>
                   </div>
                 </div>
                 <div className="text-[11px]">
-                  <span className="text-[#6B7280]">Evidence Hash: </span>
-                  <span className="text-[#1D4ED8] font-mono break-all">{block.hash}</span>
+                  <span className="text-[#5F6368]">Evidence Hash: </span>
+                  <span className="text-[#17406F] font-mono break-all">{block.hash}</span>
                 </div>
                 <div className="text-[11px]">
-                  <span className="text-[#6B7280]">Previous Hash: </span>
-                  <span className="text-[#6B7280] font-mono break-all">{truncateHash(block.previous_hash)}</span>
+                  <span className="text-[#5F6368]">Previous Hash: </span>
+                  <span className="text-[#5F6368] font-mono break-all">{truncateHash(block.previous_hash)}</span>
                 </div>
                 <div className="text-[11px]">
-                  <span className="text-[#6B7280]">Block Hash: </span>
-                  <span className="text-[#1D355B] font-mono break-all">{block.block_hash}</span>
+                  <span className="text-[#5F6368]">Block Hash: </span>
+                  <span className="text-[#12355B] font-mono break-all">{block.block_hash}</span>
                 </div>
 
                 <button
                   onClick={() => handleVerify(block.block_id, block.content_preview)}
-                  className="mt-2 px-3 py-1.5 bg-[#F3F4F6] text-[#1F2937] text-[11px] rounded hover:bg-[#E5E7EB] transition-colors flex items-center gap-1"
+                  className="mt-2 px-3 py-1.5 bg-[#EFEFEA] text-[#1A1C1F] text-[11px] rounded hover:bg-[#E2E1DB] transition-colors flex items-center gap-1"
                 >
                   <Shield size={10} /> Verify Integrity
                 </button>

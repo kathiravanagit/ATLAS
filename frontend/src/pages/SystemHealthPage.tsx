@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
 import { Activity, Database, Cpu, Clock, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DriftIndicator from '../components/DriftIndicator';
@@ -44,10 +43,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function MetricBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB] text-center">
-      <div className="text-xs text-[#374151] uppercase mb-1">{label}</div>
-      <div className="text-sm font-bold text-[#1F2937]">{value}</div>
-      {sub && <div className="text-xs text-[#374151] mt-0.5">{sub}</div>}
+    <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA] text-center">
+      <div className="text-xs text-[#33373B]  mb-1">{label}</div>
+      <div className="text-sm font-semibold text-[#1A1C1F]">{value}</div>
+      {sub && <div className="text-xs text-[#33373B] mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -83,19 +82,19 @@ export default function SystemHealthPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/real')} className="p-2 rounded-lg hover:bg-[#F3F4F6] transition-colors">
-            <ArrowLeft size={18} className="text-[#6B7280]" />
+          <button onClick={() => navigate('/real')} className="p-2 rounded-lg hover:bg-[#EFEFEA] transition-colors">
+            <ArrowLeft size={18} className="text-[#5F6368]" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-[#1F2937]">System Health</h2>
-            <p className="text-sm text-[#6B7280] mt-0.5">Operational status of all ATLAS services · synthetic-data prototype</p>
+            <h2 className="text-xl font-semibold text-[#1A1C1F]">System Health</h2>
+            <p className="text-sm text-[#5F6368] mt-0.5">Operational status of all ATLAS services · synthetic-data prototype</p>
           </div>
         </div>
         <button onClick={fetchAll} disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] hover:bg-[#F3F4F6] transition-colors disabled:opacity-50">
+          className="flex items-center gap-2 px-3 py-2 bg-white border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] hover:bg-[#EFEFEA] transition-colors disabled:opacity-50">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
@@ -115,8 +114,8 @@ export default function SystemHealthPage() {
       {/* API Status */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Activity size={16} className="text-[#1D355B]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">API Status</h3>
+          <Activity size={16} className="text-[#12355B]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">API Status</h3>
           {health && <StatusBadge status={health.status} />}
         </div>
         {health ? (
@@ -126,14 +125,14 @@ export default function SystemHealthPage() {
             <MetricBox label="Version" value={health.version} />
             <MetricBox label="Model Loaded" value={health.model_loaded ? 'Yes' : 'No'} />
           </div>
-        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
+        ) : <div className="text-sm text-[#33373B]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* DB Health */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Database size={16} className="text-[#1D355B]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Database Health</h3>
+          <Database size={16} className="text-[#12355B]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Database Health</h3>
           {dbHealth && <StatusBadge status={dbHealth.status} />}
         </div>
         {dbHealth ? (
@@ -145,14 +144,14 @@ export default function SystemHealthPage() {
               <MetricBox label="Verdict" value={dbHealth.verdict} />
             </div>
           </div>
-        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
+        ) : <div className="text-sm text-[#33373B]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* Model Service */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Cpu size={16} className="text-[#1D355B]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Model Service</h3>
+          <Cpu size={16} className="text-[#12355B]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Model Service</h3>
         </div>
         {health ? (
           <div className="grid grid-cols-4 gap-3">
@@ -161,22 +160,22 @@ export default function SystemHealthPage() {
             <MetricBox label="F1 Score" value={percent(health.model_f1)} />
             <MetricBox label="Precision" value={percent(health.model_precision)} />
           </div>
-        ) : <div className="text-sm text-[#374151]">{loading ? 'Loading…' : 'Unavailable'}</div>}
+        ) : <div className="text-sm text-[#33373B]">{loading ? 'Loading…' : 'Unavailable'}</div>}
       </div>
 
       {/* Last Sync */}
       <div className="card p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} className="text-[#1D355B]" />
-          <h3 className="text-base font-semibold text-[#1F2937]">Last Sync</h3>
+          <Clock size={16} className="text-[#12355B]" />
+          <h3 className="text-sm font-semibold text-[#1A1C1F]">Last Sync</h3>
         </div>
-        <div className="bg-[#F8F9FA] rounded-lg p-3 border border-[#D1D5DB]">
-          <div className="text-sm text-[#1F2937]">{lastRefresh ? `Last complete refresh at ${lastRefresh.toLocaleTimeString()}` : 'Last complete refresh: Unavailable'}</div>
-          <div className="text-[11px] text-[#6B7280] mt-1">Auto-refreshes every 30 seconds on the dashboard</div>
+        <div className="bg-[#F6F6F3] rounded-lg p-3 border border-[#D2D1CA]">
+          <div className="text-sm text-[#1A1C1F]">{lastRefresh ? `Last complete refresh at ${lastRefresh.toLocaleTimeString()}` : 'Last complete refresh: Unavailable'}</div>
+          <div className="text-[11px] text-[#5F6368] mt-1">Auto-refreshes every 30 seconds on the dashboard</div>
         </div>
       </div>
 
       <DriftIndicator />
-    </motion.div>
+    </div>
   );
 }

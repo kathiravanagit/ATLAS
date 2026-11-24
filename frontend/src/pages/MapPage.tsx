@@ -1,14 +1,13 @@
-import { motion } from 'motion/react';
 import { useDashboard } from '../context/DashboardContext';
 import MapView from '../components/MapView';
 import MuleNetworkGraph from '../components/MuleNetworkGraph';
+import DemoNotice from '../components/DemoNotice';
 
 export default function MapPage() {
   const { prediction, selectedLocation, setSelectedLocation, cityCenter, dataMode } = useDashboard();
 
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
-      className="space-y-6">
+    <div className="space-y-6">
       <MapView
         locations={prediction.ranked_locations}
         selectedLocation={selectedLocation}
@@ -17,7 +16,13 @@ export default function MapPage() {
         surface={prediction.risk_surface}
         zones={prediction.intervention_zones}
       />
-      {dataMode === 'demo' ? <p className="card p-5 text-sm">Account network requires the backend and is disabled in local demo.</p> : <MuleNetworkGraph />}
-    </motion.div>
+      {dataMode === 'demo' ? (
+        <DemoNotice
+          inline
+          title="Account network"
+          description="The transfer graph is built from backend records. The demo shows ranked fixtures and zone outlines only, so this panel stays empty."
+        />
+      ) : <MuleNetworkGraph />}
+    </div>
   );
 }

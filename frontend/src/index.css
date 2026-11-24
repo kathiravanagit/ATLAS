@@ -1,23 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Direction: an investigator's case file. Warm paper neutrals, navy ink,
+   one accent, mono figures. The chrome stays quiet so the ranked list and
+   the risk map carry the colour. */
 @plugin "daisyui";
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
-  --color-primary: #1D355B;
+  --color-primary: #17406F;
   --color-primary-content: #ffffff;
-  --color-secondary: #1D4ED8;
+  --color-secondary: #12355B;
   --color-secondary-content: #ffffff;
-  --color-accent: #D1D5DB;
-  --color-accent-content: #1F2937;
-  --color-neutral: #1F2937;
-  --color-neutral-content: #F8F9FA;
-  --color-base-100: #F8F9FA;
+  --color-accent: #D2D1CA;
+  --color-accent-content: #1A1C1F;
+  --color-neutral: #1A1C1F;
+  --color-neutral-content: #F6F6F3;
+  --color-base-100: #F6F6F3;
   --color-base-200: #ffffff;
-  --color-base-300: #D1D5DB;
-  --color-base-content: #1F2937;
-  --color-info: #1D4ED8;
+  --color-base-300: #D2D1CA;
+  --color-base-content: #1A1C1F;
+  --color-info: #17406F;
   --color-success: #15803D;
   --color-warning: #B45309;
   --color-error: #B91C1C;
@@ -25,6 +28,7 @@
 
 @theme {
   --font-sans: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
@@ -39,71 +43,70 @@
   }
 
   body {
-    background-color: #F8F9FA;
-    color: #1F2937;
+    background-color: #F6F6F3;
+    color: #1A1C1F;
     font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
     overflow-x: hidden;
   }
 
   ::selection {
-    background-color: rgba(29, 53, 91, 0.2);
-    color: #1F2937;
+    background-color: rgba(23, 64, 111, 0.16);
+    color: #1A1C1F;
+  }
+
+  /* One figure treatment across the app: mono, tabular, aligned. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer components {
+  /* Cards are containers, not buttons: no lift, no shadow, no glow. */
   .card {
     @apply bg-white rounded-[12px];
-    border: 1px solid #E5E7EB;
-    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-  }
-
-  .card:hover {
-    transform: translateY(-2px);
-    border-color: #D1D5DB;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid #E2E1DB;
   }
 
   .card-hover {
     background-color: #fff;
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
-    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border: 1px solid #E2E1DB;
+    transition: border-color 150ms ease, background-color 150ms ease;
   }
 
   .card-hover:hover {
-    transform: translateY(-3px);
-    border-color: #D1D5DB;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    border-color: #C9C8C0;
+    background-color: #FCFCFA;
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-[#1D4ED8] text-white text-base font-medium rounded-lg;
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    @apply px-4 py-2 bg-[#17406F] text-white text-sm font-medium rounded-lg;
+    transition: background-color 150ms ease;
   }
 
   .btn-primary:hover {
-    background-color: #1D355B;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+    background-color: #12355B;
   }
 
   .btn-ghost {
-    @apply px-4 py-2 bg-transparent text-[#1F2937] text-base font-medium rounded-lg border border-[#D1D5DB];
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    @apply px-4 py-2 bg-transparent text-[#1A1C1F] text-sm font-medium rounded-lg border border-[#D2D1CA];
+    transition: background-color 150ms ease, border-color 150ms ease;
   }
 
   .btn-ghost:hover {
-    @apply bg-[#F3F4F6] border-[#9CA3AF];
+    @apply bg-[#EFEFEA] border-[#B9B8B0];
   }
 
   .input-field {
-    @apply w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-base text-[#1F2937] placeholder-[#6B7280];
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    @apply w-full px-3 py-2 bg-white border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] placeholder-[#8A8D90];
+    transition: border-color 150ms ease;
   }
 
   .input-field:focus {
-    @apply outline-none border-[#1D4ED8] ring-1 ring-[#1D4ED8]/20;
+    @apply outline-none border-[#17406F] ring-1 ring-[#17406F]/20;
   }
 
   .fade-in {
@@ -196,8 +199,14 @@
 
 /* Leaflet overrides */
 .leaflet-container {
-  background: #F8F9FA !important;
+  background: #F6F6F3 !important;
   z-index: 1 !important;
+}
+
+/* The basemap is context, not the subject: take the street palette down so
+   pins, records and zone outlines stay the loudest thing on the map. */
+.leaflet-tile-pane {
+  filter: grayscale(0.35) saturate(0.55) contrast(0.97);
 }
 
 .leaflet-pane {
@@ -210,22 +219,22 @@
 
 .leaflet-popup-content-wrapper {
   background: #ffffff !important;
-  color: #1F2937 !important;
-  border: 1px solid #D1D5DB !important;
+  color: #1A1C1F !important;
+  border: 1px solid #D2D1CA !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
 .leaflet-popup-tip {
   background: #ffffff !important;
-  border: 1px solid #D1D5DB !important;
+  border: 1px solid #D2D1CA !important;
 }
 
 .leaflet-popup-close-button {
-  color: #6B7280 !important;
+  color: #5F6368 !important;
 }
 .leaflet-popup-close-button:hover {
-  color: #1F2937 !important;
+  color: #1A1C1F !important;
 }
 
 .leaflet-control-zoom {
@@ -246,16 +255,16 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #D2D1CA;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #8A8D90;
 }
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid #1D4ED8;
+  outline: 2px solid #17406F;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -271,7 +280,7 @@
   top: 0;
   z-index: 10;
   background: #ffffff;
-  border-bottom: 1px solid #D1D5DB;
+  border-bottom: 1px solid #D2D1CA;
 }
 
 /* "Sound armed" pulse — plays on speaker toggle when AudioContext unlocks */

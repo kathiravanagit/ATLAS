@@ -1,5 +1,5 @@
 import { Case } from '../types';
-import { Eye, CheckCircle, Circle, AlertTriangle, Search, ChevronDown, ChevronUp, UserPlus, ShieldAlert, FileSearch, X, FolderOpen } from 'lucide-react';
+import { Eye, CheckCircle, Search, ChevronDown, ChevronUp, UserPlus, ShieldAlert, FileSearch, X, FolderOpen } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { areaPrimary, riskArea, SCORE_TOOLTIP } from '../lib/riskAreas';
 import { authFetch, isDemoRoute } from '../lib/auth';
@@ -12,10 +12,10 @@ interface CasesTableProps {
   onCaseUpdated?: () => void;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  new: { label: "New", color: "bg-[#1D4ED8]/10 text-[#1D4ED8]", icon: <Circle size={10} /> },
-  investigating: { label: "Investigating", color: "bg-[#B45309]/10 text-[#B45309]", icon: <AlertTriangle size={10} /> },
-  resolved: { label: "Resolved", color: "bg-[#15803D]/10 text-[#15803D]", icon: <CheckCircle size={10} /> },
+const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
+  new: { label: "New", color: "text-[#17406F]", dot: "bg-[#17406F]" },
+  investigating: { label: "Investigating", color: "text-[#B45309]", dot: "bg-[#B45309]" },
+  resolved: { label: "Resolved", color: "text-[#15803D]", dot: "bg-[#15803D]" },
 };
 
 const CRIME_CATEGORIES = [
@@ -98,11 +98,11 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
 
   return (
     <div className="card overflow-hidden">
-      <div className="p-4 border-b border-[#D1D5DB]">
+      <div className="p-4 border-b border-[#D2D1CA]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-lg text-[#1F2937]">Case Registry</h3>
-            <p className="text-base text-[#6B7280] mt-0.5">
+            <h3 className="font-semibold text-[15px] text-[#1A1C1F]">All cases</h3>
+            <p className="text-sm text-[#5F6368] mt-0.5">
               {filtered.length} of {cases.length} cases | Crime category drill-down
             </p>
           </div>
@@ -116,8 +116,8 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               onClick={() => setCrimeFilter(cat)}
               className={`px-2 py-1 text-xs rounded-md transition-colors border ${
                 crimeFilter === cat
-                  ? "bg-[#1D4ED8]/10 border-[#1D4ED8]/30 text-[#1D4ED8]"
-                  : "border-[#D1D5DB] text-[#6B7280] hover:text-[#1F2937] hover:border-[#9CA3AF]"
+                  ? "bg-[#17406F]/10 border-[#17406F]/30 text-[#17406F]"
+                  : "border-[#D2D1CA] text-[#5F6368] hover:text-[#1A1C1F] hover:border-[#8A8D90]"
               }`}
             >
               {cat}
@@ -128,49 +128,49 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6368]" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search Case ID, Crime Type, or Victim..."
-              className="w-full pl-7 pr-2 py-1.5 bg-white border border-[#D1D5DB] rounded-lg text-base text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8]"
+              placeholder="Search case ID, crime type or victim"
+              className="w-full rounded-lg border border-[#D2D1CA] bg-white py-1.5 pl-7 pr-2 text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:border-[#17406F] focus:outline-none"
             />
           </div>
-          <div className="flex items-center gap-1 bg-[#F3F4F6] border border-[#D1D5DB] rounded-lg p-0.5">
-            {["all", "new", "investigating", "resolved"].map(s => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  statusFilter === s
-                    ? "bg-white text-[#1F2937] shadow-sm"
-                    : "text-[#6B7280] hover:text-[#1F2937]"
-                }`}
-              >
-                {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-[#D2D1CA] bg-[#EFEFEA] p-0.5">
+              {["all", "new", "investigating", "resolved"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                    statusFilter === s ? "bg-white text-[#1A1C1F]" : "text-[#5F6368] hover:text-[#1A1C1F]"
+                  }`}
+                >
+                  {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+            <select
+              value={districtFilter}
+              onChange={e => setDistrictFilter(e.target.value)}
+              aria-label="Filter by district"
+              className="rounded-lg border border-[#D2D1CA] bg-white px-2 py-1.5 text-xs text-[#1A1C1F] focus:border-[#17406F] focus:outline-none"
+            >
+              <option value="All">All districts</option>
+              {districts.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
-          <select
-            value={districtFilter}
-            onChange={e => setDistrictFilter(e.target.value)}
-            aria-label="Filter by district"
-            className="px-2 py-1.5 text-xs bg-white border border-[#D1D5DB] rounded-lg text-[#1F2937] focus:outline-none focus:border-[#1D4ED8]"
-          >
-            <option value="All">All districts</option>
-            {districts.map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
         </div>
       </div>
 
       <div className="overflow-x-auto sticky-table-container" style={{ maxHeight: 600 }}>
-        <table className="w-full text-lg">
+        <table className="w-full min-w-[860px] text-[13px]">
           <thead>
-            <tr className="text-xs text-[#6B7280] uppercase border-b border-[#D1D5DB]">
+            <tr className="text-xs text-[#5F6368]  border-b border-[#D2D1CA]">
               <th scope="col" className="text-left px-4 py-2 font-medium">Case ID</th>
               <th scope="col" className="text-left px-4 py-2 font-medium">Crime Type</th>
               <th scope="col" className="text-left px-4 py-2 font-medium">District</th>
@@ -187,14 +187,14 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               <tr>
                 <td colSpan={9} className="px-4 py-8 text-center">
                   <div className="text-center py-12">
-                    <div className="w-12 h-12 bg-[#F3F4F6] rounded-full flex items-center justify-center mx-auto mb-3">
-                      <FolderOpen size={20} className="text-[#9CA3AF]" />
+                    <div className="w-12 h-12 bg-[#EFEFEA] rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FolderOpen size={20} className="text-[#8A8D90]" />
                     </div>
-                    <p className="text-[#4B5563] font-medium text-sm">No cases found</p>
-                    <p className="text-[#9CA3AF] text-[11px] mt-1">Try adjusting your filters or search terms</p>
+                    <p className="text-[#43474C] font-medium text-sm">No cases found</p>
+                    <p className="text-[#8A8D90] text-[11px] mt-1">Try adjusting your filters or search terms</p>
                     <button
                       onClick={() => { setSearch(""); setStatusFilter("all"); setCrimeFilter("All"); setDistrictFilter("All"); }}
-                      className="mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6] hover:bg-[#3b82f6]/20 transition-colors"
+                      className="mt-3 px-4 py-1.5 text-xs font-medium rounded-lg border border-[#17406F]/40 bg-[#17406F]/10 text-[#17406F] hover:bg-[#17406F]/20 transition-colors"
                     >
                       Reset Filters
                     </button>
@@ -205,41 +205,45 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
               filtered.map((c) => (
                 <tr
                   key={c.case_id}
-                  className={`border-b border-[#D1D5DB] last:border-0 hover:bg-[#EFF6FF] transition-colors duration-150 cursor-pointer ${
-                    c.status === 'resolved' ? 'opacity-50' : ''
-                  }`}
+                  className="border-b border-[#D2D1CA] last:border-0 hover:bg-[#FAFAF7] transition-colors duration-150 cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-base font-mono font-medium text-[#1F2937]">
-                      <button onClick={() => toggleExpand(c.case_id)} className="flex items-center gap-1 hover:text-[#1D4ED8]">
+                  <td className="num px-4 py-3 text-[13px] font-medium text-[#1A1C1F]">
+                      <button onClick={() => toggleExpand(c.case_id)} className="flex items-center gap-1 hover:text-[#17406F]">
                         <span className={`transition-transform duration-200 inline-block ${expandedCase === c.case_id ? 'rotate-180' : ''}`}>
                           <ChevronDown size={12} />
                         </span>
                         {c.case_id}
                       </button>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[#4B5563]">
-                      {c.crime_type}
-                    </span>
+                  <td className="px-4 py-3 text-[13px] text-[#43474C]">
+                    {c.crime_type}
                   </td>
-                  <td className="px-4 py-3 text-xs text-[#4B5563]">{c.district || '—'}</td>
-                  <td className="px-4 py-3 text-base text-[#4B5563]">{c.victim_name || '—'}</td>
-                  <td className="px-4 py-3 text-base font-medium text-[#1F2937]">₹{c.amount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-base text-center text-[#4B5563]">{c.linked_accounts}</td>
+                  <td className="px-4 py-3 text-xs text-[#43474C]">{c.district || '—'}</td>
+                  <td className="px-4 py-3 text-sm text-[#43474C]">{c.victim_name || '—'}</td>
+                  <td className="num px-4 py-3 text-[13px] font-medium text-[#1A1C1F]">₹{c.amount.toLocaleString()}</td>
+                  <td className="num px-4 py-3 text-center text-[13px] text-[#43474C]">{c.linked_accounts}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                      c.current_risk === "High" ? "bg-[#B91C1C]/10 text-[#B91C1C]" :
-                      c.current_risk === "Medium" ? "bg-[#B45309]/10 text-[#B45309]" :
-                      c.current_risk === "Low" ? "bg-[#9CA3AF]/10 text-[#6B7280]" :
-                      c.current_risk === "Resolved" ? "bg-[#15803D]/10 text-[#15803D]" :
-                      "bg-[#F3F4F6] text-[#6B7280]"
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${
+                      c.current_risk === "High" ? "text-[#B91C1C]" :
+                      c.current_risk === "Medium" ? "text-[#B45309]" :
+                      c.current_risk === "Low" ? "text-[#5F6368]" :
+                      c.current_risk === "Resolved" ? "text-[#15803D]" :
+                      "text-[#5F6368]"
                     }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        c.current_risk === "High" ? "bg-[#B91C1C]" :
+                        c.current_risk === "Medium" ? "bg-[#B45309]" :
+                        c.current_risk === "Low" ? "bg-[#8A8D90]" :
+                        c.current_risk === "Resolved" ? "bg-[#15803D]" :
+                        "bg-[#8A8D90]"
+                      }`} aria-hidden="true" />
                       {c.current_risk}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1 w-fit ${statusConfig[c.status]?.color || "bg-[#F3F4F6] text-[#6B7280]"}`}>
-                      {statusConfig[c.status]?.icon} {statusConfig[c.status]?.label || c.status}
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${statusConfig[c.status]?.color || "text-[#5F6368]"}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[c.status]?.dot || "bg-[#8A8D90]"}`} aria-hidden="true" />
+                      {statusConfig[c.status]?.label || c.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -250,11 +254,11 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                             <button
                               disabled={isDemoRoute()}
                                                             onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'acknowledge'); }}
-                              className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                              className="p-1.5 rounded hover:bg-[#EFEFEA] transition-colors"
                               title="Acknowledge"
                               aria-label={`Acknowledge case ${c.case_id}`}
                             >
-                              <Eye size={14} className="text-[#1D4ED8]" />
+                              <Eye size={14} className="text-[#17406F]" />
                             </button>
                           )}
                           {can('case.assign') && (
@@ -262,7 +266,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                             <button
                               disabled={isDemoRoute()}
                                                             onClick={(e) => { e.stopPropagation(); setAssignDropdown(assignDropdown === c.case_id ? null : c.case_id); }}
-                              className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                              className="p-1.5 rounded hover:bg-[#EFEFEA] transition-colors"
                               title="Assign Officer"
                               aria-label={`Assign officer to case ${c.case_id}`}
                               aria-expanded={assignDropdown === c.case_id}
@@ -270,12 +274,12 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                               <UserPlus size={14} className="text-[#B45309]" />
                             </button>
                             {assignDropdown === c.case_id && (
-                              <div className="absolute right-0 top-8 z-50 bg-white border border-[#D1D5DB] rounded-lg shadow-lg py-1 min-w-[120px]" onClick={e => e.stopPropagation()}>
+                              <div className="absolute right-0 top-8 z-50 bg-white border border-[#D2D1CA] rounded-lg shadow-lg py-1 min-w-[120px]" onClick={e => e.stopPropagation()}>
                                 {OFFICER_IDS.map(id => (
                                   <button
                                     key={id}
                                     onClick={() => handleCaseAction(c.case_id, 'assign', '', id)}
-                                    className="w-full text-left px-3 py-1.5 text-xs text-[#1F2937] hover:bg-[#F3F4F6]"
+                                    className="w-full text-left px-3 py-1.5 text-xs text-[#1A1C1F] hover:bg-[#EFEFEA]"
                                   >
                                     {id}
                                   </button>
@@ -288,7 +292,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                             <button
                               disabled={isDemoRoute()}
                                                             onClick={(e) => { e.stopPropagation(); handleCaseAction(c.case_id, 'escalate'); }}
-                              className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                              className="p-1.5 rounded hover:bg-[#EFEFEA] transition-colors"
                               title="Escalate Risk"
                               aria-label={`Escalate risk for case ${c.case_id}`}
                             >
@@ -299,7 +303,7 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                             <button
                               disabled={isDemoRoute()}
                                                             onClick={(e) => { e.stopPropagation(); setCloseReasonModal(c.case_id); }}
-                              className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                              className="p-1.5 rounded hover:bg-[#EFEFEA] transition-colors"
                               title="Close Case"
                               aria-label={`Close case ${c.case_id}`}
                             >
@@ -308,16 +312,16 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                           )}
                           <button
                             onClick={(e) => { e.stopPropagation(); onSelectCase?.(c.case_id); }}
-                            className="p-1.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                            className="p-1.5 rounded hover:bg-[#EFEFEA] transition-colors"
                             title="View Prediction"
                             aria-label={`View prediction for case ${c.case_id}`}
                           >
-                            <FileSearch size={14} className="text-[#6B7280]" />
+                            <FileSearch size={14} className="text-[#5F6368]" />
                           </button>
                         </>
                       )}
                       {actionLoading === c.case_id && (
-                        <span className="text-[11px] text-[#6B7280]">Saving...</span>
+                        <span className="text-[11px] text-[#5F6368]">Saving...</span>
                       )}
                     </div>
                   </td>
@@ -330,37 +334,37 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
 
       {/* Expanded prediction details */}
       {expandedCase && expandedData[expandedCase] && (
-        <div className="border-t border-[#D1D5DB] bg-[#F8F9FA] p-4">
+        <div className="border-t border-[#D2D1CA] bg-[#F6F6F3] p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-[#1F2937]">Prediction Details &mdash; {expandedCase}</h4>
-            <button onClick={() => setExpandedCase(null)} className="text-[#6B7280] hover:text-[#1F2937]">
+            <h4 className="text-sm font-semibold text-[#1A1C1F]">Prediction Details &mdash; {expandedCase}</h4>
+            <button onClick={() => setExpandedCase(null)} className="text-[#5F6368] hover:text-[#1A1C1F]">
               <X size={14} />
             </button>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase">Primary Location</div>
-              <div className="text-sm font-medium text-[#1F2937]">{expandedData[expandedCase].primary_location?.atm_id} &mdash; {expandedData[expandedCase].primary_location?.location_name}</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+              <div className="text-[11px] text-[#5F6368] ">Primary Location</div>
+              <div className="text-sm font-medium text-[#1A1C1F]">{expandedData[expandedCase].primary_location?.atm_id} &mdash; {expandedData[expandedCase].primary_location?.location_name}</div>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]" title={SCORE_TOOLTIP}>
-              <div className="text-[11px] text-[#6B7280] uppercase">Priority Rank</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]" title={SCORE_TOOLTIP}>
+              <div className="text-[11px] text-[#5F6368] ">Priority Rank</div>
               {(() => {
                 const pl = expandedData[expandedCase].primary_location;
-                if (!pl) return <div className="text-sm font-medium text-[#1F2937]">—</div>;
+                if (!pl) return <div className="text-sm font-medium text-[#1A1C1F]">—</div>;
                 const t = expandedData[expandedCase].ranked_locations?.length ?? pl.rank_total ?? pl.rank;
-                return <div className="text-sm font-medium text-[#1F2937]">{areaPrimary(riskArea(pl.rank, t, pl.risk_area), pl.rank, t)}</div>;
+                return <div className="text-sm font-medium text-[#1A1C1F]">{areaPrimary(riskArea(pl.rank, t, pl.risk_area), pl.rank, t)}</div>;
               })()}
             </div>
-            <div className="bg-white rounded-lg p-3 border border-[#D1D5DB]">
-              <div className="text-[11px] text-[#6B7280] uppercase">Cash-out Records</div>
-              <div className="text-sm font-medium text-[#1F2937]">{expandedData[expandedCase].primary_location?.observed_window?.label ?? '—'}</div>
+            <div className="bg-white rounded-lg p-3 border border-[#D2D1CA]">
+              <div className="text-[11px] text-[#5F6368] ">Cash-out Records</div>
+              <div className="text-sm font-medium text-[#1A1C1F]">{expandedData[expandedCase].primary_location?.observed_window?.label ?? '—'}</div>
             </div>
           </div>
           {expandedData[expandedCase].ranked_locations && (
-            <div className="bg-white rounded-lg border border-[#D1D5DB] overflow-hidden">
+            <div className="bg-white rounded-lg border border-[#D2D1CA] overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[#D1D5DB] text-[#6B7280]">
+                  <tr className="border-b border-[#D2D1CA] text-[#5F6368]">
                     <th scope="col" className="text-left px-3 py-2">Zone · Rank</th>
                     <th scope="col" className="text-left px-3 py-2">ATM ID</th>
                     <th scope="col" className="text-left px-3 py-2">Location</th>
@@ -371,14 +375,14 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
                 </thead>
                 <tbody>
                   {expandedData[expandedCase].ranked_locations.slice(0, 5).map((loc: any) => (
-                    <tr key={loc.rank} className="border-b border-[#D1D5DB] last:border-0">
+                    <tr key={loc.rank} className="border-b border-[#D2D1CA] last:border-0">
                       <td className="px-3 py-2 font-mono" title={SCORE_TOOLTIP}>{areaPrimary(riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area), loc.rank, expandedData[expandedCase].ranked_locations.length)}</td>
                       <td className="px-3 py-2 font-mono font-medium">{loc.atm_id}</td>
-                      <td className="px-3 py-2 text-[#4B5563]">{loc.location_name}</td>
-                      <td className="px-3 py-2 text-right font-mono font-medium" style={{ color: riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'priority' ? '#B91C1C' : riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'watch' ? '#B45309' : '#6B7280' }} title={SCORE_TOOLTIP}>{loc.display_score ?? '—'}</td>
-                      <td className="px-3 py-2 text-[#4B5563]">{loc.observed_window?.label ?? '—'}</td>
+                      <td className="px-3 py-2 text-[#43474C]">{loc.location_name}</td>
+                      <td className="px-3 py-2 text-right font-mono font-medium" style={{ color: riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'priority' ? '#B91C1C' : riskArea(loc.rank, expandedData[expandedCase].ranked_locations.length, loc.risk_area) === 'watch' ? '#B45309' : '#5F6368' }} title={SCORE_TOOLTIP}>{loc.display_score ?? '—'}</td>
+                      <td className="px-3 py-2 text-[#43474C]">{loc.observed_window?.label ?? '—'}</td>
                       <td className="px-3 py-2">
-                        <span className={`text-[11px] px-1 py-0.5 rounded ${loc.status === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : loc.status === 'Medium' ? 'bg-[#B45309]/10 text-[#B45309]' : 'bg-[#6B7280]/10 text-[#6B7280]'}`}>{loc.status}</span>
+                        <span className={`text-[11px] px-1 py-0.5 rounded ${loc.status === 'High' ? 'bg-[#B91C1C]/10 text-[#B91C1C]' : loc.status === 'Medium' ? 'bg-[#B45309]/10 text-[#B45309]' : 'bg-[#5F6368]/10 text-[#5F6368]'}`}>{loc.status}</span>
                       </td>
                     </tr>
                   ))}
@@ -392,21 +396,21 @@ export default function CasesTable({ cases, onSelectCase, onResolveCase, onCaseU
       {/* Close reason modal */}
       {closeReasonModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setCloseReasonModal(null)}>
-          <div className="bg-white rounded-xl p-5 border border-[#D1D5DB] shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl p-5 border border-[#D2D1CA] shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-[#1F2937]">Close Case {closeReasonModal}</h4>
-              <button onClick={() => setCloseReasonModal(null)} className="text-[#6B7280] hover:text-[#1F2937]"><X size={14} /></button>
+              <h4 className="text-sm font-semibold text-[#1A1C1F]">Close Case {closeReasonModal}</h4>
+              <button onClick={() => setCloseReasonModal(null)} className="text-[#5F6368] hover:text-[#1A1C1F]"><X size={14} /></button>
             </div>
-            <p className="text-xs text-[#6B7280] mb-3">Provide a reason for closing this case. This will be logged to the audit trail.</p>
+            <p className="text-xs text-[#5F6368] mb-3">Provide a reason for closing this case. This will be logged to the audit trail.</p>
             <textarea
               value={closeReason}
               onChange={e => setCloseReason(e.target.value)}
               placeholder="Reason for closing..."
-              className="w-full px-3 py-2 bg-white border border-[#D1D5DB] rounded-lg text-sm text-[#1F2937] placeholder-[#6B7280] focus:outline-none focus:border-[#1D4ED8] resize-none"
+              className="w-full px-3 py-2 bg-white border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] placeholder-[#5F6368] focus:outline-none focus:border-[#17406F] resize-none"
               rows={3}
             />
             <div className="flex items-center gap-2 mt-3 justify-end">
-              <button onClick={() => setCloseReasonModal(null)} className="px-3 py-1.5 text-xs bg-[#F3F4F6] text-[#6B7280] rounded-lg hover:bg-[#E5E7EB]">Cancel</button>
+              <button onClick={() => setCloseReasonModal(null)} className="px-3 py-1.5 text-xs bg-[#EFEFEA] text-[#5F6368] rounded-lg hover:bg-[#E2E1DB]">Cancel</button>
               <button
                 onClick={() => handleCaseAction(closeReasonModal, 'close', closeReason)}
                 disabled={!closeReason.trim()}
