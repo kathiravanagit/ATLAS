@@ -579,7 +579,9 @@ class TestPredictionAlerts:
         body = main_module._transaction_alert_message(
             25000, {"atm_id": "PNY-008", "location_name": "Nehru Park Branch"})
         assert "25,000" in body
-        assert "PNY-008" in body and "Risk: HIGH" in body
+        assert "PNY-008" in body and "risk band HIGH" in body
+        # The band is a rank, never a promise that the ATM will be hit.
+        assert "predicted" not in body.lower()
         # Uncalibrated ranks must never be printed as probabilities.
         assert "%" not in body
 

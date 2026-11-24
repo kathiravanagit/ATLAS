@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Login Page', () => {
   test('loads login form', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('text=Sign In').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
@@ -33,12 +33,12 @@ test.describe('Login Page', () => {
 
   test('shows register link', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.locator('text=Register here')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
   });
 
   test('navigates to register page', async ({ page }) => {
     await page.goto('/login');
-    await page.locator('text=Register here').click();
+    await page.getByRole('link', { name: 'Register', exact: true }).click();
     await expect(page).toHaveURL(/\/register/);
   });
 });

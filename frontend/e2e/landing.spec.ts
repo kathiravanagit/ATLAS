@@ -8,18 +8,17 @@ test.describe('Landing Page', () => {
 
   test('displays hero section with project name', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Predict fraud/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Rank the cash-out locations/i })).toBeVisible();
   });
 
-  test('shows Access Investigator Console button', async ({ page }) => {
+  test('shows the investigator console button', async ({ page }) => {
     await page.goto('/');
-    const cta = page.locator('text=Access Investigator Console').first();
-    await expect(cta).toBeVisible();
+    await expect(page.getByRole('button', { name: /Open investigator console/i })).toBeVisible();
   });
 
   test('navigates to login on CTA click', async ({ page }) => {
     await page.goto('/');
-    await page.locator('text=Access Investigator Console').first().click();
+    await page.getByRole('button', { name: /Open investigator console/i }).click();
     await expect(page).toHaveURL(/\/login/);
   });
 

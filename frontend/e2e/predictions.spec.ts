@@ -15,9 +15,8 @@ test.describe('Simulate Transaction', () => {
     await page.waitForTimeout(3000);
   });
 
-  test('shows simulate transaction section', async ({ page }) => {
-    const heading = page.locator('text=Simulate').first();
-    await expect(heading).toBeVisible({ timeout: 30000 });
+  test('shows the transaction scoring section', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'Test a transaction' })).toBeVisible({ timeout: 30000 });
   });
 
   test('shows disclaimer', async ({ page }) => {

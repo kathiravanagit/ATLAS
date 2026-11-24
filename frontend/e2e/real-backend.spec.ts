@@ -4,6 +4,9 @@ import { createInterface } from 'node:readline';
 import path from 'node:path';
 import { percent } from '../src/lib/metrics';
 
+const rail = (page: import('@playwright/test').Page, name: string) =>
+  page.locator('aside nav').getByRole('link', { name, exact: true });
+
 // Opt-in because this exercises installed Python dependencies and real model
 // artifacts. It never connects to an existing backend/database or SMS provider.
 test('real backend isolated investigation: login → case → exact ATM → transaction → acknowledgement → resolution', async ({ page }) => {
@@ -75,12 +78,12 @@ test('real backend isolated investigation: login → case → exact ATM → tran
     await page.locator('input[type="password"]').fill('isolated-e2e-password');
     await page.locator('button[type="submit"]').click();
     await expect(page).toHaveURL('/real', { timeout: 20000 });
-    await expect(page.getByText('Resolved Case Value', { exact: true })).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText('Resolved Case Value', { exact: true }).locator('..')).toContainText('not verified prevention');
-    await page.getByRole('navigation').getByRole('button', { name: 'Cases', exact: true }).click();
+    await expect(page.getByText('Resolved case value', { exact: true })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText('Not verified prevention', { exact: true })).toBeVisible();
+    await rail(page, 'Cases').click();
     await page.getByRole('button', { name: 'View prediction for case CASE-INTEGRATION-001', exact: true }).click();
-    await expect(page.getByText(/Predictions: selected case CASE-INTEGRATION-001/)).toBeVisible({ timeout: 20000 });
-    await page.getByRole('navigation').getByRole('button', { name: 'Predictions', exact: true }).click();
+    await expect(page.getByText('Synthetic complaint record — not filed on the government portal')).toBeVisible({ timeout: 20000 });
+    await rail(page, 'Predictions').click();
     await expect.poll(() => snapshots['/api/predictions/CASE-INTEGRATION-001']?.ranked_locations?.length).toBeGreaterThan(1);
     const prediction = snapshots['/api/predictions/CASE-INTEGRATION-001'];
     const atm = prediction.ranked_locations[1].atm_id;
@@ -103,14 +106,14 @@ test('real backend isolated investigation: login → case → exact ATM → tran
     }
     const transactionResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/transactions' && response.request().method() === 'POST');
     await page.getByLabel('Amount (₹)', { exact: true }).fill('32000');
-    await page.getByRole('button', { name: 'Simulate', exact: true }).click();
+    await page.getByRole('button', { name: 'Score transaction', exact: true }).click();
     expect((await transactionResponse).status()).toBe(200);
     await expect.poll(() => snapshots['/api/transactions']?.updated_prediction?.case_id).toBe('CASE-INTEGRATION-001');
-    await page.getByRole('navigation').getByRole('button', { name: 'Alerts', exact: true }).click();
+    await rail(page, 'Alerts').click();
     const seedAlert = page.locator('.card').filter({ has: page.getByText('Synthetic seeded investigation alert', { exact: true }) }).last();
     await seedAlert.getByRole('button', { name: 'Acknowledge', exact: true }).click();
     await expect(seedAlert.getByText(/Acknowledged at/)).toBeVisible();
-    await page.getByRole('navigation').getByRole('button', { name: 'Cases', exact: true }).click();
+    await rail(page, 'Cases').click();
     await page.getByRole('button', { name: 'Mark Resolved', exact: true }).click();
     const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: 'CASE-INTEGRATION-001', exact: true }) });
     await expect(row.getByText('Resolved', { exact: true }).first()).toBeVisible();
@@ -121,7 +124,7 @@ test('real backend isolated investigation: login → case → exact ATM → tran
     expect(report.transaction_amount).toBe(32000);
     expect(report.audit_actions).toEqual(expect.arrayContaining(['Transaction Simulated', 'Case Resolved']));
     expect(report.notification_states.every((state: string) => state === 'queued')).toBe(true);
-    await page.getByRole('navigation').getByRole('button', { name: 'Model Card', exact: true }).click();
+    await rail(page, 'Model card').click();
     const performance = page.getByRole('heading', { name: 'Performance Metrics', exact: true }).locator('..');
     await expect(performance).toBeVisible({ timeout: 20000 });
     const card = snapshots['/api/model/card'];

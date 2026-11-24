@@ -15,12 +15,12 @@ test.describe('Navigation', () => {
 
   test('navigates to overview', async ({ page }) => {
     await page.goto('/real');
-    await expect(page.locator('text=Cash-Out Risk Intelligence')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Cash-out risk' })).toBeVisible({ timeout: 15000 });
   });
 
   test('navigates to map', async ({ page }) => {
     await page.goto('/real/map');
-    await expect(page.locator('text=Predicted Cash-Out Locations')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Ranked cash-out locations' })).toBeVisible({ timeout: 15000 });
   });
 
   test('navigates to cases', async ({ page }) => {

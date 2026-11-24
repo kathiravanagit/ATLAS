@@ -51,7 +51,7 @@ test.describe('Console Overview', () => {
   });
 
   test('shows prediction card', async ({ page }) => {
-    await expect(page.locator('text=Predicted Cash-Out Location')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { name: 'Ranked locations' })).toBeVisible({ timeout: 30000 });
   });
 
   test('shows demo mode indicator', async ({ page }) => {

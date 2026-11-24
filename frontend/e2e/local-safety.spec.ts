@@ -3,6 +3,9 @@ import { FALLBACK_STATS, FALLBACK_CASES, FALLBACK_ALERTS, FALLBACK_PREDICTIONS }
 
 const selectedCase = 'CC-2026-0146';
 
+const rail = (page: import('@playwright/test').Page, name: string) =>
+  page.locator('aside nav').getByRole('link', { name, exact: true });
+
 test('public demo navigates every console route without backend calls or an authenticated session', async ({ page }) => {
   const apiRequests: string[] = [];
   const sockets: string[] = [];
@@ -11,29 +14,29 @@ test('public demo navigates every console route without backend calls or an auth
   page.on('websocket', socket => { if (new URL(socket.url()).pathname.startsWith('/ws/')) sockets.push(socket.url()); });
   await page.route('**/api/**', route => route.abort());
   await page.goto('/demo');
-  await expect(page.getByText(/^LOCAL DEMO —/)).toBeVisible();
+  await expect(page.getByText(/^Demonstration portal/)).toBeVisible();
   await expect(page.getByText('PNY-001', { exact: true }).first()).toBeVisible();
-  await page.getByRole('button', { name: /Puducherry Puducherry/ }).click();
-  await page.getByRole('button', { name: 'Chennai Tamil Nadu' }).click();
+  await page.getByRole('combobox', { name: /Jurisdiction/i }).selectOption('chennai');
   await expect(page.getByText('CHN-001', { exact: true }).first()).toBeVisible();
   for (const [label, suffix] of [
-    ['Predictions', 'predictions'], ['Risk Map', 'map'], ['Cases', 'cases'], ['Alerts', 'alerts'],
-    ['Evidence', 'evidence'], ['Audit Log', 'audit'], ['Data & Privacy', 'data-privacy'],
-    ['Model Card', 'model-card'], ['System Health', 'health'], ['Overview', ''],
+    ['Loop', 'loop'], ['Predictions', 'predictions'], ['Risk map', 'map'], ['Cases', 'cases'], ['Alerts', 'alerts'],
+    ['Campaigns', 'campaigns'], ['I4C summary', 'i4c'], ['Evidence', 'evidence'], ['Audit log', 'audit'],
+    ['Data & privacy', 'data-privacy'], ['Model card', 'model-card'], ['System health', 'health'],
+    ['Profile', 'profile'], ['Overview', ''],
   ]) {
-    await page.getByRole('navigation').getByRole('button', { name: label, exact: true }).click();
+    await rail(page, label).click();
     await expect(page).toHaveURL(`/demo${suffix ? '/' + suffix : ''}`);
     await expect(page.locator('#main-content')).toBeVisible();
   }
-  await page.getByRole('navigation').getByRole('button', { name: 'Cases', exact: true }).click();
+  await rail(page, 'Cases').click();
   await page.getByRole('button', { name: 'View prediction for case CC-2026-0144', exact: true }).click();
   await expect(page.getByText(/No local prediction fixture for case CC-2026-0144/)).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Case Registry', exact: true, level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Case registry', exact: true, level: 2 })).toBeVisible();
   await expect(page.getByRole('button', { name: 'View prediction for case CC-2026-0144', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Prediction data is unavailable' })).toHaveCount(0);
-  await page.getByRole('navigation').getByRole('button', { name: 'Predictions', exact: true }).click();
+  await rail(page, 'Predictions').click();
   await expect(page.getByText('CHN-001', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Simulate', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Score transaction', exact: true })).toBeDisabled();
   expect(apiRequests).toEqual([]);
   expect(sockets).toEqual([]);
   await page.goto('/real');
@@ -89,21 +92,21 @@ test('selected case → selected ATM explanation → synthetic transaction → a
   });
   await page.goto('/real/cases');
   await page.getByRole('button', { name: `View prediction for case ${selectedCase}`, exact: true }).click();
-  await expect(page.getByText(`Predictions: selected case ${selectedCase}`, { exact: false })).toBeVisible();
-  await page.getByRole('navigation').getByRole('button', { name: 'Predictions', exact: true }).click();
+  await expect(page.getByText('Synthetic complaint record — not filed on the government portal')).toBeVisible();
+  await rail(page, 'Predictions').click();
   const secondAtm = prediction.ranked_locations[1].atm_id;
   await page.getByRole('row', { name: `Select ${secondAtm} for explanation` }).click();
   await expect(page.getByText('0.271828', { exact: true })).toBeVisible();
   await expect(page.getByText(/Importance fallback — not SHAP/)).toBeVisible();
   expect(explanations).toContain(secondAtm);
   await page.getByLabel('Amount (₹)', { exact: true }).fill('32000');
-  await page.getByRole('button', { name: 'Simulate', exact: true }).click();
+  await page.getByRole('button', { name: 'Score transaction', exact: true }).click();
   await expect(page.getByText('FIXTURE TRANSACTION PROCESSED', { exact: true })).toBeVisible();
   expect(transactionBody).toMatchObject({ case_id: selectedCase, amount: 32000 });
-  await page.getByRole('navigation').getByRole('button', { name: 'Alerts', exact: true }).click();
+  await rail(page, 'Alerts').click();
   await page.getByRole('button', { name: 'Acknowledge', exact: true }).first().click();
   await expect.poll(() => mutations.filter(path => path.endsWith('/acknowledge')).length).toBe(1);
-  await page.getByRole('navigation').getByRole('button', { name: 'Cases', exact: true }).click();
+  await rail(page, 'Cases').click();
   await page.getByRole('button', { name: 'Mark Resolved', exact: true }).click();
   await expect.poll(() => mutations.includes(`/api/cases/${selectedCase}/resolve`)).toBe(true);
   const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: selectedCase, exact: true }) });
