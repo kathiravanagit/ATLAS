@@ -62,7 +62,7 @@ export default function ProfileSettingsPage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     setProfileMsg(null);
-    const ok = await updateProfile({ name, badge, department });
+    const ok = await updateProfile({ name, badge });
     setProfileMsg(ok
       ? { type: 'success', text: 'Profile updated successfully.' }
       : { type: 'error', text: 'Failed to update profile. Please try again.' }
@@ -177,11 +177,13 @@ export default function ProfileSettingsPage() {
                 <input
                   type="text"
                   value={department}
-                  onChange={e => setDepartment(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-white border border-[#D2D1CA] rounded-lg text-sm text-[#1A1C1F] focus:outline-none focus:border-[#17406F] transition-colors"
-                  placeholder="Cybercrime Division"
+                  readOnly
+                  aria-readonly="true"
+                  title="Department is set by administrator provisioning"
+                  className="w-full pl-8 pr-3 py-2 bg-[#F6F6F3] border border-[#D2D1CA] rounded-lg text-sm text-[#5F6368] focus:outline-none"
                 />
               </div>
+              <p className="text-[11px] text-[#8A8D90] mt-1">Set by administrator provisioning.</p>
             </div>
           </div>
 

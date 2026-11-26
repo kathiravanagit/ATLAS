@@ -621,7 +621,9 @@ def register_auth_routes(app):
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
         if req.department is not None:
-            raise HTTPException(status_code=403, detail="Department changes require administrator provisioning")
+            current_department = (getattr(db_user, "department", "") or "").strip()
+            if req.department.strip() != current_department:
+                raise HTTPException(status_code=403, detail="Department changes require administrator provisioning")
         if req.name is not None:
             db_user.name = req.name
         if req.badge is not None:

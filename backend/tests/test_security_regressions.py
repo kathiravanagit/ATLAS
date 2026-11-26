@@ -197,6 +197,20 @@ def test_department_is_not_self_editable(client, headers):
         assert db.query(User).filter_by(id="INS-001").one().department == "Cybercrime Division"
 
 
+def test_unchanged_department_does_not_block_profile_save(client, headers):
+    response = client.put(
+        "/api/auth/me",
+        headers=headers(),
+        json={"department": "Cybercrime Division", "name": "Inspector Renamed"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["user"]["name"] == "Inspector Renamed"
+    with TestingSessionLocal() as db:
+        user = db.query(User).filter_by(id="INS-001").one()
+        assert user.name == "Inspector Renamed"
+        assert user.department == "Cybercrime Division"
+
+
 def test_review_actor_comes_from_authentication(client, headers):
     response = client.post("/api/review/CASE-001", headers=headers(), json={"action": "approve", "reason": "private review", "reviewer_id": "spoofed-admin"})
     assert response.status_code == 200, response.text
